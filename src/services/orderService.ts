@@ -27,7 +27,10 @@ export const orderService = {
       throw error;
     }
     
-    return data;
+    return {
+      ...data,
+      items: Array.isArray(data.items) ? data.items : []
+    };
   },
 
   // Obtener órdenes del usuario (usuarios autenticados)
@@ -42,7 +45,10 @@ export const orderService = {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(order => ({
+      ...order,
+      items: Array.isArray(order.items) ? order.items : []
+    }));
   },
 
   // Obtener todas las órdenes (admin)
@@ -57,6 +63,9 @@ export const orderService = {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(order => ({
+      ...order,
+      items: Array.isArray(order.items) ? order.items : []
+    }));
   }
 };

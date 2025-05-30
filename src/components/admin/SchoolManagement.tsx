@@ -8,11 +8,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from '@/hooks/use-toast';
 import { School, Plus, Pencil, Trash2, Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { schoolService, School as SchoolType } from '@/services/schoolService';
+import { schoolService, School as SchoolData } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
 
 // Tipo para una escuela
-interface SchoolType {
+interface SchoolData {
   id: string;
   name: string;
   address: string;
@@ -22,18 +22,18 @@ interface SchoolType {
 }
 
 const SchoolManagement = () => {
-  const [schools, setSchools] = useState<SchoolType[]>([]);
+  const [schools, setSchools] = useState<SchoolData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [newSchool, setNewSchool] = useState<Omit<SchoolType, 'id' | 'created_at' | 'updated_at'>>({
+  const [newSchool, setNewSchool] = useState<Omit<SchoolData, 'id' | 'created_at' | 'updated_at'>>({
     name: '',
     address: '',
     phone: '',
     principal: '',
     website: ''
   });
-  const [editingSchool, setEditingSchool] = useState<SchoolType | null>(null);
-  const [deletingSchool, setDeletingSchool] = useState<SchoolType | null>(null);
+  const [editingSchool, setEditingSchool] = useState<SchoolData | null>(null);
+  const [deletingSchool, setDeletingSchool] = useState<SchoolData | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -248,7 +248,7 @@ const SchoolManagement = () => {
                 <Label htmlFor="principal">Director/a</Label>
                 <Input 
                   id="principal" 
-                  value={newSchool.principal} 
+                  value={newSchool.principal || ''} 
                   onChange={(e) => setNewSchool({...newSchool, principal: e.target.value})}
                   placeholder="Nombre del director/a"
                 />
@@ -257,7 +257,7 @@ const SchoolManagement = () => {
                 <Label htmlFor="website">Sitio Web</Label>
                 <Input 
                   id="website" 
-                  value={newSchool.website} 
+                  value={newSchool.website || ''} 
                   onChange={(e) => setNewSchool({...newSchool, website: e.target.value})}
                   placeholder="Ej. https://escuela.edu"
                 />
@@ -312,7 +312,7 @@ const SchoolManagement = () => {
                     <TableCell className="font-medium">{school.name}</TableCell>
                     <TableCell>{school.address}</TableCell>
                     <TableCell>{school.phone}</TableCell>
-                    <TableCell>{school.principal}</TableCell>
+                    <TableCell>{school.principal || '-'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button

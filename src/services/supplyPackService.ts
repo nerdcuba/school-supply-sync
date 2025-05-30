@@ -28,7 +28,10 @@ export const supplyPackService = {
       return null;
     }
     
-    return data;
+    return {
+      ...data,
+      items: Array.isArray(data.items) ? data.items : []
+    };
   },
 
   // Obtener todos los packs (admin)
@@ -43,7 +46,10 @@ export const supplyPackService = {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(pack => ({
+      ...pack,
+      items: Array.isArray(pack.items) ? pack.items : []
+    }));
   },
 
   // Crear nuevo pack (admin)
@@ -59,7 +65,10 @@ export const supplyPackService = {
       throw error;
     }
     
-    return data;
+    return {
+      ...data,
+      items: Array.isArray(data.items) ? data.items : []
+    };
   },
 
   // Actualizar pack (admin)
@@ -76,7 +85,10 @@ export const supplyPackService = {
       throw error;
     }
     
-    return data;
+    return {
+      ...data,
+      items: Array.isArray(data.items) ? data.items : []
+    };
   },
 
   // Eliminar pack (admin)
