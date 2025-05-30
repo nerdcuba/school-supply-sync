@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Download, Print, ArrowLeft } from "lucide-react";
+import { Plus, Download, Printer, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface SupplyListProps {
@@ -201,7 +201,7 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
               onClick={handlePrintList}
               className="border-gray-600 text-gray-600 hover:bg-gray-50"
             >
-              <Print size={16} className="mr-2" />
+              <Printer size={16} className="mr-2" />
               Imprimir
             </Button>
           </div>
