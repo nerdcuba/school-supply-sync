@@ -8,12 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { GraduationCap } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,21 +26,21 @@ const Login = () => {
       const success = await login(email, password);
       if (success) {
         toast({
-          title: "¡Bienvenido!",
-          description: "Has iniciado sesión correctamente.",
+          title: t('messages.welcome'),
+          description: t('messages.welcomeDesc'),
         });
         navigate('/dashboard');
       } else {
         toast({
-          title: "Error de inicio de sesión",
-          description: "Verifica tu email y contraseña.",
+          title: t('messages.loginError'),
+          description: t('messages.loginErrorDesc'),
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Ha ocurrido un error. Inténtalo de nuevo.",
+        title: t('messages.error'),
+        description: t('messages.errorDesc'),
         variant: "destructive",
       });
     } finally {
@@ -55,15 +57,15 @@ const Login = () => {
               <GraduationCap size={32} />
             </div>
           </div>
-          <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
+          <CardTitle className="text-2xl">{t('auth.login')}</CardTitle>
           <CardDescription>
-            Ingresa a tu cuenta de Plan Ahead Solutions
+            {t('auth.loginDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Correo Electrónico</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -74,11 +76,11 @@ const Login = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Tu contraseña"
+                placeholder={t('auth.password')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -86,15 +88,15 @@ const Login = () => {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              {isLoading ? t('common.loading') : t('auth.login')}
             </Button>
           </form>
           
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              ¿No tienes una cuenta?{" "}
+              {t('auth.noAccount')}{" "}
               <Link to="/register" className="text-blue-600 hover:underline">
-                Regístrate aquí
+                {t('auth.registerHere')}
               </Link>
             </p>
           </div>

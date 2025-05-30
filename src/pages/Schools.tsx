@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin, Users, BookOpen } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const schoolsData = [
   {
@@ -59,6 +60,7 @@ const schoolsData = [
 
 const Schools = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { t } = useLanguage();
 
   const filteredSchools = schoolsData.filter(school =>
     school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,11 +73,10 @@ const Schools = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Directorio de Escuelas
+            {t('schools.title')}
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Encuentra tu escuela y accede a las listas de útiles escolares específicas 
-            para cada grado. Simplificamos tu experiencia de compra.
+            {t('schools.subtitle')}
           </p>
           
           {/* Search */}
@@ -83,7 +84,7 @@ const Schools = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <Input
-                placeholder="Buscar por nombre de escuela o dirección..."
+                placeholder={t('schools.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 py-3 text-lg border-2 border-blue-200 focus:border-blue-500"
@@ -99,7 +100,7 @@ const Schools = () => {
               <BookOpen size={32} className="mx-auto" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">{schoolsData.length}</h3>
-            <p className="text-gray-600">Escuelas Disponibles</p>
+            <p className="text-gray-600">{t('schools.select')}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-lg text-center">
             <div className="text-green-600 mb-2">
@@ -108,7 +109,7 @@ const Schools = () => {
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
               {schoolsData.reduce((sum, school) => sum + school.students, 0).toLocaleString()}
             </h3>
-            <p className="text-gray-600">Estudiantes Beneficiados</p>
+            <p className="text-gray-600">{t('schools.students')}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-lg text-center">
             <div className="text-yellow-600 mb-2">
@@ -142,12 +143,12 @@ const Schools = () => {
                 
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>Grados: {school.grades}</span>
-                  <span>{school.students} estudiantes</span>
+                  <span>{school.students} {t('schools.students')}</span>
                 </div>
                 
                 <Link to={`/school/${school.id}`}>
                   <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:bg-blue-700">
-                    Ver Listas de Útiles
+                    {t('schools.viewSupplies')}
                   </Button>
                 </Link>
               </CardContent>
@@ -160,10 +161,10 @@ const Schools = () => {
           <div className="text-center py-12">
             <Search size={48} className="mx-auto text-gray-400 mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No se encontraron escuelas
+              {t('schools.notFound')}
             </h3>
             <p className="text-gray-600 mb-4">
-              No encontramos escuelas que coincidan con tu búsqueda.
+              {t('schools.notFoundDesc')}
             </p>
             <Button
               onClick={() => setSearchTerm("")}

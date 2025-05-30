@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SupplyList from "@/components/SupplyList";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const schoolsData = {
   "redland-elementary": {
@@ -57,6 +58,7 @@ interface SchoolDetailsProps {
 const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
   const { schoolId } = useParams();
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
+  const { t } = useLanguage();
   
   const school = schoolsData[schoolId as keyof typeof schoolsData];
 
@@ -66,7 +68,7 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Escuela no encontrada</h1>
           <Link to="/schools">
-            <Button>Volver a Escuelas</Button>
+            <Button>{t('common.back')}</Button>
           </Link>
         </div>
       </div>
@@ -80,7 +82,7 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
         <div className="flex items-center space-x-2 mb-6">
           <Link to="/schools" className="flex items-center text-blue-600 hover:text-blue-800">
             <ArrowLeft size={20} className="mr-2" />
-            Volver a Escuelas
+            {t('common.back')} {t('nav.schools')}
           </Link>
           <span className="text-gray-500">/</span>
           <span className="text-gray-900 font-medium">{school.name}</span>
