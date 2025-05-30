@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Search, UserRound, Mail, Calendar, Clock, Trash2, Eye, ShoppingBag } fr
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserType {
   id: string;
@@ -38,85 +40,73 @@ const UserManagement = () => {
   const [userToDelete, setUserToDelete] = useState<UserType | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Cargar usuarios desde localStorage al inicio
+  // Cargar usuarios reales desde Supabase
   useEffect(() => {
-    // Carga de usuarios de prueba si no hay ninguno
-    const savedUsers = localStorage.getItem('planAheadUsers');
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    } else {
-      // Crear usuarios de ejemplo
-      const mockUsers = [
-        {
-          id: '1',
-          name: 'María Rodríguez',
-          email: 'maria@example.com',
-          createdAt: '2023-08-15T10:30:00.000Z',
-          role: 'Cliente',
-          phone: '(305) 555-1234',
-          address: 'Calle 123, Miami, FL',
-          orders: [
-            {
-              id: '1001',
-              date: '2024-01-10T14:23:00.000Z',
-              total: 89.99,
-              status: 'Completado',
-              items: [
-                { name: 'Pack 3er Grado - Redland Elementary', quantity: 1, price: 89.99 }
-              ]
-            }
-          ]
-        },
-        {
-          id: '2',
-          name: 'Carlos Pérez',
-          email: 'carlos@example.com',
-          createdAt: '2023-09-20T15:45:00.000Z',
-          role: 'Cliente',
-          phone: '(305) 555-5678',
-          address: 'Avenida 456, Miami, FL',
-          orders: [
-            {
-              id: '1002',
-              date: '2024-01-15T09:12:00.000Z',
-              total: 67.50,
-              status: 'Completado',
-              items: [
-                { name: 'Pack 1er Grado - Sunset Elementary', quantity: 1, price: 67.50 }
-              ]
-            },
-            {
-              id: '1003',
-              date: '2024-02-01T11:30:00.000Z',
-              total: 23.45,
-              status: 'Completado',
-              items: [
-                { name: 'Cuadernos adicionales', quantity: 3, price: 7.82 }
-              ]
-            }
-          ]
-        },
-        {
-          id: '3',
-          name: 'Ana Martínez',
-          email: 'ana@example.com',
-          createdAt: '2023-10-05T08:15:00.000Z',
-          role: 'Cliente',
-          phone: '(305) 555-9012',
-          address: 'Boulevard 789, Miami, FL',
-          orders: []
-        }
-      ];
-      setUsers(mockUsers);
-      localStorage.setItem('planAheadUsers', JSON.stringify(mockUsers));
-    }
+    loadUsers();
   }, []);
 
-  // Guardar usuarios en localStorage cuando cambian
-  useEffect(() => {
-    localStorage.setItem('planAheadUsers', JSON.stringify(users));
-  }, [users]);
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      
+      // Cargar perfiles de usuarios
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (profilesError) {
+        console.error('Error loading profiles:', profilesError);
+        toast({
+          title: "Error",
+          description: "Error al cargar los usuarios",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Cargar órdenes para cada usuario
+      const usersWithOrders = await Promise.all(
+        (profiles || []).map(async (profile) => {
+          const { data: orders } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('user_id', profile.id);
+
+          const formattedOrders = (orders || []).map(order => ({
+            id: order.id,
+            date: order.created_at,
+            total: order.total,
+            status: order.status || 'Completado',
+            items: order.items || []
+          }));
+
+          return {
+            id: profile.id,
+            name: profile.name || 'Sin nombre',
+            email: profile.email || 'Sin email',
+            createdAt: profile.created_at,
+            role: profile.role || 'Cliente',
+            phone: profile.phone,
+            address: profile.address,
+            orders: formattedOrders
+          };
+        })
+      );
+
+      setUsers(usersWithOrders);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error",
+        description: "Error al cargar los usuarios",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrar usuarios según término de búsqueda
   const filteredUsers = users.filter(user => 
@@ -125,18 +115,42 @@ const UserManagement = () => {
   );
 
   // Eliminar usuario
-  const handleDeleteUser = () => {
+  const handleDeleteUser = async () => {
     if (!userToDelete) return;
     
-    const updatedUsers = users.filter(user => user.id !== userToDelete.id);
-    setUsers(updatedUsers);
-    setUserToDelete(null);
-    setDeleteDialogOpen(false);
-    
-    toast({
-      title: "Usuario eliminado",
-      description: "El usuario ha sido eliminado con éxito"
-    });
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userToDelete.id);
+
+      if (error) {
+        console.error('Error deleting user:', error);
+        toast({
+          title: "Error",
+          description: "Error al eliminar el usuario",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Actualizar la lista local
+      setUsers(prev => prev.filter(user => user.id !== userToDelete.id));
+      setUserToDelete(null);
+      setDeleteDialogOpen(false);
+      
+      toast({
+        title: "Usuario eliminado",
+        description: "El usuario ha sido eliminado con éxito"
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: "Error al eliminar el usuario",
+        variant: "destructive",
+      });
+    }
   };
 
   // Formato de fecha
@@ -147,6 +161,17 @@ const UserManagement = () => {
       return 'Fecha inválida';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Cargando usuarios...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -336,7 +361,7 @@ const UserManagement = () => {
                             <ul className="text-sm text-gray-600 space-y-1">
                               {order.items.map((item, idx) => (
                                 <li key={idx}>
-                                  {item.quantity}x {item.name} - ${item.price.toFixed(2)}
+                                  {item.quantity}x {item.name} - ${item.price?.toFixed(2) || '0.00'}
                                 </li>
                               ))}
                             </ul>
