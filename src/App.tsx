@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ShoppingCartSidebar from "@/components/ShoppingCartSidebar";
@@ -63,55 +64,57 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <div className="min-h-screen flex flex-col">
-              <Navbar 
-                cartItemsCount={cartItems.length}
-                onOpenCart={() => setIsCartOpen(true)}
-              />
-              
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/schools" element={<Schools />} />
-                  <Route path="/school/:schoolId" element={<SchoolDetails onAddToCart={addToCart} />} />
-                  <Route path="/how-it-works" element={<HowItWorks />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
+        <LanguageProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <div className="min-h-screen flex flex-col">
+                <Navbar 
+                  cartItemsCount={cartItems.length}
+                  onOpenCart={() => setIsCartOpen(true)}
+                />
+                
+                <main className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/schools" element={<Schools />} />
+                    <Route path="/school/:schoolId" element={<SchoolDetails onAddToCart={addToCart} />} />
+                    <Route path="/how-it-works" element={<HowItWorks />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
 
-              <Footer />
+                <Footer />
 
-              <ShoppingCartSidebar
-                isOpen={isCartOpen}
-                onClose={() => setIsCartOpen(false)}
-                items={cartItems}
-                onRemoveItem={removeFromCart}
-                onUpdateQuantity={updateQuantity}
-                total={cartTotal}
-                onCheckout={() => {
-                  setIsCartOpen(false);
-                  setIsCheckoutOpen(true);
-                }}
-              />
+                <ShoppingCartSidebar
+                  isOpen={isCartOpen}
+                  onClose={() => setIsCartOpen(false)}
+                  items={cartItems}
+                  onRemoveItem={removeFromCart}
+                  onUpdateQuantity={updateQuantity}
+                  total={cartTotal}
+                  onCheckout={() => {
+                    setIsCartOpen(false);
+                    setIsCheckoutOpen(true);
+                  }}
+                />
 
-              <CheckoutModal
-                isOpen={isCheckoutOpen}
-                onClose={() => setIsCheckoutOpen(false)}
-                items={cartItems}
-                total={cartTotal}
-                onCheckoutComplete={handleCheckoutComplete}
-              />
-            </div>
-          </BrowserRouter>
-        </AuthProvider>
+                <CheckoutModal
+                  isOpen={isCheckoutOpen}
+                  onClose={() => setIsCheckoutOpen(false)}
+                  items={cartItems}
+                  total={cartTotal}
+                  onCheckoutComplete={handleCheckoutComplete}
+                />
+              </div>
+            </BrowserRouter>
+          </AuthProvider>
+        </LanguageProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

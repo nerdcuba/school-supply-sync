@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, ShoppingCart, User, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSelector from "./LanguageSelector";
 
 interface NavbarProps {
   cartItemsCount: number;
@@ -13,6 +15,7 @@ interface NavbarProps {
 const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -37,28 +40,30 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-6">
             <Link to="/" className="text-gray-700 hover:text-blue-600 transition-colors">
-              Inicio
+              {t('nav.home')}
             </Link>
             <Link to="/schools" className="text-gray-700 hover:text-blue-600 transition-colors">
-              Escuelas
+              {t('nav.schools')}
             </Link>
             <Link to="/how-it-works" className="text-gray-700 hover:text-blue-600 transition-colors">
-              Cómo Funciona
+              {t('nav.howItWorks')}
             </Link>
             <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition-colors">
-              Contacto
+              {t('nav.contact')}
             </Link>
           </div>
 
           {/* User Actions */}
           <div className="hidden md:flex items-center space-x-4">
+            <LanguageSelector />
+            
             <Button
               onClick={onOpenCart}
               variant="outline"
               className="relative border-blue-600 text-blue-600 hover:bg-blue-50"
             >
               <ShoppingCart size={20} className="mr-2" />
-              Carrito
+              {t('nav.cart')}
               {cartItemsCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
                   {cartItemsCount}
@@ -71,20 +76,20 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                 <Link to="/dashboard">
                   <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
                     <User size={20} className="mr-2" />
-                    Dashboard
+                    {t('nav.dashboard')}
                   </Button>
                 </Link>
                 <Button onClick={handleLogout} variant="outline">
-                  Cerrar Sesión
+                  {t('nav.logout')}
                 </Button>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
                 <Link to="/login">
-                  <Button variant="outline">Iniciar Sesión</Button>
+                  <Button variant="outline">{t('nav.login')}</Button>
                 </Link>
                 <Link to="/register">
-                  <Button>Registrarse</Button>
+                  <Button>{t('nav.register')}</Button>
                 </Link>
               </div>
             )}
@@ -110,31 +115,35 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                 className="text-gray-700 hover:text-blue-600 py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Inicio
+                {t('nav.home')}
               </Link>
               <Link
                 to="/schools"
                 className="text-gray-700 hover:text-blue-600 py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Escuelas
+                {t('nav.schools')}
               </Link>
               <Link
                 to="/how-it-works"
                 className="text-gray-700 hover:text-blue-600 py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Cómo Funciona
+                {t('nav.howItWorks')}
               </Link>
               <Link
                 to="/contact"
                 className="text-gray-700 hover:text-blue-600 py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Contacto
+                {t('nav.contact')}
               </Link>
               
               <div className="pt-4 border-t">
+                <div className="flex justify-center mb-4">
+                  <LanguageSelector />
+                </div>
+                
                 <Button
                   onClick={() => {
                     onOpenCart();
@@ -144,7 +153,7 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                   className="w-full mb-2 relative"
                 >
                   <ShoppingCart size={20} className="mr-2" />
-                  Carrito ({cartItemsCount})
+                  {t('nav.cart')} ({cartItemsCount})
                 </Button>
 
                 {user ? (
@@ -156,11 +165,11 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                         onClick={() => setIsMenuOpen(false)}
                       >
                         <User size={20} className="mr-2" />
-                        Dashboard
+                        {t('nav.dashboard')}
                       </Button>
                     </Link>
                     <Button onClick={handleLogout} variant="outline" className="w-full">
-                      Cerrar Sesión
+                      {t('nav.logout')}
                     </Button>
                   </div>
                 ) : (
@@ -171,7 +180,7 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                         className="w-full"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        Iniciar Sesión
+                        {t('nav.login')}
                       </Button>
                     </Link>
                     <Link to="/register">
@@ -179,7 +188,7 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                         className="w-full"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        Registrarse
+                        {t('nav.register')}
                       </Button>
                     </Link>
                   </div>
