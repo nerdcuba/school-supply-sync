@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { AdminProvider } from "@/contexts/AdminContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -20,6 +21,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -66,53 +69,70 @@ const App = () => {
       <TooltipProvider>
         <LanguageProvider>
           <AuthProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <div className="min-h-screen flex flex-col">
-                <Navbar 
-                  cartItemsCount={cartItems.length}
-                  onOpenCart={() => setIsCartOpen(true)}
-                />
-                
-                <main className="flex-1">
+            <AdminProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <div className="min-h-screen flex flex-col">
+                  {/* Navbar solo en rutas que no son de administrador */}
                   <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/schools" element={<Schools />} />
-                    <Route path="/school/:schoolId" element={<SchoolDetails onAddToCart={addToCart} />} />
-                    <Route path="/how-it-works" element={<HowItWorks />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="*" element={<NotFound />} />
+                    <Route path="/admin/*" element={null} />
+                    <Route path="*" element={
+                      <Navbar 
+                        cartItemsCount={cartItems.length}
+                        onOpenCart={() => setIsCartOpen(true)}
+                      />
+                    } />
                   </Routes>
-                </main>
+                  
+                  <main className="flex-1">
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/schools" element={<Schools />} />
+                      <Route path="/school/:schoolId" element={<SchoolDetails onAddToCart={addToCart} />} />
+                      <Route path="/how-it-works" element={<HowItWorks />} />
+                      <Route path="/contact" element={<Contact />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      
+                      {/* Rutas de administración */}
+                      <Route path="/admin/login" element={<AdminLogin />} />
+                      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                      
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </main>
 
-                <Footer />
+                  {/* Footer solo en rutas que no son de administrador */}
+                  <Routes>
+                    <Route path="/admin/*" element={null} />
+                    <Route path="*" element={<Footer />} />
+                  </Routes>
 
-                <ShoppingCartSidebar
-                  isOpen={isCartOpen}
-                  onClose={() => setIsCartOpen(false)}
-                  items={cartItems}
-                  onRemoveItem={removeFromCart}
-                  onUpdateQuantity={updateQuantity}
-                  total={cartTotal}
-                  onCheckout={() => {
-                    setIsCartOpen(false);
-                    setIsCheckoutOpen(true);
-                  }}
-                />
+                  <ShoppingCartSidebar
+                    isOpen={isCartOpen}
+                    onClose={() => setIsCartOpen(false)}
+                    items={cartItems}
+                    onRemoveItem={removeFromCart}
+                    onUpdateQuantity={updateQuantity}
+                    total={cartTotal}
+                    onCheckout={() => {
+                      setIsCartOpen(false);
+                      setIsCheckoutOpen(true);
+                    }}
+                  />
 
-                <CheckoutModal
-                  isOpen={isCheckoutOpen}
-                  onClose={() => setIsCheckoutOpen(false)}
-                  items={cartItems}
-                  total={cartTotal}
-                  onCheckoutComplete={handleCheckoutComplete}
-                />
-              </div>
-            </BrowserRouter>
+                  <CheckoutModal
+                    isOpen={isCheckoutOpen}
+                    onClose={() => setIsCheckoutOpen(false)}
+                    items={cartItems}
+                    total={cartTotal}
+                    onCheckoutComplete={handleCheckoutComplete}
+                  />
+                </div>
+              </BrowserRouter>
+            </AdminProvider>
           </AuthProvider>
         </LanguageProvider>
       </TooltipProvider>
