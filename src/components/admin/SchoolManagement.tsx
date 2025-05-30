@@ -11,16 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { schoolService, School as SchoolType } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
 
-// Tipo para una escuela
-interface SchoolType {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  principal: string;
-  website: string;
-}
-
 const SchoolManagement = () => {
   const [schools, setSchools] = useState<SchoolType[]>([]);
   const [loading, setLoading] = useState(true);
