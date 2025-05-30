@@ -1,10 +1,9 @@
 
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, Trash2, ShoppingBag, CreditCard } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
 interface CartItem {
   id: string;
@@ -22,6 +21,7 @@ interface ShoppingCartSidebarProps {
   onRemoveItem: (itemId: string) => void;
   onUpdateQuantity: (itemId: string, quantity: number) => void;
   total: number;
+  onCheckout: () => void;
 }
 
 const ShoppingCartSidebar = ({
@@ -30,16 +30,9 @@ const ShoppingCartSidebar = ({
   items,
   onRemoveItem,
   onUpdateQuantity,
-  total
+  total,
+  onCheckout
 }: ShoppingCartSidebarProps) => {
-  const handleCheckout = () => {
-    toast({
-      title: "Redirigiendo a checkout",
-      description: "Te estamos redirigiendo a nuestro socio de compras para completar tu pedido.",
-    });
-    // Here you would integrate with your shopping partner or payment system
-  };
-
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-lg">
@@ -140,14 +133,14 @@ const ShoppingCartSidebar = ({
 
               <div className="space-y-2">
                 <Button
-                  onClick={handleCheckout}
+                  onClick={onCheckout}
                   className="w-full bg-green-600 hover:bg-green-700 text-white"
                 >
                   <CreditCard size={16} className="mr-2" />
                   Proceder al Checkout
                 </Button>
                 <p className="text-xs text-gray-500 text-center">
-                  Serás redirigido a nuestro socio de compras para completar tu pedido
+                  Proceso de compra seguro y protegido
                 </p>
               </div>
             </div>

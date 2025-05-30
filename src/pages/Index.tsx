@@ -1,234 +1,182 @@
 
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, GraduationCap, ShoppingCart, Phone, Mail, MapPin, Users, BookOpen, Star } from "lucide-react";
-import SchoolSelector from "@/components/SchoolSelector";
-import SupplyList from "@/components/SupplyList";
-import ShoppingCartSidebar from "@/components/ShoppingCartSidebar";
-import ContactSection from "@/components/ContactSection";
+import { Search, Users, BookOpen, Star, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { useState } from "react";
 
 const Index = () => {
-  const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
-  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
-  const [cartItems, setCartItems] = useState<any[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const addToCart = (item: any) => {
-    setCartItems(prev => {
-      const existing = prev.find(cartItem => cartItem.id === item.id);
-      if (existing) {
-        return prev.map(cartItem =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
-      }
-      return [...prev, { ...item, quantity: 1 }];
-    });
-  };
-
-  const removeFromCart = (itemId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
-  };
-
-  const updateQuantity = (itemId: string, quantity: number) => {
-    setCartItems(prev =>
-      prev.map(item =>
-        item.id === itemId ? { ...item, quantity } : item
-      )
-    );
-  };
-
-  const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      {/* Header */}
-      <header className="bg-white shadow-lg border-b-4 border-blue-600">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-600 text-white p-3 rounded-full">
-                <GraduationCap size={28} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Plan Ahead Solutions</h1>
-                <p className="text-gray-600 text-sm">Simplificando el regreso a clases</p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setIsCartOpen(true)}
-              variant="outline"
-              className="relative border-blue-600 text-blue-600 hover:bg-blue-50"
-            >
-              <ShoppingCart className="mr-2" size={20} />
-              Carrito ({cartItems.length})
-              {cartItems.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
-                  {cartItems.length}
-                </span>
-              )}
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen">
       {/* Hero Section */}
-      {!selectedSchool && (
-        <section className="py-16 text-center">
-          <div className="container mx-auto px-4">
-            <h2 className="text-5xl font-bold text-gray-900 mb-6">
-              ¡Prepárate para el nuevo año escolar!
-            </h2>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Encuentra fácilmente todas las listas de útiles escolares organizadas por escuela y grado. 
-              Simplificamos tu experiencia de compra para que puedas enfocarte en lo que realmente importa.
-            </p>
-            
-            {/* Stats */}
-            <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-12">
-              <div className="bg-white rounded-lg p-6 shadow-lg">
-                <div className="text-blue-600 mb-2">
-                  <Users size={32} className="mx-auto" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">50+</h3>
-                <p className="text-gray-600">Escuelas Asociadas</p>
-              </div>
-              <div className="bg-white rounded-lg p-6 shadow-lg">
-                <div className="text-green-600 mb-2">
-                  <BookOpen size={32} className="mx-auto" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">500+</h3>
-                <p className="text-gray-600">Listas de Útiles</p>
-              </div>
-              <div className="bg-white rounded-lg p-6 shadow-lg">
-                <div className="text-yellow-600 mb-2">
-                  <Star size={32} className="mx-auto" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">4.9</h3>
-                <p className="text-gray-600">Calificación Promedio</p>
-              </div>
-            </div>
-
-            {/* Search */}
-            <div className="max-w-xl mx-auto mb-8">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <Input
-                  placeholder="Buscar escuela..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 py-3 text-lg border-2 border-blue-200 focus:border-blue-500"
-                />
-              </div>
+      <section className="bg-gradient-to-br from-blue-50 to-green-50 py-20">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+            ¡Prepárate para el nuevo año escolar!
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Encuentra fácilmente todas las listas de útiles escolares organizadas por escuela y grado. 
+            Simplificamos tu experiencia de compra para que puedas enfocarte en lo que realmente importa.
+          </p>
+          
+          {/* Search */}
+          <div className="max-w-xl mx-auto mb-8">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Input
+                placeholder="Buscar escuela..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 py-3 text-lg border-2 border-blue-200 focus:border-blue-500"
+              />
             </div>
           </div>
-        </section>
-      )}
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {!selectedSchool ? (
-          <SchoolSelector
-            onSelectSchool={setSelectedSchool}
-            searchTerm={searchTerm}
-          />
-        ) : (
-          <div className="space-y-6">
-            {/* Breadcrumb */}
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <button
-                onClick={() => {
-                  setSelectedSchool(null);
-                  setSelectedGrade(null);
-                }}
-                className="hover:text-blue-600 transition-colors"
-              >
-                Inicio
-              </button>
-              <span>/</span>
-              <span className="text-gray-900 font-medium">{selectedSchool}</span>
-              {selectedGrade && (
-                <>
-                  <span>/</span>
-                  <span className="text-gray-900 font-medium">{selectedGrade}</span>
-                </>
-              )}
-            </div>
-
-            <SupplyList
-              school={selectedSchool}
-              grade={selectedGrade}
-              onSelectGrade={setSelectedGrade}
-              onAddToCart={addToCart}
-            />
-          </div>
-        )}
-      </main>
-
-      {/* Contact Section */}
-      <ContactSection />
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="bg-blue-600 text-white p-2 rounded-full">
-                  <GraduationCap size={20} />
-                </div>
-                <h3 className="text-xl font-bold">Plan Ahead Solutions</h3>
-              </div>
-              <p className="text-gray-400">
-                Haciendo que el regreso a clases sea más fácil para las familias.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Enlaces Rápidos</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Inicio</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Escuelas</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contacto</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Ayuda</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Contacto</h4>
-              <div className="space-y-2 text-gray-400">
-                <div className="flex items-center space-x-2">
-                  <Mail size={16} />
-                  <span>info@planaheadsolutions.com</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Phone size={16} />
-                  <span>(555) 123-4567</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <MapPin size={16} />
-                  <span>Miami, FL</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Plan Ahead Solutions. Todos los derechos reservados.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/schools">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3">
+                Explorar Escuelas
+              </Button>
+            </Link>
+            <Link to="/how-it-works">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-3">
+                Cómo Funciona
+              </Button>
+            </Link>
           </div>
         </div>
-      </footer>
+      </section>
 
-      {/* Shopping Cart Sidebar */}
-      <ShoppingCartSidebar
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cartItems}
-        onRemoveItem={removeFromCart}
-        onUpdateQuantity={updateQuantity}
-        total={cartTotal}
-      />
+      {/* Stats Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <Card className="text-center">
+              <CardHeader>
+                <div className="text-blue-600 mb-2">
+                  <Users size={40} className="mx-auto" />
+                </div>
+                <CardTitle className="text-3xl font-bold text-gray-900">50+</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Escuelas Asociadas</p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <div className="text-green-600 mb-2">
+                  <BookOpen size={40} className="mx-auto" />
+                </div>
+                <CardTitle className="text-3xl font-bold text-gray-900">500+</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Listas de Útiles</p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <div className="text-yellow-600 mb-2">
+                  <Star size={40} className="mx-auto" />
+                </div>
+                <CardTitle className="text-3xl font-bold text-gray-900">4.9</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Calificación Promedio</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              ¿Por qué elegir Plan Ahead Solutions?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Hacemos que la compra de útiles escolares sea simple, rápida y conveniente.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card>
+              <CardHeader>
+                <div className="bg-blue-100 text-blue-600 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                  <CheckCircle size={24} />
+                </div>
+                <CardTitle>Listas Verificadas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Todas nuestras listas están verificadas directamente con las escuelas 
+                  para garantizar precisión y estar actualizadas.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="bg-green-100 text-green-600 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                  <Clock size={24} />
+                </div>
+                <CardTitle>Ahorra Tiempo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Evita las filas y el estrés de las compras de último minuto. 
+                  Compra desde la comodidad de tu hogar.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="bg-yellow-100 text-yellow-600 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                  <DollarSign size={24} />
+                </div>
+                <CardTitle>Precios Competitivos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Trabajamos con proveedores de confianza para ofrecerte 
+                  los mejores precios en útiles de calidad.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-blue-600 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            ¿Listo para simplificar tu regreso a clases?
+          </h2>
+          <p className="text-xl mb-8 max-w-2xl mx-auto">
+            Únete a miles de familias que ya confían en nosotros para sus necesidades escolares.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/schools">
+              <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
+                Comenzar Ahora
+              </Button>
+            </Link>
+            <Link to="/register">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-blue-600">
+                Crear Cuenta Gratis
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
