@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -38,7 +37,8 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const success = await register(formData.email, formData.password, formData.firstName);
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      const success = await register(fullName, formData.email, formData.password);
       if (success) {
         toast({
           title: "¡Cuenta creada!",
