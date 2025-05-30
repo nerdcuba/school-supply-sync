@@ -19,6 +19,8 @@ import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,47 +72,58 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <div className="min-h-screen flex flex-col">
-                <Navbar 
-                  cartItemsCount={cartItems.length}
-                  onOpenCart={() => setIsCartOpen(true)}
-                />
-                
-                <main className="flex-1">
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/schools" element={<Schools />} />
-                    <Route path="/school/:schoolId" element={<SchoolDetails onAddToCart={addToCart} />} />
-                    <Route path="/how-it-works" element={<HowItWorks />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </main>
+                <Routes>
+                  {/* Admin routes without navbar/footer */}
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  
+                  {/* Regular routes with navbar/footer */}
+                  <Route path="/*" element={
+                    <>
+                      <Navbar 
+                        cartItemsCount={cartItems.length}
+                        onOpenCart={() => setIsCartOpen(true)}
+                      />
+                      
+                      <main className="flex-1">
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/schools" element={<Schools />} />
+                          <Route path="/school/:schoolId" element={<SchoolDetails onAddToCart={addToCart} />} />
+                          <Route path="/how-it-works" element={<HowItWorks />} />
+                          <Route path="/contact" element={<Contact />} />
+                          <Route path="/login" element={<Login />} />
+                          <Route path="/register" element={<Register />} />
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </main>
 
-                <Footer />
+                      <Footer />
 
-                <ShoppingCartSidebar
-                  isOpen={isCartOpen}
-                  onClose={() => setIsCartOpen(false)}
-                  items={cartItems}
-                  onRemoveItem={removeFromCart}
-                  onUpdateQuantity={updateQuantity}
-                  total={cartTotal}
-                  onCheckout={() => {
-                    setIsCartOpen(false);
-                    setIsCheckoutOpen(true);
-                  }}
-                />
+                      <ShoppingCartSidebar
+                        isOpen={isCartOpen}
+                        onClose={() => setIsCartOpen(false)}
+                        items={cartItems}
+                        onRemoveItem={removeFromCart}
+                        onUpdateQuantity={updateQuantity}
+                        total={cartTotal}
+                        onCheckout={() => {
+                          setIsCartOpen(false);
+                          setIsCheckoutOpen(true);
+                        }}
+                      />
 
-                <CheckoutModal
-                  isOpen={isCheckoutOpen}
-                  onClose={() => setIsCheckoutOpen(false)}
-                  items={cartItems}
-                  total={cartTotal}
-                  onCheckoutComplete={handleCheckoutComplete}
-                />
+                      <CheckoutModal
+                        isOpen={isCheckoutOpen}
+                        onClose={() => setIsCheckoutOpen(false)}
+                        items={cartItems}
+                        total={cartTotal}
+                        onCheckoutComplete={handleCheckoutComplete}
+                      />
+                    </>
+                  } />
+                </Routes>
               </div>
             </BrowserRouter>
           </AuthProvider>

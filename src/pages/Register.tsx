@@ -38,7 +38,8 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const success = await register(formData.email, formData.password, formData.firstName, formData.lastName);
+      const fullName = `${formData.firstName} ${formData.lastName}`;
+      const success = await register(fullName, formData.email, formData.password);
       if (success) {
         toast({
           title: "¡Cuenta creada!",
