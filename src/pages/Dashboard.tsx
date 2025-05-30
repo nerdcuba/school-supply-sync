@@ -1,162 +1,131 @@
 
-import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useState } from 'react';
-import { toast } from '@/hooks/use-toast';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { User, Package, ShoppingBag } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { ShoppingBag, Package, Clock } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Dashboard = () => {
-  const { user, updateProfile, purchases } = useAuth();
+  const { user } = useAuth();
   const { t } = useLanguage();
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || ''
-  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfile(formData);
-    setIsEditing(false);
-    toast({
-      title: t('messages.profileUpdated'),
-      description: t('messages.profileUpdatedDesc'),
-    });
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
+  // Mock purchase history data
+  const purchases = [
+    {
+      id: "1",
+      date: "2024-01-15",
+      school: "Redland Elementary School",
+      grade: "3er Grado",
+      items: 15,
+      total: 89.99
+    },
+    {
+      id: "2", 
+      date: "2024-01-10",
+      school: "Sunset Elementary School",
+      grade: "1er Grado", 
+      items: 12,
+      total: 67.50
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          {t('dashboard.welcome')}, {user?.name}!
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Welcome Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {t('dashboard.welcome', { name: user?.firstName || 'Usuario' })}
+          </h1>
+          <p className="text-gray-600">
+            Aquí puedes ver tu historial de compras y gestionar tu cuenta.
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Stats Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User size={20} />
-                {t('dashboard.profile')}
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Compras Totales
               </CardTitle>
+              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isEditing ? (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">{t('auth.name')}</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">{t('auth.email')}</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit" size="sm">
-                      {t('common.save')}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setIsEditing(false)}
-                    >
-                      {t('common.cancel')}
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-2">
-                  <p><strong>{t('auth.name')}:</strong> {user?.name}</p>
-                  <p><strong>{t('auth.email')}:</strong> {user?.email}</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    {t('common.edit')}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingBag size={20} />
-                {t('dashboard.purchases')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-blue-600">{purchases.length}</p>
-              <p className="text-sm text-gray-600">{t('dashboard.totalPurchases')}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package size={20} />
-                {t('dashboard.totalSpent')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-green-600">
-                ${purchases.reduce((total, purchase) => total + purchase.total, 0).toFixed(2)}
+              <div className="text-2xl font-bold">{purchases.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Este año escolar
               </p>
-              <p className="text-sm text-gray-600">{t('dashboard.allTime')}</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {t('dashboard.items')} Comprados
+              </CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {purchases.reduce((sum, purchase) => sum + purchase.items, 0)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Total de artículos
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Última Compra
+              </CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {purchases.length > 0 ? new Date(purchases[0].date).toLocaleDateString() : 'N/A'}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Fecha más reciente
+              </p>
             </CardContent>
           </Card>
         </div>
 
+        {/* Purchase History */}
         <Card>
           <CardHeader>
-            <CardTitle>{t('dashboard.recentPurchases')}</CardTitle>
-            <CardDescription>{t('dashboard.recentPurchasesDesc')}</CardDescription>
+            <CardTitle>{t('dashboard.purchaseHistory')}</CardTitle>
+            <CardDescription>
+              Revisa todas tus compras anteriores de útiles escolares.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {purchases.length === 0 ? (
-              <p className="text-gray-500">{t('dashboard.noPurchases')}</p>
+              <div className="text-center py-8">
+                <ShoppingBag size={48} className="mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {t('dashboard.noPurchases')}
+                </h3>
+                <p className="text-gray-600">
+                  {t('dashboard.noPurchasesDesc')}
+                </p>
+              </div>
             ) : (
               <div className="space-y-4">
-                {purchases.slice(0, 5).map((purchase) => (
-                  <div key={purchase.id} className="border-b pb-4 last:border-b-0">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium">{t('dashboard.order')} #{purchase.id}</p>
-                        <p className="text-sm text-gray-600">
-                          {new Date(purchase.date).toLocaleDateString()}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {purchase.items.length} {t('dashboard.items')}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold">${purchase.total.toFixed(2)}</p>
-                        <p className="text-sm text-green-600">{purchase.status}</p>
-                      </div>
+                {purchases.map((purchase) => (
+                  <div key={purchase.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">{purchase.school}</h4>
+                      <p className="text-sm text-gray-600">{purchase.grade}</p>
+                      <p className="text-xs text-gray-500">
+                        {t('dashboard.orderDate')}: {new Date(purchase.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">${purchase.total}</p>
+                      <p className="text-sm text-gray-600">{purchase.items} {t('dashboard.items')}</p>
                     </div>
                   </div>
                 ))}

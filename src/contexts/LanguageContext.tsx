@@ -6,7 +6,7 @@ type Language = 'es' | 'en';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string, params?: Record<string, string>) => string;
+  t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -163,107 +163,6 @@ const translations = {
     'common.save': 'Guardar',
     'common.cancel': 'Cancelar',
     'common.loading': 'Cargando...',
-    
-    admin: {
-      login: 'Acceso Administrador',
-      loginDesc: 'Ingresa tus credenciales de administrador',
-      username: 'Usuario',
-      welcome: 'Bienvenido Administrador',
-      loginSuccess: 'Acceso exitoso al panel de administración',
-      invalidCredentials: 'Credenciales incorrectas',
-      logout: 'Cerrar Sesión',
-      dashboard: 'Panel de Administración',
-      analytics: 'Analíticas',
-      schools: 'Escuelas',
-      packs: 'Packs',
-      users: 'Usuarios',
-      settings: 'Configuración',
-      
-      // Analytics
-      totalSales: 'Ventas Totales',
-      totalOrders: 'Pedidos Totales',
-      avgOrderValue: 'Valor Promedio',
-      totalUsers: 'Usuarios Totales',
-      fromLastMonth: 'vs mes anterior',
-      newThisMonth: 'nuevos este mes',
-      salesTrend: 'Tendencia de Ventas',
-      salesTrendDesc: 'Ventas de los últimos 6 meses',
-      topPacks: 'Packs Más Vendidos',
-      topPacksDesc: 'Distribución por popularidad',
-      monthlyOrders: 'Pedidos Mensuales',
-      monthlyOrdersDesc: 'Número de pedidos por mes',
-      sales: 'Ventas',
-      orders: 'Pedidos',
-      
-      // School Management
-      schoolManagement: 'Gestión de Escuelas',
-      schoolManagementDesc: 'Administra las escuelas registradas en la plataforma',
-      addSchool: 'Añadir Escuela',
-      editSchool: 'Editar Escuela',
-      addSchoolDesc: 'Completa la información de la nueva escuela',
-      editSchoolDesc: 'Modifica la información de la escuela',
-      schoolName: 'Nombre de la Escuela',
-      location: 'Ubicación',
-      contactEmail: 'Email de Contacto',
-      contactPhone: 'Teléfono de Contacto',
-      schoolAdded: 'Escuela Añadida',
-      schoolAddedDesc: 'La escuela se ha añadido exitosamente',
-      schoolUpdated: 'Escuela Actualizada',
-      schoolUpdatedDesc: 'La información de la escuela se ha actualizado',
-      schoolDeleted: 'Escuela Eliminada',
-      schoolDeletedDesc: 'La escuela se ha eliminado del sistema',
-      
-      // Pack Management
-      packManagement: 'Gestión de Packs',
-      packManagementDesc: 'Administra los packs de útiles escolares',
-      addPack: 'Añadir Pack',
-      editPack: 'Editar Pack',
-      addPackDesc: 'Crea un nuevo pack de útiles escolares',
-      editPackDesc: 'Modifica la información del pack',
-      packName: 'Nombre del Pack',
-      price: 'Precio',
-      school: 'Escuela',
-      grade: 'Grado',
-      description: 'Descripción',
-      items: 'Artículos',
-      onePerLine: 'uno por línea',
-      selectSchool: 'Seleccionar Escuela',
-      selectGrade: 'Seleccionar Grado',
-      packAdded: 'Pack Añadido',
-      packAddedDesc: 'El pack se ha añadido exitosamente',
-      packUpdated: 'Pack Actualizado',
-      packUpdatedDesc: 'La información del pack se ha actualizado',
-      packDeleted: 'Pack Eliminado',
-      packDeletedDesc: 'El pack se ha eliminado del sistema',
-      
-      // User Management
-      userManagement: 'Gestión de Usuarios',
-      userManagementDesc: 'Administra los usuarios registrados en la plataforma',
-      registrationDate: 'Fecha de Registro',
-      totalPurchases: 'Compras Totales',
-      totalSpent: 'Total Gastado',
-      lastLogin: 'Último Acceso',
-      userDetails: 'Detalles del Usuario',
-      userDetailsDesc: 'Información detallada del usuario',
-      userDeleted: 'Usuario Eliminado',
-      userDeletedDesc: 'El usuario se ha eliminado del sistema',
-      
-      // Admin Settings
-      adminCredentials: 'Credenciales de Administrador',
-      adminCredentialsDesc: 'Actualiza las credenciales de acceso al panel',
-      currentPassword: 'Contraseña Actual',
-      newUsername: 'Nuevo Usuario',
-      newPassword: 'Nueva Contraseña',
-      updateCredentials: 'Actualizar Credenciales',
-      credentialsUpdated: 'Credenciales Actualizadas',
-      credentialsUpdatedDesc: 'Las credenciales se han actualizado exitosamente',
-      systemInfo: 'Información del Sistema',
-      systemInfoDesc: 'Información general de la plataforma',
-      version: 'Versión',
-      lastUpdate: 'Última Actualización',
-      totalSchools: 'Total Escuelas',
-      totalPacks: 'Total Packs',
-    }
   },
   en: {
     // Navbar
@@ -415,107 +314,6 @@ const translations = {
     'common.save': 'Save',
     'common.cancel': 'Cancel',
     'common.loading': 'Loading...',
-    
-    admin: {
-      login: 'Admin Access',
-      loginDesc: 'Enter your administrator credentials',
-      username: 'Username',
-      welcome: 'Welcome Administrator',
-      loginSuccess: 'Successfully logged into admin panel',
-      invalidCredentials: 'Invalid credentials',
-      logout: 'Logout',
-      dashboard: 'Admin Dashboard',
-      analytics: 'Analytics',
-      schools: 'Schools',
-      packs: 'Packs',
-      users: 'Users',
-      settings: 'Settings',
-      
-      // Analytics
-      totalSales: 'Total Sales',
-      totalOrders: 'Total Orders',
-      avgOrderValue: 'Average Order Value',
-      totalUsers: 'Total Users',
-      fromLastMonth: 'from last month',
-      newThisMonth: 'new this month',
-      salesTrend: 'Sales Trend',
-      salesTrendDesc: 'Sales from the last 6 months',
-      topPacks: 'Top Selling Packs',
-      topPacksDesc: 'Distribution by popularity',
-      monthlyOrders: 'Monthly Orders',
-      monthlyOrdersDesc: 'Number of orders per month',
-      sales: 'Sales',
-      orders: 'Orders',
-      
-      // School Management
-      schoolManagement: 'School Management',
-      schoolManagementDesc: 'Manage schools registered on the platform',
-      addSchool: 'Add School',
-      editSchool: 'Edit School',
-      addSchoolDesc: 'Complete the new school information',
-      editSchoolDesc: 'Modify the school information',
-      schoolName: 'School Name',
-      location: 'Location',
-      contactEmail: 'Contact Email',
-      contactPhone: 'Contact Phone',
-      schoolAdded: 'School Added',
-      schoolAddedDesc: 'The school has been added successfully',
-      schoolUpdated: 'School Updated',
-      schoolUpdatedDesc: 'The school information has been updated',
-      schoolDeleted: 'School Deleted',
-      schoolDeletedDesc: 'The school has been removed from the system',
-      
-      // Pack Management
-      packManagement: 'Pack Management',
-      packManagementDesc: 'Manage school supply packs',
-      addPack: 'Add Pack',
-      editPack: 'Edit Pack',
-      addPackDesc: 'Create a new school supply pack',
-      editPackDesc: 'Modify the pack information',
-      packName: 'Pack Name',
-      price: 'Price',
-      school: 'School',
-      grade: 'Grade',
-      description: 'Description',
-      items: 'Items',
-      onePerLine: 'one per line',
-      selectSchool: 'Select School',
-      selectGrade: 'Select Grade',
-      packAdded: 'Pack Added',
-      packAddedDesc: 'The pack has been added successfully',
-      packUpdated: 'Pack Updated',
-      packUpdatedDesc: 'The pack information has been updated',
-      packDeleted: 'Pack Deleted',
-      packDeletedDesc: 'The pack has been removed from the system',
-      
-      // User Management
-      userManagement: 'User Management',
-      userManagementDesc: 'Manage users registered on the platform',
-      registrationDate: 'Registration Date',
-      totalPurchases: 'Total Purchases',
-      totalSpent: 'Total Spent',
-      lastLogin: 'Last Login',
-      userDetails: 'User Details',
-      userDetailsDesc: 'Detailed user information',
-      userDeleted: 'User Deleted',
-      userDeletedDesc: 'The user has been removed from the system',
-      
-      // Admin Settings
-      adminCredentials: 'Admin Credentials',
-      adminCredentialsDesc: 'Update panel access credentials',
-      currentPassword: 'Current Password',
-      newUsername: 'New Username',
-      newPassword: 'New Password',
-      updateCredentials: 'Update Credentials',
-      credentialsUpdated: 'Credentials Updated',
-      credentialsUpdatedDesc: 'Credentials have been updated successfully',
-      systemInfo: 'System Information',
-      systemInfoDesc: 'General platform information',
-      version: 'Version',
-      lastUpdate: 'Last Update',
-      totalSchools: 'Total Schools',
-      totalPacks: 'Total Packs',
-    }
   }
 };
 
@@ -534,19 +332,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('language', lang);
   };
 
-  const t = (key: string, params?: Record<string, string>): string => {
-    const getNestedValue = (obj: any, path: string): string => {
-      return path.split('.').reduce((current, key) => {
-        return current && current[key] !== undefined ? current[key] : path;
-      }, obj);
-    };
-
-    let translation = getNestedValue(translations[language], key);
-    
-    // Ensure we always return a string
-    if (typeof translation !== 'string') {
-      translation = key;
-    }
+  const t = (key: string, params?: Record<string, string>) => {
+    let translation = translations[language][key as keyof typeof translations[typeof language]] || key;
     
     if (params) {
       Object.entries(params).forEach(([param, value]) => {
