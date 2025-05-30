@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 type Language = 'es' | 'en';
@@ -5,7 +6,7 @@ type Language = 'es' | 'en';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -533,8 +534,19 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('language', lang);
   };
 
-  const t = (key: string, params?: Record<string, string>) => {
-    let translation = translations[language][key as keyof typeof translations[typeof language]] || key;
+  const t = (key: string, params?: Record<string, string>): string => {
+    const getNestedValue = (obj: any, path: string): string => {
+      return path.split('.').reduce((current, key) => {
+        return current && current[key] !== undefined ? current[key] : path;
+      }, obj);
+    };
+
+    let translation = getNestedValue(translations[language], key);
+    
+    // Ensure we always return a string
+    if (typeof translation !== 'string') {
+      translation = key;
+    }
     
     if (params) {
       Object.entries(params).forEach(([param, value]) => {
