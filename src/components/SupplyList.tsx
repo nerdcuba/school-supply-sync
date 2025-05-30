@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Download, Printer, ArrowLeft } from "lucide-react";
+import { Plus, Download, Printer, ArrowLeft, Package } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface SupplyListProps {
@@ -105,35 +105,45 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
             Listas de Útiles - {school}
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Selecciona el grado de tu hijo/a para ver la lista completa de útiles escolares.
+            Selecciona el grado de tu hijo/a para ver la lista completa de útiles escolares disponible como pack.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {grades.map((gradeOption) => (
-            <Card
-              key={gradeOption}
-              className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-green-300 group"
-              onClick={() => onSelectGrade(gradeOption)}
-            >
-              <CardHeader className="text-center pb-4">
-                <div className="bg-green-100 text-green-600 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center text-xl font-bold group-hover:bg-green-600 group-hover:text-white transition-colors">
-                  {gradeOption === "Kindergarten" ? "K" : gradeOption.charAt(0)}
-                </div>
-                <CardTitle className="text-xl group-hover:text-green-600 transition-colors">
-                  {gradeOption}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-gray-600 mb-4">
-                  {gradeData[gradeOption as keyof typeof gradeData]?.supplies.length || 0} artículos
-                </p>
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                  Ver Lista Completa
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+          {grades.map((gradeOption) => {
+            const gradeSupplies = gradeData[gradeOption as keyof typeof gradeData]?.supplies || [];
+            const packTotal = gradeSupplies.reduce((total, supply) => total + (supply.price * supply.quantity), 0);
+            
+            return (
+              <Card
+                key={gradeOption}
+                className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-green-300 group"
+                onClick={() => onSelectGrade(gradeOption)}
+              >
+                <CardHeader className="text-center pb-4">
+                  <div className="bg-green-100 text-green-600 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center text-xl font-bold group-hover:bg-green-600 group-hover:text-white transition-colors">
+                    <Package size={24} />
+                  </div>
+                  <CardTitle className="text-xl group-hover:text-green-600 transition-colors">
+                    Pack {gradeOption}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center space-y-3">
+                  <div className="space-y-1">
+                    <p className="text-gray-600">
+                      {gradeSupplies.length} artículos incluidos
+                    </p>
+                    <p className="text-2xl font-bold text-green-600">
+                      ${packTotal.toFixed(2)}
+                    </p>
+                  </div>
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    Ver Pack Completo
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     );
@@ -147,11 +157,22 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
 
   const totalCost = supplies.reduce((total, supply) => total + (supply.price * supply.quantity), 0);
 
-  const handleAddToCart = (supply: any) => {
-    onAddToCart(supply);
+  const handleAddPackToCart = () => {
+    const packItem = {
+      id: `pack-${grade?.toLowerCase().replace(/\s+/g, '-')}`,
+      name: `Pack Completo ${grade}`,
+      brand: "Plan Ahead Solutions",
+      price: totalCost,
+      quantity: 1,
+      category: "Pack Completo",
+      supplies: supplies,
+      school: school
+    };
+    
+    onAddToCart(packItem);
     toast({
-      title: "Agregado al carrito",
-      description: `${supply.name} ha sido agregado a tu carrito.`,
+      title: "Pack agregado al carrito",
+      description: `Pack completo de ${grade} agregado a tu carrito con ${supplies.length} artículos.`,
     });
   };
 
@@ -172,52 +193,76 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Pack Option */}
       <div className="bg-white rounded-lg p-6 shadow-lg">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Lista de Útiles - {grade}
-            </h2>
-            <p className="text-gray-600">{school}</p>
-            <div className="flex items-center space-x-4 mt-2">
-              <span className="text-sm text-gray-500">{supplies.length} artículos</span>
-              <span className="text-sm font-semibold text-green-600">
-                Total estimado: ${totalCost.toFixed(2)}
-              </span>
+        <div className="flex flex-col space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Pack de Útiles - {grade}
+              </h2>
+              <p className="text-gray-600">{school}</p>
+              <div className="flex items-center space-x-4 mt-2">
+                <span className="text-sm text-gray-500">{supplies.length} artículos</span>
+                <span className="text-lg font-bold text-green-600">
+                  Total del pack: ${totalCost.toFixed(2)}
+                </span>
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={handleDownloadList}
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              >
+                <Download size={16} className="mr-2" />
+                Descargar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handlePrintList}
+                className="border-gray-600 text-gray-600 hover:bg-gray-50"
+              >
+                <Printer size={16} className="mr-2" />
+                Imprimir
+              </Button>
             </div>
           </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              onClick={handleDownloadList}
-              className="border-blue-600 text-blue-600 hover:bg-blue-50"
-            >
-              <Download size={16} className="mr-2" />
-              Descargar
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handlePrintList}
-              className="border-gray-600 text-gray-600 hover:bg-gray-50"
-            >
-              <Printer size={16} className="mr-2" />
-              Imprimir
-            </Button>
+          
+          {/* Pack Purchase Section */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
+              <div>
+                <h3 className="text-lg font-semibold text-green-800 mb-1">
+                  Compra el Pack Completo
+                </h3>
+                <p className="text-green-700 text-sm">
+                  Todos los útiles necesarios para {grade} en un solo pack. ¡Ahorra tiempo y dinero!
+                </p>
+              </div>
+              <Button
+                onClick={handleAddPackToCart}
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 text-white min-w-[200px]"
+              >
+                <Package size={20} className="mr-2" />
+                Agregar Pack - ${totalCost.toFixed(2)}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Category Filter */}
       <div className="bg-white rounded-lg p-4 shadow-lg">
-        <h3 className="text-lg font-semibold mb-3">Filtrar por categoría:</h3>
+        <h3 className="text-lg font-semibold mb-3">Contenido del pack por categoría:</h3>
         <div className="flex flex-wrap gap-2">
           <Button
             variant={selectedCategory === null ? "default" : "outline"}
             onClick={() => setSelectedCategory(null)}
             size="sm"
           >
-            Todas ({supplies.length})
+            Todo el pack ({supplies.length})
           </Button>
           {categories.map((category) => (
             <Button
@@ -233,10 +278,16 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
         </div>
       </div>
 
-      {/* Supply Items */}
+      {/* Supply Items - Showing pack contents */}
       <div className="grid gap-4">
+        <div className="text-center mb-4">
+          <h4 className="text-lg font-medium text-gray-700">
+            Artículos incluidos en el pack:
+          </h4>
+        </div>
+        
         {filteredSupplies.map((supply) => (
-          <Card key={supply.id} className="hover:shadow-md transition-shadow">
+          <Card key={supply.id} className="border-l-4 border-l-green-500">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                 <div className="flex-1">
@@ -248,24 +299,15 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
                   </div>
                   <p className="text-gray-600 mb-1">Marca recomendada: {supply.brand}</p>
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
-                    <span>Cantidad necesaria: {supply.quantity}</span>
-                    <span className="text-lg font-semibold text-green-600">${supply.price}</span>
+                    <span>Cantidad incluida: {supply.quantity}</span>
+                    <span className="text-lg font-semibold text-green-600">${supply.price} c/u</span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Subtotal</p>
-                    <p className="text-lg font-bold text-gray-900">
-                      ${(supply.price * supply.quantity).toFixed(2)}
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => handleAddToCart(supply)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Plus size={16} className="mr-2" />
-                    Agregar
-                  </Button>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Subtotal en pack</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    ${(supply.price * supply.quantity).toFixed(2)}
+                  </p>
                 </div>
               </div>
             </CardContent>
