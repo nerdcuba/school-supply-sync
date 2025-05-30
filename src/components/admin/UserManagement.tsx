@@ -79,7 +79,7 @@ const UserManagement = () => {
             date: order.created_at,
             total: order.total,
             status: order.status || 'Completado',
-            items: order.items || []
+            items: Array.isArray(order.items) ? order.items : []
           }));
 
           return {
@@ -88,8 +88,8 @@ const UserManagement = () => {
             email: profile.email || 'Sin email',
             createdAt: profile.created_at,
             role: profile.role || 'Cliente',
-            phone: profile.phone,
-            address: profile.address,
+            phone: profile.phone || undefined,
+            address: profile.address || undefined,
             orders: formattedOrders
           };
         })
