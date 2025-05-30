@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Search, UserRound, Mail, Calendar, Clock, Trash2, Eye } from 'lucide-react';
+import { Search, UserRound, Mail, Calendar, Clock, Trash2, Eye, ShoppingBag } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -327,7 +326,7 @@ const UserManagement = () => {
                               <h4 className="font-semibold">Pedido #{order.id}</h4>
                               <p className="text-sm text-gray-500">{formatDate(order.date)}</p>
                             </div>
-                            <Badge variant={order.status === 'Completado' ? 'success' : 'default'}>
+                            <Badge variant={order.status === 'Completado' ? 'default' : 'secondary'}>
                               {order.status}
                             </Badge>
                           </div>

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { ShoppingBag, Package, Clock } from "lucide-react";
@@ -34,7 +33,7 @@ const Dashboard = () => {
         {/* Welcome Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {t('dashboard.welcome', { name: user?.firstName || 'Usuario' })}
+            ¡Bienvenido, {user?.email || 'Usuario'}!
           </h1>
           <p className="text-gray-600">
             Aquí puedes ver tu historial de compras y gestionar tu cuenta.

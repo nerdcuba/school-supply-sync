@@ -28,7 +28,7 @@ const Register = () => {
     
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: t('messages.error'),
+        title: "Error",
         description: "Las contraseñas no coinciden",
         variant: "destructive",
       });
@@ -38,7 +38,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const success = await register(formData.email, formData.password, formData.firstName, formData.lastName);
+      const success = await register(formData.email, formData.password, formData.firstName);
       if (success) {
         toast({
           title: "¡Cuenta creada!",
@@ -47,15 +47,15 @@ const Register = () => {
         navigate('/dashboard');
       } else {
         toast({
-          title: t('messages.error'),
+          title: "Error",
           description: "Error al crear la cuenta. Inténtalo de nuevo.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: t('messages.error'),
-        description: t('messages.errorDesc'),
+        title: "Error",
+        description: "Ha ocurrido un error inesperado.",
         variant: "destructive",
       });
     } finally {

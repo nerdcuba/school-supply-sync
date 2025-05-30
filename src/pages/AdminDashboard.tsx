@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useAdmin } from '@/contexts/AdminContext';
-import { LogOut, LayoutDashboard, School, PackageOpen, Users, Settings } from 'lucide-react';
+import { LogOut, LayoutDashboard, School, Package, Users, Settings, Shield } from 'lucide-react';
 import SchoolManagement from '@/components/admin/SchoolManagement';
 import PackManagement from '@/components/admin/PackManagement';
 import UserManagement from '@/components/admin/UserManagement';
@@ -57,7 +56,7 @@ const AdminDashboard = () => {
               Escuelas
             </TabsTrigger>
             <TabsTrigger value="packs" className="flex items-center">
-              <PackageOpen size={16} className="mr-2" />
+              <Package size={16} className="mr-2" />
               Packs de Útiles
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center">
