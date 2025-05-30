@@ -8,11 +8,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from '@/hooks/use-toast';
 import { School, Plus, Pencil, Trash2, Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { schoolService, School as SchoolData } from '@/services/schoolService';
+import { schoolService, School as SchoolType } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
 
 // Tipo para una escuela
-interface SchoolData {
+interface SchoolType {
   id: string;
   name: string;
   address: string;
@@ -22,18 +22,18 @@ interface SchoolData {
 }
 
 const SchoolManagement = () => {
-  const [schools, setSchools] = useState<SchoolData[]>([]);
+  const [schools, setSchools] = useState<SchoolType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [newSchool, setNewSchool] = useState<Omit<SchoolData, 'id' | 'created_at' | 'updated_at'>>({
+  const [newSchool, setNewSchool] = useState<Omit<SchoolType, 'id' | 'created_at' | 'updated_at'>>({
     name: '',
     address: '',
     phone: '',
     principal: '',
     website: ''
   });
-  const [editingSchool, setEditingSchool] = useState<SchoolData | null>(null);
-  const [deletingSchool, setDeletingSchool] = useState<SchoolData | null>(null);
+  const [editingSchool, setEditingSchool] = useState<SchoolType | null>(null);
+  const [deletingSchool, setDeletingSchool] = useState<SchoolType | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
