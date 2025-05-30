@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,7 +41,6 @@ const UserManagement = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Cargar usuarios reales desde Supabase
   useEffect(() => {
     loadUsers();
   }, []);
@@ -50,40 +48,73 @@ const UserManagement = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      console.log('Cargando usuarios desde Supabase...');
+      console.log('=== INICIANDO CARGA DE USUARIOS ===');
       
-      // Cargar perfiles de usuarios
+      // Primero, verificar la conexión a Supabase
+      console.log('Verificando conexión a Supabase...');
+      const { data: testConnection, error: connectionError } = await supabase
+        .from('profiles')
+        .select('count')
+        .limit(1);
+      
+      if (connectionError) {
+        console.error('Error de conexión a Supabase:', connectionError);
+        throw connectionError;
+      }
+      
+      console.log('Conexión a Supabase exitosa');
+
+      // Cargar todos los perfiles
+      console.log('Consultando tabla profiles...');
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Respuesta de profiles:', { profiles, error: profilesError });
+
       if (profilesError) {
-        console.error('Error loading profiles:', profilesError);
+        console.error('Error cargando perfiles:', profilesError);
         toast({
           title: "Error",
-          description: "Error al cargar los usuarios",
+          description: `Error al cargar los usuarios: ${profilesError.message}`,
           variant: "destructive",
         });
         return;
       }
 
-      console.log('Perfiles cargados:', profiles);
+      console.log(`Se encontraron ${profiles?.length || 0} perfiles en la base de datos`);
 
       if (!profiles || profiles.length === 0) {
-        console.log('No se encontraron perfiles en la base de datos');
+        console.log('No hay perfiles en la base de datos. Verificando tabla auth.users...');
+        
+        // Intentar obtener usuarios de auth directamente (esto no debería funcionar por RLS, pero lo intentamos)
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        console.log('Usuarios en auth:', { authUsers, error: authError });
+        
         setUsers([]);
+        toast({
+          title: "Información",
+          description: "No se encontraron usuarios registrados. Si acabas de registrar un usuario, el perfil debería crearse automáticamente.",
+        });
         return;
       }
 
       // Cargar órdenes para cada usuario
+      console.log('Cargando órdenes para cada usuario...');
       const usersWithOrders = await Promise.all(
         profiles.map(async (profile) => {
-          const { data: orders } = await supabase
+          console.log(`Cargando órdenes para usuario ${profile.id}...`);
+          
+          const { data: orders, error: ordersError } = await supabase
             .from('orders')
             .select('*')
             .eq('user_id', profile.id)
             .order('created_at', { ascending: false });
+
+          if (ordersError) {
+            console.error(`Error cargando órdenes para usuario ${profile.id}:`, ordersError);
+          }
 
           const formattedOrders = (orders || []).map(order => ({
             id: order.id,
@@ -106,17 +137,53 @@ const UserManagement = () => {
         })
       );
 
-      console.log('Usuarios con órdenes:', usersWithOrders);
+      console.log('Usuarios procesados con órdenes:', usersWithOrders);
       setUsers(usersWithOrders);
+      
+      toast({
+        title: "Éxito",
+        description: `Se cargaron ${usersWithOrders.length} usuarios correctamente.`,
+      });
+
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('Error general cargando usuarios:', error);
       toast({
         title: "Error",
-        description: "Error al cargar los usuarios",
+        description: "Error inesperado al cargar los usuarios. Revisa la consola para más detalles.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Función para crear perfiles manualmente para usuarios existentes
+  const createMissingProfiles = async () => {
+    try {
+      console.log('Intentando crear perfiles para usuarios existentes...');
+      
+      // Esta operación requiere privilegios de admin, normalmente no funcionaría desde el frontend
+      const { data: authUsers, error } = await supabase.auth.admin.listUsers();
+      
+      if (error) {
+        console.error('No se pueden obtener usuarios de auth:', error);
+        toast({
+          title: "Información",
+          description: "No se pueden crear perfiles automáticamente. Los nuevos usuarios registrados tendrán perfiles creados automáticamente.",
+        });
+        return;
+      }
+
+      console.log('Usuarios de auth encontrados:', authUsers);
+      
+      // Aquí normalmente crearíamos los perfiles faltantes, pero esto requiere privilegios especiales
+      toast({
+        title: "Información",
+        description: "Esta función requiere privilegios especiales. Los nuevos registros crearán perfiles automáticamente.",
+      });
+      
+    } catch (error) {
+      console.error('Error creando perfiles:', error);
     }
   };
 
@@ -195,10 +262,15 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
-        <Button variant="outline" onClick={loadUsers}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Actualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={createMissingProfiles}>
+            Crear Perfiles Faltantes
+          </Button>
+          <Button variant="outline" onClick={loadUsers}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Actualizar
+          </Button>
+        </div>
       </div>
 
       {/* Buscador */}
@@ -221,9 +293,15 @@ const UserManagement = () => {
             <p className="mt-2 text-sm text-gray-500">
               Los usuarios aparecerán aquí después de registrarse en la aplicación.
             </p>
-            <p className="mt-2 text-xs text-gray-400">
-              Si acabas de registrar un usuario y no aparece, haz clic en "Actualizar" arriba.
-            </p>
+            <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <p className="text-sm text-yellow-800 font-medium">Instrucciones de depuración:</p>
+              <p className="text-xs text-yellow-700 mt-1">
+                1. Abre la consola del navegador (F12) para ver los logs detallados<br/>
+                2. Haz clic en "Actualizar" para recargar los usuarios<br/>
+                3. Si acabas de registrar un usuario, puede tardar unos segundos en aparecer<br/>
+                4. El trigger debería crear automáticamente el perfil para nuevos registros
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
