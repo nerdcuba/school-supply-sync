@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Search, UserRound, Mail, Calendar, Clock, Trash2, Eye, ShoppingBag } from 'lucide-react';
+import { Search, UserRound, Mail, Calendar, Clock, Trash2, Eye, ShoppingBag, RefreshCw } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -50,11 +50,13 @@ const UserManagement = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      console.log('Cargando usuarios desde Supabase...');
       
       // Cargar perfiles de usuarios
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (profilesError) {
         console.error('Error loading profiles:', profilesError);
@@ -66,13 +68,22 @@ const UserManagement = () => {
         return;
       }
 
+      console.log('Perfiles cargados:', profiles);
+
+      if (!profiles || profiles.length === 0) {
+        console.log('No se encontraron perfiles en la base de datos');
+        setUsers([]);
+        return;
+      }
+
       // Cargar órdenes para cada usuario
       const usersWithOrders = await Promise.all(
-        (profiles || []).map(async (profile) => {
+        profiles.map(async (profile) => {
           const { data: orders } = await supabase
             .from('orders')
             .select('*')
-            .eq('user_id', profile.id);
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false });
 
           const formattedOrders = (orders || []).map(order => ({
             id: order.id,
@@ -95,6 +106,7 @@ const UserManagement = () => {
         })
       );
 
+      console.log('Usuarios con órdenes:', usersWithOrders);
       setUsers(usersWithOrders);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -165,7 +177,13 @@ const UserManagement = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
+          <Button variant="outline" onClick={loadUsers} disabled>
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            Cargando...
+          </Button>
+        </div>
         <div className="flex justify-center items-center h-64">
           <div className="text-lg">Cargando usuarios...</div>
         </div>
@@ -175,7 +193,13 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
+        <Button variant="outline" onClick={loadUsers}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Actualizar
+        </Button>
+      </div>
 
       {/* Buscador */}
       <div className="relative">
@@ -188,74 +212,83 @@ const UserManagement = () => {
         />
       </div>
 
-      {/* Listado de usuarios */}
+      {/* Información de usuarios */}
       {users.length === 0 ? (
         <Card className="text-center p-10">
           <CardContent className="pt-10">
             <UserRound className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-4 text-lg font-semibold">No hay usuarios registrados</h3>
             <p className="mt-2 text-sm text-gray-500">
-              Aún no hay usuarios registrados en el sistema
+              Los usuarios aparecerán aquí después de registrarse en la aplicación.
+            </p>
+            <p className="mt-2 text-xs text-gray-400">
+              Si acabas de registrar un usuario y no aparece, haz clic en "Actualizar" arriba.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Fecha de Registro</TableHead>
-                  <TableHead>Pedidos</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatDate(user.createdAt)}</TableCell>
-                    <TableCell>{user.orders?.length || 0} pedidos</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setViewDialogOpen(true);
-                          }}
-                        >
-                          <Eye size={14} />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-500 hover:text-red-600"
-                          onClick={() => {
-                            setUserToDelete(user);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </TableCell>
+        <>
+          <div className="text-sm text-gray-600 mb-4">
+            Mostrando {filteredUsers.length} de {users.length} usuarios registrados
+          </div>
+          
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead>Fecha de Registro</TableHead>
+                    <TableHead>Pedidos</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDate(user.createdAt)}</TableCell>
+                      <TableCell>{user.orders?.length || 0} pedidos</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setViewDialogOpen(true);
+                            }}
+                          >
+                            <Eye size={14} />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-500 hover:text-red-600"
+                            onClick={() => {
+                              setUserToDelete(user);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Diálogo para ver detalles de usuario */}
