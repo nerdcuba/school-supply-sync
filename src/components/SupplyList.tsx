@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Download, Printer, ArrowLeft, Package } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { schoolService } from "@/services/schoolService";
 
 interface SupplyListProps {
   school: string;
@@ -13,6 +14,7 @@ interface SupplyListProps {
   onAddToCart: (item: any) => void;
 }
 
+// Datos estáticos de los packs (esto podría moverse a Supabase en el futuro)
 const gradeData = {
   "Kindergarten": {
     supplies: [
@@ -96,6 +98,33 @@ const categoryColors: { [key: string]: string } = {
 
 const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [schoolData, setSchoolData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar datos de la escuela desde Supabase
+  useEffect(() => {
+    const loadSchoolData = async () => {
+      try {
+        const schools = await schoolService.getAll();
+        const currentSchool = schools.find(s => s.name === school);
+        setSchoolData(currentSchool);
+      } catch (error) {
+        console.error('Error loading school data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSchoolData();
+  }, [school]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Cargando información de la escuela...</div>
+      </div>
+    );
+  }
 
   if (!grade) {
     return (
@@ -202,6 +231,11 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
                 Pack de Útiles - {grade}
               </h2>
               <p className="text-gray-600">{school}</p>
+              {schoolData && (
+                <p className="text-sm text-gray-500 mt-1">
+                  {schoolData.address} • {schoolData.phone}
+                </p>
+              )}
               <div className="flex items-center space-x-4 mt-2">
                 <span className="text-sm text-gray-500">{supplies.length} artículos</span>
                 <span className="text-lg font-bold text-green-600">

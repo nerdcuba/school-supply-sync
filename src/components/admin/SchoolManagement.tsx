@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from '@/hooks/use-toast';
 import { School, Plus, Pencil, Trash2, Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { schoolService, School as SchoolType } from '@/services/schoolService';
+import { supabase } from '@/integrations/supabase/client';
 
 // Tipo para una escuela
 interface SchoolType {
@@ -22,9 +23,9 @@ interface SchoolType {
 
 const SchoolManagement = () => {
   const [schools, setSchools] = useState<SchoolType[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [newSchool, setNewSchool] = useState<SchoolType>({
-    id: '',
+  const [newSchool, setNewSchool] = useState<Omit<SchoolType, 'id' | 'created_at' | 'updated_at'>>({
     name: '',
     address: '',
     phone: '',
@@ -37,18 +38,41 @@ const SchoolManagement = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
-  // Cargar escuelas desde localStorage al inicio
+  // Cargar escuelas desde Supabase
   useEffect(() => {
-    const savedSchools = localStorage.getItem('planAheadSchools');
-    if (savedSchools) {
-      setSchools(JSON.parse(savedSchools));
-    }
+    loadSchools();
+    
+    // Configurar actualización en tiempo real
+    const channel = supabase
+      .channel('schools-realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'schools'
+      }, () => {
+        loadSchools();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  // Guardar escuelas en localStorage cuando cambian
-  useEffect(() => {
-    localStorage.setItem('planAheadSchools', JSON.stringify(schools));
-  }, [schools]);
+  const loadSchools = async () => {
+    try {
+      const data = await schoolService.getAll();
+      setSchools(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las escuelas",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrar escuelas según término de búsqueda
   const filteredSchools = schools.filter(school => 
@@ -57,7 +81,7 @@ const SchoolManagement = () => {
   );
 
   // Agregar nueva escuela
-  const handleAddSchool = () => {
+  const handleAddSchool = async () => {
     // Validar duplicados
     if (schools.some(s => s.name.toLowerCase() === newSchool.name.toLowerCase())) {
       toast({
@@ -78,30 +102,32 @@ const SchoolManagement = () => {
       return;
     }
 
-    const schoolToAdd = {
-      ...newSchool,
-      id: Date.now().toString()
-    };
-    
-    setSchools([...schools, schoolToAdd]);
-    setNewSchool({
-      id: '',
-      name: '',
-      address: '',
-      phone: '',
-      principal: '',
-      website: ''
-    });
-    setOpenAddDialog(false);
-    
-    toast({
-      title: "Escuela añadida",
-      description: "La escuela ha sido añadida con éxito"
-    });
+    try {
+      await schoolService.create(newSchool);
+      setNewSchool({
+        name: '',
+        address: '',
+        phone: '',
+        principal: '',
+        website: ''
+      });
+      setOpenAddDialog(false);
+      
+      toast({
+        title: "Escuela añadida",
+        description: "La escuela ha sido añadida con éxito"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo añadir la escuela",
+        variant: "destructive"
+      });
+    }
   };
 
   // Actualizar escuela existente
-  const handleUpdateSchool = () => {
+  const handleUpdateSchool = async () => {
     if (!editingSchool) return;
 
     // Validar duplicados (excluyendo la escuela actual)
@@ -124,34 +150,53 @@ const SchoolManagement = () => {
       return;
     }
 
-    const updatedSchools = schools.map(school => 
-      school.id === editingSchool.id ? editingSchool : school
-    );
-    
-    setSchools(updatedSchools);
-    setEditingSchool(null);
-    setOpenEditDialog(false);
-    
-    toast({
-      title: "Escuela actualizada",
-      description: "La información de la escuela ha sido actualizada"
-    });
+    try {
+      await schoolService.update(editingSchool.id, editingSchool);
+      setEditingSchool(null);
+      setOpenEditDialog(false);
+      
+      toast({
+        title: "Escuela actualizada",
+        description: "La información de la escuela ha sido actualizada"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la escuela",
+        variant: "destructive"
+      });
+    }
   };
 
   // Eliminar escuela
-  const handleDeleteSchool = () => {
+  const handleDeleteSchool = async () => {
     if (!deletingSchool) return;
     
-    const updatedSchools = schools.filter(school => school.id !== deletingSchool.id);
-    setSchools(updatedSchools);
-    setDeletingSchool(null);
-    setOpenDeleteDialog(false);
-    
-    toast({
-      title: "Escuela eliminada",
-      description: "La escuela ha sido eliminada con éxito"
-    });
+    try {
+      await schoolService.delete(deletingSchool.id);
+      setDeletingSchool(null);
+      setOpenDeleteDialog(false);
+      
+      toast({
+        title: "Escuela eliminada",
+        description: "La escuela ha sido eliminada con éxito"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la escuela",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Cargando escuelas...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
