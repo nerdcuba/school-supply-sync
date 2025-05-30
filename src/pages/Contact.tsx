@@ -3,9 +3,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, MapPin, Clock, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -14,217 +16,158 @@ const Contact = () => {
     subject: "",
     message: ""
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setIsLoading(true);
 
     // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    setTimeout(() => {
+      toast({
+        title: "Mensaje enviado",
+        description: "Nos pondremos en contacto contigo pronto.",
+      });
+      setFormData({ name: "", email: "", subject: "", message: "" });
+      setIsLoading(false);
+    }, 1000);
+  };
 
-    toast({
-      title: "¡Mensaje enviado!",
-      description: "Gracias por contactarnos. Te responderemos pronto.",
-    });
-
-    setFormData({ name: "", email: "", subject: "", message: "" });
-    setIsSubmitting(false);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Contáctanos
+            {t('contact.title')}
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            ¿Tienes preguntas, sugerencias o necesitas ayuda? Estamos aquí para apoyarte. 
-            Contáctanos y te responderemos lo más pronto posible.
+            {t('contact.subtitle')}
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Contact Information */}
-          <div className="lg:col-span-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Mail size={20} />
-                  <span>Email</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">info@planaheadsolutions.com</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Respuesta en 24 horas
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Phone size={20} />
-                  <span>Teléfono</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">(555) 123-4567</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Lunes a Viernes, 9AM - 6PM
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <MapPin size={20} />
-                  <span>Oficina</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  1234 Main Street<br />
-                  Miami, FL 33101
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Clock size={20} />
-                  <span>Horarios</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1 text-gray-600">
-                  <p>Lunes - Viernes: 9:00 AM - 6:00 PM</p>
-                  <p>Sábado: 10:00 AM - 2:00 PM</p>
-                  <p>Domingo: Cerrado</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
+        <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
           {/* Contact Form */}
-          <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Envíanos un mensaje</CardTitle>
+              <CardDescription>
+                Completa el formulario y nos pondremos en contacto contigo lo antes posible.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <Label htmlFor="name">{t('contact.name')}</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="email">{t('auth.email')}</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="subject">{t('contact.subject')}</Label>
+                  <Input
+                    id="subject"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="message">{t('contact.message')}</Label>
+                  <Textarea
+                    id="message"
+                    name="message"
+                    rows={4}
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? t('common.loading') : t('contact.send')}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Contact Information */}
+          <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Envíanos un Mensaje</CardTitle>
-                <CardDescription>
-                  Completa el formulario y nos pondremos en contacto contigo pronto.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nombre Completo *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange("name", e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Asunto *</Label>
-                    <Input
-                      id="subject"
-                      value={formData.subject}
-                      onChange={(e) => handleInputChange("subject", e.target.value)}
-                      placeholder="¿En qué podemos ayudarte?"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Mensaje *</Label>
-                    <textarea
-                      id="message"
-                      rows={6}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      value={formData.message}
-                      onChange={(e) => handleInputChange("message", e.target.value)}
-                      placeholder="Describe tu consulta, sugerencia o problema..."
-                      required
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      "Enviando..."
-                    ) : (
-                      <>
-                        <Send size={16} className="mr-2" />
-                        Enviar Mensaje
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* FAQ Section */}
-            <Card className="mt-8">
-              <CardHeader>
-                <CardTitle>Preguntas Frecuentes</CardTitle>
-                <CardDescription>
-                  Aquí tienes algunas respuestas rápidas a consultas comunes.
-                </CardDescription>
+                <CardTitle>Información de contacto</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    ¿Cómo puedo solicitar que añadan mi escuela?
-                  </h4>
-                  <p className="text-gray-600 text-sm">
-                    Envíanos un mensaje con el nombre de la escuela, dirección y cualquier 
-                    información adicional. Evaluaremos incluirla en nuestra plataforma.
-                  </p>
+                <div className="flex items-center space-x-3">
+                  <Mail className="text-blue-600" size={20} />
+                  <div>
+                    <p className="font-medium">Email</p>
+                    <p className="text-gray-600">info@planaheadsolutions.com</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    ¿Ofrecen descuentos para familias con múltiples estudiantes?
-                  </h4>
-                  <p className="text-gray-600 text-sm">
-                    Sí, ofrecemos descuentos especiales para familias. Contáctanos para más detalles.
-                  </p>
+                
+                <div className="flex items-center space-x-3">
+                  <Phone className="text-blue-600" size={20} />
+                  <div>
+                    <p className="font-medium">Teléfono</p>
+                    <p className="text-gray-600">(555) 123-4567</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    ¿Puedo devolver artículos si no los necesito?
-                  </h4>
-                  <p className="text-gray-600 text-sm">
-                    Aceptamos devoluciones dentro de 30 días en artículos no utilizados. 
-                    Revisa nuestra política de devoluciones completa.
-                  </p>
+                
+                <div className="flex items-center space-x-3">
+                  <MapPin className="text-blue-600" size={20} />
+                  <div>
+                    <p className="font-medium">Ubicación</p>
+                    <p className="text-gray-600">Miami, Florida</p>
+                  </div>
                 </div>
+                
+                <div className="flex items-center space-x-3">
+                  <Clock className="text-blue-600" size={20} />
+                  <div>
+                    <p className="font-medium">Horario de atención</p>
+                    <p className="text-gray-600">Lun - Vie: 9:00 AM - 6:00 PM</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-blue-600 text-white">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold mb-4">¿Necesitas ayuda inmediata?</h3>
+                <p className="mb-4">
+                  Si tienes una pregunta urgente, no dudes en llamarnos durante nuestro horario de atención.
+                </p>
+                <Button variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
+                  Llamar ahora
+                </Button>
               </CardContent>
             </Card>
           </div>

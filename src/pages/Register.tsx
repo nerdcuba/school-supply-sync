@@ -8,23 +8,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { GraduationCap } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const Register = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Error",
-        description: "Las contraseñas no coinciden.",
+        title: t('messages.error'),
+        description: "Las contraseñas no coinciden",
         variant: "destructive",
       });
       return;
@@ -33,7 +38,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const success = await register(name, email, password);
+      const success = await register(formData.email, formData.password, formData.firstName, formData.lastName);
       if (success) {
         toast({
           title: "¡Cuenta creada!",
@@ -42,20 +47,27 @@ const Register = () => {
         navigate('/dashboard');
       } else {
         toast({
-          title: "Error de registro",
-          description: "Verifica que todos los campos estén completos.",
+          title: t('messages.error'),
+          description: "Error al crear la cuenta. Inténtalo de nuevo.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Ha ocurrido un error. Inténtalo de nuevo.",
+        title: t('messages.error'),
+        description: t('messages.errorDesc'),
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
   return (
@@ -67,69 +79,87 @@ const Register = () => {
               <GraduationCap size={32} />
             </div>
           </div>
-          <CardTitle className="text-2xl">Crear Cuenta</CardTitle>
+          <CardTitle className="text-2xl">{t('auth.register')}</CardTitle>
           <CardDescription>
-            Únete a Plan Ahead Solutions
+            {t('auth.registerDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre Completo</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Tu nombre completo"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">{t('auth.firstName')}</Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">{t('auth.lastName')}</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="email">Correo Electrónico</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={handleChange}
                 required
               />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
-                placeholder="Mínimo 6 caracteres"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t('auth.password')}
+                value={formData.password}
+                onChange={handleChange}
                 required
                 minLength={6}
               />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+              <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
+                name="confirmPassword"
                 type="password"
-                placeholder="Confirma tu contraseña"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder={t('auth.confirmPassword')}
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 required
                 minLength={6}
               />
             </div>
+            
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
+              {isLoading ? t('common.loading') : t('auth.register')}
             </Button>
           </form>
           
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              ¿Ya tienes una cuenta?{" "}
+              {t('auth.hasAccount')}{" "}
               <Link to="/login" className="text-blue-600 hover:underline">
-                Inicia sesión aquí
+                {t('auth.loginHere')}
               </Link>
             </p>
           </div>
