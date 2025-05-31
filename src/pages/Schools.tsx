@@ -55,6 +55,30 @@ const schoolsData = [
     students: 690,
     grades: "K-5",
     description: "Inspirando el amor por el aprendizaje en cada estudiante.",
+  },
+  {
+    id: "miami-senior-high",
+    name: "Miami Senior High School",
+    address: "2450 SW 1st St, Miami, FL 33135",
+    students: 2100,
+    grades: "9-12",
+    description: "Tradición de excelencia académica y deportiva.",
+  },
+  {
+    id: "aventura-waterways",
+    name: "Aventura Waterways K-8",
+    address: "3500 NE 207th St, Aventura, FL 33180",
+    students: 1200,
+    grades: "K-8",
+    description: "Educación integral en un ambiente innovador.",
+  },
+  {
+    id: "pinecrest-elementary",
+    name: "Pinecrest Elementary School",
+    address: "5855 SW 111th St, Pinecrest, FL 33156",
+    students: 720,
+    grades: "K-5",
+    description: "Fomentando la creatividad y el pensamiento crítico.",
   }
 ];
 
@@ -67,15 +91,18 @@ const Schools = () => {
     school.address.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Limit to first 9 schools for 3x3 grid on large screens
+  const displaySchools = filteredSchools.slice(0, 9);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold mb-4">
             {t('schools.title')}
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+          <p className="text-xl text-textPrimary max-w-3xl mx-auto mb-8">
             {t('schools.subtitle')}
           </p>
           
@@ -87,7 +114,7 @@ const Schools = () => {
                 placeholder={t('schools.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 py-3 text-lg border-2 border-blue-200 focus:border-blue-500"
+                className="pl-10 py-3 text-lg border-2 border-primary focus:border-primary"
               />
             </div>
           </div>
@@ -95,59 +122,59 @@ const Schools = () => {
 
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
-          <div className="bg-white rounded-lg p-6 shadow-lg text-center">
-            <div className="text-blue-600 mb-2">
+          <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
+            <div className="text-primary mb-2">
               <BookOpen size={32} className="mx-auto" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">{schoolsData.length}</h3>
-            <p className="text-gray-600">{t('schools.select')}</p>
+            <h3 className="text-2xl font-bold text-textPrimary mb-2">{schoolsData.length}</h3>
+            <p className="text-textPrimary">{t('schools.select')}</p>
           </div>
-          <div className="bg-white rounded-lg p-6 shadow-lg text-center">
-            <div className="text-green-600 mb-2">
+          <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
+            <div className="text-secondary mb-2">
               <Users size={32} className="mx-auto" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            <h3 className="text-2xl font-bold text-textPrimary mb-2">
               {schoolsData.reduce((sum, school) => sum + school.students, 0).toLocaleString()}
             </h3>
-            <p className="text-gray-600">{t('schools.students')}</p>
+            <p className="text-textPrimary">{t('schools.students')}</p>
           </div>
-          <div className="bg-white rounded-lg p-6 shadow-lg text-center">
-            <div className="text-yellow-600 mb-2">
+          <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
+            <div className="text-accent mb-2">
               <MapPin size={32} className="mx-auto" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Miami-Dade</h3>
-            <p className="text-gray-600">Condado Cubierto</p>
+            <h3 className="text-2xl font-bold text-textPrimary mb-2">Miami-Dade</h3>
+            <p className="text-textPrimary">Condado Cubierto</p>
           </div>
         </div>
 
-        {/* Schools Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSchools.map((school) => (
+        {/* Schools Grid - Responsive 3x3 on large, 2 columns on medium, 1 on mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {displaySchools.map((school) => (
             <Card
               key={school.id}
-              className="hover:shadow-lg transition-all duration-300 border-2 hover:border-blue-300 group"
+              className="card-vibrant group w-full"
             >
               <CardHeader className="pb-4">
-                <CardTitle className="text-xl group-hover:text-blue-600 transition-colors line-clamp-2">
+                <CardTitle className="text-xl group-hover:text-primary transition-colors line-clamp-2">
                   {school.name}
                 </CardTitle>
-                <div className="flex items-start space-x-2 text-gray-600">
-                  <MapPin size={16} className="mt-0.5 flex-shrink-0" />
+                <div className="flex items-start space-x-2 text-textPrimary">
+                  <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
                   <p className="text-sm line-clamp-2">{school.address}</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-gray-600 text-sm line-clamp-2">
+                <p className="text-textPrimary text-sm line-clamp-2">
                   {school.description}
                 </p>
                 
-                <div className="flex justify-between text-sm text-gray-500">
+                <div className="flex justify-between text-sm text-textPrimary">
                   <span>Grados: {school.grades}</span>
                   <span>{school.students} {t('schools.students')}</span>
                 </div>
                 
                 <Link to={`/school/${school.id}`}>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:bg-blue-700">
+                  <Button className="w-full btn-vibrant">
                     {t('schools.viewSupplies')}
                   </Button>
                 </Link>
@@ -160,10 +187,10 @@ const Schools = () => {
         {filteredSchools.length === 0 && (
           <div className="text-center py-12">
             <Search size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-textPrimary mb-2">
               {t('schools.notFound')}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-textPrimary mb-4">
               {t('schools.notFoundDesc')}
             </p>
             <Button
@@ -175,17 +202,33 @@ const Schools = () => {
           </div>
         )}
 
+        {/* Show more button if there are more than 9 schools */}
+        {filteredSchools.length > 9 && (
+          <div className="text-center mt-8">
+            <p className="text-textPrimary mb-4">
+              Mostrando 9 de {filteredSchools.length} escuelas
+            </p>
+            <Button
+              onClick={() => setSearchTerm("")}
+              variant="outline"
+              className="border-primary text-primary hover:bg-primary hover:text-white"
+            >
+              Ver todas las escuelas
+            </Button>
+          </div>
+        )}
+
         {/* CTA Section */}
-        <div className="bg-white rounded-lg p-8 shadow-lg mt-12 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        <div className="bg-white rounded-lg p-8 shadow-lg mt-12 text-center border border-primary">
+          <h2 className="text-2xl font-bold text-textPrimary mb-4">
             ¿No encuentras tu escuela?
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-textPrimary mb-6">
             Estamos constantemente añadiendo nuevas escuelas a nuestra plataforma. 
             Contáctanos para solicitar que incluyamos tu escuela.
           </p>
           <Link to="/contact">
-            <Button className="bg-green-600 hover:bg-green-700">
+            <Button className="btn-secondary">
               Solicitar Nueva Escuela
             </Button>
           </Link>
