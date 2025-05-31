@@ -153,7 +153,7 @@ const Schools = () => {
           {displaySchools.map((school, index) => (
             <Card
               key={school.id}
-              className="relative overflow-hidden group w-full transform transition-all duration-200 ease-out hover:scale-105 hover:shadow-xl"
+              className="relative overflow-hidden group h-80 transform transition-all duration-200 ease-out hover:scale-105 hover:shadow-xl"
             >
               {/* Background Image */}
               <div className="absolute inset-0">
@@ -166,9 +166,9 @@ const Schools = () => {
                 <div className="absolute inset-0 bg-black opacity-20"></div>
               </div>
 
-              {/* Content with more transparent background */}
-              <div className="relative z-10 bg-white bg-opacity-60 m-2 rounded-lg">
-                <CardHeader className="pb-4">
+              {/* Content with uniform size covering entire card */}
+              <div className="relative z-10 bg-white bg-opacity-60 h-full flex flex-col">
+                <CardHeader className="pb-4 flex-shrink-0">
                   <CardTitle className="text-xl group-hover:text-primary transition-colors line-clamp-2">
                     {school.name}
                   </CardTitle>
@@ -177,17 +177,19 @@ const Schools = () => {
                     <p className="text-sm line-clamp-2">{school.address}</p>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-textPrimary text-sm line-clamp-2">
-                    {school.description}
-                  </p>
-                  
-                  <div className="flex justify-between text-sm text-textPrimary">
-                    <span>Grados: {school.grades}</span>
-                    <span>{school.students} {t('schools.students')}</span>
+                <CardContent className="flex-1 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <p className="text-textPrimary text-sm line-clamp-3">
+                      {school.description}
+                    </p>
+                    
+                    <div className="flex justify-between text-sm text-textPrimary">
+                      <span>Grados: {school.grades}</span>
+                      <span>{school.students} {t('schools.students')}</span>
+                    </div>
                   </div>
                   
-                  <Link to={`/school/${school.id}`}>
+                  <Link to={`/school/${school.id}`} className="mt-4">
                     <Button className="w-full btn-vibrant">
                       {t('schools.viewSupplies')}
                     </Button>
