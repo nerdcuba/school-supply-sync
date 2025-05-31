@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -168,7 +169,7 @@ const Schools = () => {
               {/* Content with uniform size covering entire card */}
               <div className="relative z-10 bg-white bg-opacity-40 h-full flex flex-col">
                 <CardHeader className="pb-4 flex-shrink-0">
-                  <CardTitle className="text-xl text-blue-800 font-bold group-hover:text-blue-700 transition-colors line-clamp-2">
+                  <CardTitle className="text-xl text-blue-900 font-bold group-hover:text-blue-800 transition-colors line-clamp-2">
                     {school.name}
                   </CardTitle>
                   <div className="flex items-start space-x-2 text-textPrimary">
