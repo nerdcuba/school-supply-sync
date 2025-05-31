@@ -15,6 +15,7 @@ import CheckoutModal from "@/components/CheckoutModal";
 import Index from "./pages/Index";
 import Schools from "./pages/Schools";
 import SchoolDetails from "./pages/SchoolDetails";
+import Electronics from "./pages/Electronics";
 import HowItWorks from "./pages/HowItWorks";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
@@ -90,6 +91,7 @@ const App = () => {
                       <Route path="/" element={<Index />} />
                       <Route path="/schools" element={<Schools />} />
                       <Route path="/school/:schoolId" element={<SchoolDetails onAddToCart={addToCart} />} />
+                      <Route path="/electronics" element={<Electronics onAddToCart={addToCart} />} />
                       <Route path="/how-it-works" element={<HowItWorks />} />
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/login" element={<Login />} />

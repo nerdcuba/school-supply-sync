@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, ShoppingCart, User, Menu, X } from "lucide-react";
+import { GraduationCap, ShoppingCart, User, Menu, X, Laptop } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSelector from "./LanguageSelector";
@@ -44,6 +44,10 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
             </Link>
             <Link to="/schools" className="nav-link">
               {t('nav.schools')}
+            </Link>
+            <Link to="/electronics" className="nav-link flex items-center space-x-1">
+              <Laptop size={16} />
+              <span>Electrónicos</span>
             </Link>
             <Link to="/how-it-works" className="nav-link">
               {t('nav.howItWorks')}
@@ -123,6 +127,14 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 {t('nav.schools')}
+              </Link>
+              <Link
+                to="/electronics"
+                className="nav-link py-2 flex items-center space-x-1"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Laptop size={16} />
+                <span>Electrónicos</span>
               </Link>
               <Link
                 to="/how-it-works"
