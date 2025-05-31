@@ -76,8 +76,8 @@ const SchoolSelector = ({ onSelectSchool, searchTerm }: SchoolSelectorProps) => 
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">Selecciona tu Escuela</h2>
-        <p className="text-gray-600 max-w-2xl mx-auto">
+        <h2 className="text-3xl font-bold mb-4">Selecciona tu Escuela</h2>
+        <p className="text-textPrimary max-w-2xl mx-auto">
           Encuentra tu escuela en nuestra lista y accede a las listas de útiles específicas para cada grado.
         </p>
       </div>
@@ -86,18 +86,18 @@ const SchoolSelector = ({ onSelectSchool, searchTerm }: SchoolSelectorProps) => 
         {filteredSchools.map((school) => (
           <Card
             key={school.name}
-            className="hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-blue-300 group"
+            className="card-vibrant cursor-pointer group"
           >
             <CardHeader className="pb-4">
               <div className="flex items-start justify-between">
-                <div className="bg-blue-100 text-blue-600 p-2 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="bg-primary bg-opacity-10 text-primary p-2 rounded-lg group-hover:bg-primary group-hover:text-white transition-all duration-300">
                   <School size={24} />
                 </div>
-                <span className="text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                <span className="text-sm bg-accent bg-opacity-20 text-accent px-2 py-1 rounded-full font-medium">
                   {school.grades}
                 </span>
               </div>
-              <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">
+              <CardTitle className="text-lg group-hover:text-primary transition-colors">
                 {school.name}
               </CardTitle>
               <CardDescription className="text-sm">
@@ -105,17 +105,17 @@ const SchoolSelector = ({ onSelectSchool, searchTerm }: SchoolSelectorProps) => 
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-sm text-textPrimary">
                 <MapPin size={14} className="mr-2 text-gray-400" />
                 <span className="truncate">{school.address}</span>
               </div>
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-sm text-textPrimary">
                 <Users size={14} className="mr-2 text-gray-400" />
                 <span>{school.students} estudiantes</span>
               </div>
               <Button
                 onClick={() => onSelectSchool(school.name)}
-                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full mt-4 btn-vibrant"
               >
                 Ver Listas de Útiles
               </Button>
@@ -127,8 +127,8 @@ const SchoolSelector = ({ onSelectSchool, searchTerm }: SchoolSelectorProps) => 
       {filteredSchools.length === 0 && (
         <div className="text-center py-12">
           <School size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No se encontraron escuelas</h3>
-          <p className="text-gray-600">
+          <h3 className="text-xl font-semibold mb-2">No se encontraron escuelas</h3>
+          <p className="text-textPrimary">
             No hay escuelas que coincidan con tu búsqueda. Intenta con otro término.
           </p>
         </div>

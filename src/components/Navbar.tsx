@@ -24,31 +24,31 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
   };
 
   return (
-    <nav className="bg-white shadow-lg border-b-4 border-blue-600 sticky top-0 z-50">
+    <nav className="bg-white shadow-lg border-b-4 border-primary sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <div className="bg-blue-600 text-white p-2 rounded-full">
+            <div className="bg-primary text-white p-2 rounded-full">
               <GraduationCap size={24} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Plan Ahead Solutions</h1>
+              <h1 className="text-xl font-bold text-textPrimary">Plan Ahead Solutions</h1>
             </div>
           </Link>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to="/" className="nav-link">
               {t('nav.home')}
             </Link>
-            <Link to="/schools" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to="/schools" className="nav-link">
               {t('nav.schools')}
             </Link>
-            <Link to="/how-it-works" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to="/how-it-works" className="nav-link">
               {t('nav.howItWorks')}
             </Link>
-            <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to="/contact" className="nav-link">
               {t('nav.contact')}
             </Link>
           </div>
@@ -60,12 +60,12 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
             <Button
               onClick={onOpenCart}
               variant="outline"
-              className="relative border-blue-600 text-blue-600 hover:bg-blue-50"
+              className="relative border-primary text-primary hover:bg-primary hover:text-white transition-all duration-200"
             >
               <ShoppingCart size={20} className="mr-2" />
               {t('nav.cart')}
               {cartItemsCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-secondary text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
                   {cartItemsCount}
                 </span>
               )}
@@ -74,22 +74,22 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
             {user ? (
               <div className="flex items-center space-x-2">
                 <Link to="/dashboard">
-                  <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
+                  <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-textPrimary transition-all duration-200">
                     <User size={20} className="mr-2" />
                     {t('nav.dashboard')}
                   </Button>
                 </Link>
-                <Button onClick={handleLogout} variant="outline">
+                <Button onClick={handleLogout} variant="outline" className="hover:bg-secondary hover:text-white hover:border-secondary transition-all duration-200">
                   {t('nav.logout')}
                 </Button>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
                 <Link to="/login">
-                  <Button variant="outline">{t('nav.login')}</Button>
+                  <Button variant="outline" className="hover:bg-primary hover:text-white hover:border-primary transition-all duration-200">{t('nav.login')}</Button>
                 </Link>
                 <Link to="/register">
-                  <Button>{t('nav.register')}</Button>
+                  <Button className="bg-primary hover:bg-secondary text-white transition-all duration-200">{t('nav.register')}</Button>
                 </Link>
               </div>
             )}
@@ -112,28 +112,28 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
             <div className="flex flex-col space-y-2">
               <Link
                 to="/"
-                className="text-gray-700 hover:text-blue-600 py-2"
+                className="nav-link py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {t('nav.home')}
               </Link>
               <Link
                 to="/schools"
-                className="text-gray-700 hover:text-blue-600 py-2"
+                className="nav-link py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {t('nav.schools')}
               </Link>
               <Link
                 to="/how-it-works"
-                className="text-gray-700 hover:text-blue-600 py-2"
+                className="nav-link py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {t('nav.howItWorks')}
               </Link>
               <Link
                 to="/contact"
-                className="text-gray-700 hover:text-blue-600 py-2"
+                className="nav-link py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {t('nav.contact')}
@@ -150,7 +150,7 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                     setIsMenuOpen(false);
                   }}
                   variant="outline"
-                  className="w-full mb-2 relative"
+                  className="w-full mb-2 relative border-primary text-primary hover:bg-primary hover:text-white"
                 >
                   <ShoppingCart size={20} className="mr-2" />
                   {t('nav.cart')} ({cartItemsCount})
@@ -161,14 +161,14 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                     <Link to="/dashboard">
                       <Button
                         variant="outline"
-                        className="w-full"
+                        className="w-full border-accent text-accent hover:bg-accent hover:text-textPrimary"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         <User size={20} className="mr-2" />
                         {t('nav.dashboard')}
                       </Button>
                     </Link>
-                    <Button onClick={handleLogout} variant="outline" className="w-full">
+                    <Button onClick={handleLogout} variant="outline" className="w-full hover:bg-secondary hover:text-white hover:border-secondary">
                       {t('nav.logout')}
                     </Button>
                   </div>
@@ -177,7 +177,7 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                     <Link to="/login">
                       <Button
                         variant="outline"
-                        className="w-full"
+                        className="w-full hover:bg-primary hover:text-white hover:border-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {t('nav.login')}
@@ -185,7 +185,7 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                     </Link>
                     <Link to="/register">
                       <Button
-                        className="w-full"
+                        className="w-full bg-primary hover:bg-secondary text-white"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {t('nav.register')}
