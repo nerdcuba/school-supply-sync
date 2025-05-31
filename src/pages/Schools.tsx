@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin, Users, BookOpen } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { defaultSchoolImages } from "@/utils/defaultSchoolImages";
 
 const schoolsData = [
   {
@@ -149,51 +149,37 @@ const Schools = () => {
 
         {/* Schools Grid - Responsive 3x3 on large, 2 columns on medium, 1 on mobile */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {displaySchools.map((school, index) => (
-            <div
+          {displaySchools.map((school) => (
+            <Card
               key={school.id}
-              className="relative rounded-lg overflow-hidden transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+              className="card-vibrant group w-full"
             >
-              {/* Background image */}
-              <div className="absolute inset-0">
-                <img
-                  src={defaultSchoolImages[index % defaultSchoolImages.length]}
-                  alt={school.name}
-                  className="w-full h-full object-cover"
-                />
-                {/* Overlay semitransparente */}
-                <div className="absolute inset-0 bg-black opacity-40"></div>
-              </div>
-
-              {/* Contenido de la tarjeta */}
-              <Card className="relative z-10 bg-white bg-opacity-90 border-none shadow-none h-full">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl group-hover:text-primary transition-colors line-clamp-2">
-                    {school.name}
-                  </CardTitle>
-                  <div className="flex items-start space-x-2 text-textPrimary">
-                    <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
-                    <p className="text-sm line-clamp-2">{school.address}</p>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-textPrimary text-sm line-clamp-2">
-                    {school.description}
-                  </p>
-                  
-                  <div className="flex justify-between text-sm text-textPrimary">
-                    <span>Grados: {school.grades}</span>
-                    <span>{school.students} {t('schools.students')}</span>
-                  </div>
-                  
-                  <Link to={`/school/${school.id}`}>
-                    <Button className="w-full btn-vibrant">
-                      {t('schools.viewSupplies')}
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </div>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl group-hover:text-primary transition-colors line-clamp-2">
+                  {school.name}
+                </CardTitle>
+                <div className="flex items-start space-x-2 text-textPrimary">
+                  <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
+                  <p className="text-sm line-clamp-2">{school.address}</p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-textPrimary text-sm line-clamp-2">
+                  {school.description}
+                </p>
+                
+                <div className="flex justify-between text-sm text-textPrimary">
+                  <span>Grados: {school.grades}</span>
+                  <span>{school.students} {t('schools.students')}</span>
+                </div>
+                
+                <Link to={`/school/${school.id}`}>
+                  <Button className="w-full btn-vibrant">
+                    {t('schools.viewSupplies')}
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           ))}
         </div>
 
