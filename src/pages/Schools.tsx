@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -162,11 +163,11 @@ const Schools = () => {
                   className="w-full h-full object-cover"
                 />
                 {/* Overlay for text readability */}
-                <div className="absolute inset-0 bg-black opacity-40"></div>
+                <div className="absolute inset-0 bg-black opacity-20"></div>
               </div>
 
-              {/* Content with semi-transparent background */}
-              <div className="relative z-10 bg-white bg-opacity-90 m-2 rounded-lg">
+              {/* Content with more transparent background */}
+              <div className="relative z-10 bg-white bg-opacity-60 m-2 rounded-lg">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-xl group-hover:text-primary transition-colors line-clamp-2">
                     {school.name}
