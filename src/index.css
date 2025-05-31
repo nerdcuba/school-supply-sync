@@ -132,12 +132,11 @@
   }
 
   .card-vibrant {
-    @apply bg-white border border-primary rounded-lg p-6 transition-all duration-300 hover:shadow-lg;
+    @apply bg-white border border-primary rounded-lg p-6 transition-all duration-200 transform hover:scale-105 hover:shadow-xl;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .card-vibrant:hover {
     @apply bg-background;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
 }
