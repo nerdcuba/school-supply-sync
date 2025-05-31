@@ -174,16 +174,16 @@ const Schools = () => {
                   </CardTitle>
                   <div className="flex items-start space-x-2 text-textPrimary">
                     <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
-                    <p className="text-sm line-clamp-2">{school.address}</p>
+                    <p className="text-base font-bold line-clamp-2">{school.address}</p>
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col justify-between">
                   <div className="space-y-4">
-                    <p className="text-textPrimary text-sm line-clamp-3">
+                    <p className="text-textPrimary text-base font-bold line-clamp-3">
                       {school.description}
                     </p>
                     
-                    <div className="flex justify-between text-sm text-textPrimary">
+                    <div className="flex justify-between text-base font-bold text-textPrimary">
                       <span>Grados: {school.grades}</span>
                       <span>{school.students} {t('schools.students')}</span>
                     </div>
