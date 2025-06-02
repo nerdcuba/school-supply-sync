@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Search, MapPin, Users, BookOpen } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { defaultSchoolImages } from "@/utils/defaultSchoolImages";
@@ -148,54 +149,67 @@ const Schools = () => {
           </div>
         </div>
 
-        {/* Schools Grid - Responsive 3x3 on large, 2 columns on medium, 1 on mobile */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {/* Schools Grid - Using Electronics card design */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {displaySchools.map((school, index) => (
             <Card
               key={school.id}
-              className="relative overflow-hidden group h-80 transform transition-all duration-200 ease-out hover:scale-105 hover:shadow-xl"
+              className="relative overflow-hidden group transform transition-all duration-200 ease-out hover:scale-105 hover:shadow-xl"
             >
-              {/* Background Image */}
-              <div className="absolute inset-0">
+              {/* School Image */}
+              <div className="relative h-48 overflow-hidden">
                 <img
                   src={defaultSchoolImages[index % defaultSchoolImages.length]}
                   alt={school.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
-                {/* Overlay for text readability */}
-                <div className="absolute inset-0 bg-black opacity-20"></div>
+                <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+                
+                {/* Grade Badge */}
+                <Badge className="absolute top-2 left-2 bg-primary text-white">
+                  Grados {school.grades}
+                </Badge>
               </div>
 
-              {/* Content with uniform size covering entire card */}
-              <div className="relative z-10 bg-white bg-opacity-40 h-full flex flex-col">
-                <CardHeader className="pb-4 flex-shrink-0">
-                  <CardTitle className="text-xl text-blue-900 font-bold group-hover:text-blue-800 transition-colors line-clamp-2">
-                    {school.name}
-                  </CardTitle>
-                  <div className="flex items-start space-x-2 text-textPrimary">
-                    <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
-                    <p className="text-base font-bold line-clamp-2">{school.address}</p>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start mb-2">
+                  <Badge variant="secondary">Miami-Dade</Badge>
+                  <div className="flex items-center space-x-1">
+                    <Users className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-600">
+                      {school.students} estudiantes
+                    </span>
                   </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <p className="text-textPrimary text-base font-bold line-clamp-3">
-                      {school.description}
-                    </p>
-                    
-                    <div className="flex justify-between text-base font-bold text-textPrimary">
-                      <span>Grados: {school.grades}</span>
-                      <span>{school.students} {t('schools.students')}</span>
-                    </div>
-                  </div>
-                  
-                  <Link to={`/school/${school.id}`} className="mt-4">
-                    <Button className="w-full btn-vibrant">
-                      {t('schools.viewSupplies')}
-                    </Button>
-                  </Link>
-                </CardContent>
-              </div>
+                </div>
+                <CardTitle className="text-lg text-blue-900 font-bold line-clamp-2">
+                  {school.name}
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="pt-0">
+                <div className="flex items-start space-x-2 text-textPrimary mb-4">
+                  <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
+                  <p className="text-sm line-clamp-2">{school.address}</p>
+                </div>
+
+                <p className="text-textPrimary text-sm mb-4 line-clamp-2">
+                  {school.description}
+                </p>
+
+                {/* School Info */}
+                <div className="flex justify-between text-sm text-textPrimary mb-4">
+                  <span className="font-medium">Grados: {school.grades}</span>
+                  <span className="font-medium">{school.students} estudiantes</span>
+                </div>
+
+                {/* View Supplies Button */}
+                <Link to={`/school/${school.id}`}>
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    <BookOpen size={16} className="mr-2" />
+                    {t('schools.viewSupplies')}
+                  </Button>
+                </Link>
+              </CardContent>
             </Card>
           ))}
         </div>
