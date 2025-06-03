@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -238,11 +237,11 @@ const UserManagement = () => {
 
       // Eliminar el perfil del usuario
       console.log('=== ELIMINANDO PERFIL DE USUARIO ===');
-      const { error: profileError, count } = await supabase
+      const { error: profileError, data } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId)
-        .select('*', { count: 'exact' });
+        .select();
 
       if (profileError) {
         console.error('❌ Error eliminando perfil:', profileError);
@@ -254,7 +253,7 @@ const UserManagement = () => {
         return;
       }
 
-      console.log('✓ Perfil eliminado exitosamente. Registros afectados:', count);
+      console.log('✓ Perfil eliminado exitosamente. Registros eliminados:', data?.length || 0);
 
       // Actualizar la lista local inmediatamente
       setUsers(prevUsers => {
