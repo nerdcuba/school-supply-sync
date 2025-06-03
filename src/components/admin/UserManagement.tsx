@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,6 +51,7 @@ const UserManagement = () => {
         schema: 'public',
         table: 'profiles'
       }, () => {
+        console.log('Realtime event detected, reloading users...');
         loadUsers();
       })
       .subscribe();
@@ -194,37 +194,9 @@ const UserManagement = () => {
     try {
       console.log(`Iniciando eliminación del usuario: ${userId} (${userName})`);
       
-      // Primero verificar si el usuario existe
-      const { data: existingUser, error: checkError } = await supabase
-        .from('profiles')
-        .select('id, email, name')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error verificando usuario:', checkError);
-        toast({
-          title: "Error",
-          description: `Error al verificar el usuario: ${checkError.message}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (!existingUser) {
-        console.log('Usuario no encontrado en la base de datos');
-        toast({
-          title: "Usuario no encontrado",
-          description: "El usuario ya no existe en la base de datos",
-          variant: "destructive"
-        });
-        // Recargar la lista para reflejar el estado actual
-        await loadUsers();
-        return;
-      }
-
-      console.log('Usuario encontrado:', existingUser);
-
+      // Primero eliminar de la lista local inmediatamente para feedback visual
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+      
       // Eliminar órdenes asociadas primero
       console.log('Eliminando órdenes del usuario...');
       const { error: ordersError } = await supabase
@@ -234,21 +206,21 @@ const UserManagement = () => {
 
       if (ordersError) {
         console.warn('Error eliminando órdenes:', ordersError);
-        // Continuar aunque falle la eliminación de órdenes
       } else {
         console.log('Órdenes eliminadas correctamente');
       }
 
       // Eliminar el perfil del usuario
       console.log('Eliminando perfil del usuario...');
-      const { data: deletedProfile, error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', userId)
-        .select('id, email, name');
+        .eq('id', userId);
 
       if (profileError) {
         console.error('Error deleting profile:', profileError);
+        // Si hay error, volver a cargar la lista para mostrar el estado real
+        await loadUsers();
         toast({
           title: "Error",
           description: `Error al eliminar el perfil: ${profileError.message}`,
@@ -257,9 +229,7 @@ const UserManagement = () => {
         return;
       }
 
-      console.log('Perfil eliminado exitosamente:', deletedProfile);
-
-      // NOTA: No intentamos eliminar del sistema de auth porque requiere permisos especiales
+      console.log('Perfil eliminado exitosamente');
       console.log('El usuario fue eliminado del sistema (perfil), pero su cuenta de auth permanece inactiva');
 
       toast({
@@ -267,11 +237,16 @@ const UserManagement = () => {
         description: `El usuario ${userName} ha sido eliminado correctamente del sistema`
       });
 
-      // Recargar la lista inmediatamente
-      await loadUsers();
+      // Forzar recarga después de un breve delay para asegurar propagación
+      setTimeout(async () => {
+        console.log('Forzando recarga después de eliminación...');
+        await loadUsers();
+      }, 1000);
       
     } catch (error) {
       console.error('Error eliminando usuario:', error);
+      // En caso de error, recargar para mostrar el estado real
+      await loadUsers();
       toast({
         title: "Error",
         description: "Error inesperado al eliminar el usuario",
