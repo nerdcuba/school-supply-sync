@@ -1,55 +1,12 @@
 
 import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SupplyList from "@/components/SupplyList";
 import { useLanguage } from "@/contexts/LanguageContext";
-
-const schoolsData = {
-  "redland-elementary": {
-    name: "Redland Elementary School",
-    address: "24355 SW 167th Ave, Homestead, FL 33031",
-    phone: "(305) 248-4688",
-    principal: "Dra. María González",
-    website: "https://redland.dadeschools.net"
-  },
-  "sunset-elementary": {
-    name: "Sunset Elementary School",
-    address: "15600 SW 80th St, Miami, FL 33193", 
-    phone: "(305) 271-8200",
-    principal: "Sr. Carlos Rodríguez",
-    website: "https://sunset.dadeschools.net"
-  },
-  "coral-gables-senior": {
-    name: "Coral Gables Senior High",
-    address: "450 Bird Rd, Coral Gables, FL 33146",
-    phone: "(305) 443-4871",
-    principal: "Dra. Ana Martínez",
-    website: "https://coralgables.dadeschools.net"
-  },
-  "palmetto-elementary": {
-    name: "Palmetto Elementary School",
-    address: "7460 SW 120th St, Miami, FL 33156",
-    phone: "(305) 271-2300",
-    principal: "Sr. Roberto Silva",
-    website: "https://palmetto.dadeschools.net"
-  },
-  "southwood-middle": {
-    name: "Southwood Middle School",
-    address: "13850 SW 26th St, Miami, FL 33175",
-    phone: "(305) 552-1900",
-    principal: "Dra. Carmen López",
-    website: "https://southwood.dadeschools.net"
-  },
-  "westchester-elementary": {
-    name: "Westchester Elementary School",
-    address: "9001 SW 24th St, Miami, FL 33165",
-    phone: "(305) 551-4400",
-    principal: "Sr. Luis Fernández",
-    website: "https://westchester.dadeschools.net"
-  }
-};
+import { schoolService, School } from "@/services/schoolService";
+import { toast } from "@/hooks/use-toast";
 
 interface SchoolDetailsProps {
   onAddToCart: (item: any) => void;
@@ -58,9 +15,46 @@ interface SchoolDetailsProps {
 const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
   const { schoolId } = useParams();
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
+  const [school, setSchool] = useState<School | null>(null);
+  const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
-  
-  const school = schoolsData[schoolId as keyof typeof schoolsData];
+
+  // Cargar datos de la escuela desde Supabase
+  useEffect(() => {
+    const loadSchool = async () => {
+      if (!schoolId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const schools = await schoolService.getAll();
+        const foundSchool = schools.find(s => s.id === schoolId);
+        setSchool(foundSchool || null);
+      } catch (error) {
+        console.error('Error loading school:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo cargar la información de la escuela",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSchool();
+  }, [schoolId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg">Cargando información de la escuela...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!school) {
     return (
@@ -106,18 +100,22 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
                 <p className="text-gray-600">
                   <strong>Teléfono:</strong> {school.phone}
                 </p>
-                <p className="text-gray-600">
-                  <strong>Director(a):</strong> {school.principal}
-                </p>
+                {school.principal && (
+                  <p className="text-gray-600">
+                    <strong>Director(a):</strong> {school.principal}
+                  </p>
+                )}
               </div>
               <div className="flex items-center justify-end">
-                <Button
-                  onClick={() => window.open(school.website, '_blank')}
-                  variant="outline"
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
-                >
-                  Visitar Sitio Web
-                </Button>
+                {school.website && (
+                  <Button
+                    onClick={() => window.open(school.website, '_blank')}
+                    variant="outline"
+                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                  >
+                    Visitar Sitio Web
+                  </Button>
+                )}
               </div>
             </div>
           </div>
