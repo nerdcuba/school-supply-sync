@@ -38,7 +38,6 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deletedUserIds, setDeletedUserIds] = useState<Set<string>>(new Set());
 
   const form = useForm<EditUserForm>();
 
@@ -56,21 +55,16 @@ const UserManagement = () => {
         console.log('Realtime event detected:', payload.eventType, payload);
         
         if (payload.eventType === 'DELETE') {
-          // Solo remover el usuario de la lista local, no recargar
           const deletedUserId = payload.old?.id;
           if (deletedUserId) {
-            console.log(`Removiendo usuario ${deletedUserId} de la lista local`);
+            console.log(`Removiendo usuario ${deletedUserId} por evento realtime DELETE`);
             setUsers(prevUsers => prevUsers.filter(user => user.id !== deletedUserId));
-            // Mantener el registro de que fue eliminado
-            setDeletedUserIds(prev => new Set(prev).add(deletedUserId));
           }
         } else if (payload.eventType === 'INSERT') {
-          // Solo agregar si no está en la lista de eliminados
           const newUser = payload.new as UserProfile;
-          if (newUser && !deletedUserIds.has(newUser.id)) {
+          if (newUser) {
             console.log('Agregando nuevo usuario:', newUser);
             setUsers(prevUsers => {
-              // Verificar que no existe ya
               if (prevUsers.find(u => u.id === newUser.id)) {
                 return prevUsers;
               }
@@ -78,9 +72,8 @@ const UserManagement = () => {
             });
           }
         } else if (payload.eventType === 'UPDATE') {
-          // Solo actualizar si no está en la lista de eliminados
           const updatedUser = payload.new as UserProfile;
-          if (updatedUser && !deletedUserIds.has(updatedUser.id)) {
+          if (updatedUser) {
             console.log('Actualizando usuario:', updatedUser);
             setUsers(prevUsers => 
               prevUsers.map(user => 
@@ -95,11 +88,11 @@ const UserManagement = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [deletedUserIds]);
+  }, []);
 
   const loadUsers = async () => {
     try {
-      console.log('Cargando usuarios...');
+      console.log('Cargando usuarios desde la base de datos...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -115,11 +108,9 @@ const UserManagement = () => {
         return;
       }
 
-      // Filtrar usuarios que no están en la lista de eliminados
-      const filteredData = data?.filter(user => !deletedUserIds.has(user.id)) || [];
-      console.log('Usuarios cargados:', filteredData.length, 'usuarios');
-      console.log('Lista de usuarios:', filteredData.map(u => ({ id: u.id, name: u.name, email: u.email })));
-      setUsers(filteredData);
+      console.log(`Usuarios cargados desde DB: ${data?.length || 0} usuarios`);
+      console.log('Lista de usuarios desde DB:', data?.map(u => ({ id: u.id, name: u.name, email: u.email })));
+      setUsers(data || []);
     } catch (error) {
       console.error('Error loading users:', error);
       toast({
@@ -228,15 +219,11 @@ const UserManagement = () => {
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
-      console.log(`=== INICIANDO ELIMINACIÓN ===`);
+      console.log(`=== INICIANDO ELIMINACIÓN MEJORADA ===`);
       console.log(`Usuario ID: ${userId}`);
       console.log(`Usuario Nombre: ${userName}`);
       
-      // Marcar inmediatamente como eliminado para evitar que aparezca en la UI
-      setDeletedUserIds(prev => new Set(prev).add(userId));
-      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
-      
-      // Verificar que el usuario existe antes de eliminarlo
+      // Primero, verificar que el usuario existe
       const { data: userExists, error: checkError } = await supabase
         .from('profiles')
         .select('id, name, email')
@@ -244,10 +231,10 @@ const UserManagement = () => {
         .single();
 
       if (checkError || !userExists) {
-        console.log('Usuario no encontrado para eliminar:', checkError);
+        console.log('Usuario no encontrado:', checkError);
         toast({
           title: "Error",
-          description: "Usuario no encontrado",
+          description: "Usuario no encontrado en la base de datos",
           variant: "destructive"
         });
         return;
@@ -256,7 +243,7 @@ const UserManagement = () => {
       console.log('Usuario confirmado para eliminación:', userExists);
       
       // Eliminar órdenes asociadas primero
-      console.log('=== ELIMINANDO ÓRDENES ===');
+      console.log('=== ELIMINANDO ÓRDENES ASOCIADAS ===');
       const { error: ordersError } = await supabase
         .from('orders')
         .delete()
@@ -264,16 +251,18 @@ const UserManagement = () => {
 
       if (ordersError) {
         console.warn('Error eliminando órdenes:', ordersError);
+        // Continuar con la eliminación del usuario aunque falle eliminar órdenes
       } else {
         console.log('✓ Órdenes eliminadas correctamente');
       }
 
       // Eliminar el perfil del usuario
-      console.log('=== ELIMINANDO PERFIL ===');
-      const { error: profileError } = await supabase
+      console.log('=== ELIMINANDO PERFIL DE USUARIO ===');
+      const { error: profileError, data: deletedData } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', userId);
+        .eq('id', userId)
+        .select(); // Para confirmar que se eliminó
 
       if (profileError) {
         console.error('❌ Error eliminando perfil:', profileError);
@@ -282,22 +271,55 @@ const UserManagement = () => {
           description: `Error al eliminar el perfil: ${profileError.message}`,
           variant: "destructive"
         });
-        // Revertir cambios locales si falla
-        setDeletedUserIds(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(userId);
-          return newSet;
-        });
-        await loadUsers();
         return;
       }
 
-      console.log('✓ Perfil eliminado exitosamente');
+      // Verificar que realmente se eliminó
+      if (!deletedData || deletedData.length === 0) {
+        console.error('❌ No se eliminó ningún registro');
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar el usuario de la base de datos",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('✓ Perfil eliminado exitosamente:', deletedData);
+
+      // Actualizar la lista local inmediatamente
+      setUsers(prevUsers => {
+        const newUsers = prevUsers.filter(user => user.id !== userId);
+        console.log(`Usuarios restantes en lista local: ${newUsers.length}`);
+        return newUsers;
+      });
 
       toast({
         title: "Usuario eliminado",
-        description: `El usuario ${userName} ha sido eliminado correctamente del sistema`
+        description: `El usuario ${userName} ha sido eliminado correctamente del sistema`,
       });
+
+      // Verificar nuevamente después de un segundo
+      setTimeout(async () => {
+        const { data: stillExists } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', userId)
+          .single();
+        
+        if (stillExists) {
+          console.error('❌ El usuario aún existe en la DB después de eliminación');
+          toast({
+            title: "Advertencia",
+            description: "El usuario podría no haberse eliminado completamente",
+            variant: "destructive"
+          });
+          // Recargar usuarios para obtener el estado real
+          loadUsers();
+        } else {
+          console.log('✓ Confirmado: Usuario eliminado de la base de datos');
+        }
+      }, 1000);
       
     } catch (error) {
       console.error('❌ Error inesperado eliminando usuario:', error);
@@ -306,13 +328,6 @@ const UserManagement = () => {
         description: "Error inesperado al eliminar el usuario",
         variant: "destructive"
       });
-      // Revertir cambios locales si falla
-      setDeletedUserIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(userId);
-        return newSet;
-      });
-      await loadUsers();
     }
   };
 
