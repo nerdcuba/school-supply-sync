@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_supply_packs: {
+        Row: {
+          created_at: string
+          grade: string
+          id: string
+          items: Json
+          name: string
+          school_id: string | null
+          school_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          grade: string
+          id?: string
+          items?: Json
+          name: string
+          school_id?: string | null
+          school_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          grade?: string
+          id?: string
+          items?: Json
+          name?: string
+          school_id?: string | null
+          school_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_supply_packs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string

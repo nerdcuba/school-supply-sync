@@ -10,31 +10,16 @@ import { toast } from '@/hooks/use-toast';
 import { PackageOpen, Plus, Pencil, Trash2, Search, DollarSign, PlusCircle, X } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { schoolService, School } from '@/services/schoolService';
-
-interface SupplyItem {
-  id: string;
-  name: string;
-  quantity: number;
-  price: number;
-}
-
-interface PackType {
-  id: string;
-  name: string;
-  schoolId: string;
-  schoolName: string;
-  grade: string;
-  items: SupplyItem[];
-}
+import { adminSupplyPackService, AdminSupplyPack, SupplyItem } from '@/services/adminSupplyPackService';
 
 const PackManagement = () => {
-  const [packs, setPacks] = useState<PackType[]>([]);
+  const [packs, setPacks] = useState<AdminSupplyPack[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
   const [loadingSchools, setLoadingSchools] = useState(true);
 
-  const [newPack, setNewPack] = useState<PackType>({
-    id: '',
+  const [newPack, setNewPack] = useState<Omit<AdminSupplyPack, 'id'>>({
     name: '',
     schoolId: '',
     schoolName: '',
@@ -49,8 +34,8 @@ const PackManagement = () => {
     price: 0
   });
 
-  const [editingPack, setEditingPack] = useState<PackType | null>(null);
-  const [deletingPack, setDeletingPack] = useState<PackType | null>(null);
+  const [editingPack, setEditingPack] = useState<AdminSupplyPack | null>(null);
+  const [deletingPack, setDeletingPack] = useState<AdminSupplyPack | null>(null);
   const [editingItem, setEditingItem] = useState<SupplyItem | null>(null);
   const [deletingItemIndex, setDeletingItemIndex] = useState<number | null>(null);
 
@@ -71,34 +56,29 @@ const PackManagement = () => {
   // Cargar datos
   useEffect(() => {
     const loadData = async () => {
-      // Cargar packs desde localStorage
-      const savedPacks = localStorage.getItem('planAheadPacks');
-      if (savedPacks) {
-        setPacks(JSON.parse(savedPacks));
-      }
-
-      // Cargar escuelas desde Supabase
       try {
+        // Cargar packs desde Supabase
+        const packsData = await adminSupplyPackService.getAll();
+        setPacks(packsData);
+
+        // Cargar escuelas desde Supabase
         const schoolsData = await schoolService.getAll();
         setSchools(schoolsData);
       } catch (error) {
-        console.error('Error loading schools:', error);
+        console.error('Error loading data:', error);
         toast({
           title: "Error",
-          description: "No se pudieron cargar las escuelas",
+          description: "No se pudieron cargar los datos",
           variant: "destructive"
         });
       } finally {
+        setLoading(false);
         setLoadingSchools(false);
       }
     };
 
     loadData();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('planAheadPacks', JSON.stringify(packs));
-  }, [packs]);
 
   const filteredPacks = packs.filter(pack => 
     pack.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -110,7 +90,7 @@ const PackManagement = () => {
     return items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toFixed(2);
   };
 
-  const handleAddPack = () => {
+  const handleAddPack = async () => {
     // Validación
     if (!newPack.name || !newPack.schoolId || !newPack.grade) {
       toast({
@@ -121,33 +101,42 @@ const PackManagement = () => {
       return;
     }
 
-    // Encontrar el nombre de la escuela
-    const selectedSchool = schools.find(s => s.id === newPack.schoolId);
-    
-    const packToAdd = {
-      ...newPack,
-      id: Date.now().toString(),
-      schoolName: selectedSchool?.name || 'Escuela Desconocida',
-    };
-    
-    setPacks([...packs, packToAdd]);
-    setNewPack({
-      id: '',
-      name: '',
-      schoolId: '',
-      schoolName: '',
-      grade: '',
-      items: []
-    });
-    setOpenAddDialog(false);
-    
-    toast({
-      title: "Pack añadido",
-      description: "El pack ha sido añadido con éxito"
-    });
+    try {
+      // Encontrar el nombre de la escuela
+      const selectedSchool = schools.find(s => s.id === newPack.schoolId);
+      
+      const packToAdd = {
+        ...newPack,
+        schoolName: selectedSchool?.name || 'Escuela Desconocida',
+      };
+      
+      const createdPack = await adminSupplyPackService.create(packToAdd);
+      setPacks([createdPack, ...packs]);
+      
+      setNewPack({
+        name: '',
+        schoolId: '',
+        schoolName: '',
+        grade: '',
+        items: []
+      });
+      setOpenAddDialog(false);
+      
+      toast({
+        title: "Pack añadido",
+        description: "El pack ha sido añadido con éxito"
+      });
+    } catch (error) {
+      console.error('Error adding pack:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo añadir el pack",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleUpdatePack = () => {
+  const handleUpdatePack = async () => {
     if (!editingPack) return;
 
     // Validación
@@ -160,39 +149,61 @@ const PackManagement = () => {
       return;
     }
 
-    // Encontrar el nombre de la escuela actualizada
-    const selectedSchool = schools.find(s => s.id === editingPack.schoolId);
-    const updatedPack = {
-      ...editingPack,
-      schoolName: selectedSchool?.name || 'Escuela Desconocida',
-    };
+    try {
+      // Encontrar el nombre de la escuela actualizada
+      const selectedSchool = schools.find(s => s.id === editingPack.schoolId);
+      const updatedPackData = {
+        ...editingPack,
+        schoolName: selectedSchool?.name || 'Escuela Desconocida',
+      };
 
-    const updatedPacks = packs.map(pack => 
-      pack.id === editingPack.id ? updatedPack : pack
-    );
-    
-    setPacks(updatedPacks);
-    setEditingPack(null);
-    setOpenEditDialog(false);
-    
-    toast({
-      title: "Pack actualizado",
-      description: "La información del pack ha sido actualizada"
-    });
+      const updatedPack = await adminSupplyPackService.update(editingPack.id, updatedPackData);
+      
+      const updatedPacks = packs.map(pack => 
+        pack.id === editingPack.id ? updatedPack : pack
+      );
+      
+      setPacks(updatedPacks);
+      setEditingPack(null);
+      setOpenEditDialog(false);
+      
+      toast({
+        title: "Pack actualizado",
+        description: "La información del pack ha sido actualizada"
+      });
+    } catch (error) {
+      console.error('Error updating pack:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el pack",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeletePack = () => {
+  const handleDeletePack = async () => {
     if (!deletingPack) return;
     
-    const updatedPacks = packs.filter(pack => pack.id !== deletingPack.id);
-    setPacks(updatedPacks);
-    setDeletingPack(null);
-    setOpenDeleteDialog(false);
-    
-    toast({
-      title: "Pack eliminado",
-      description: "El pack ha sido eliminado con éxito"
-    });
+    try {
+      await adminSupplyPackService.delete(deletingPack.id);
+      
+      const updatedPacks = packs.filter(pack => pack.id !== deletingPack.id);
+      setPacks(updatedPacks);
+      setDeletingPack(null);
+      setOpenDeleteDialog(false);
+      
+      toast({
+        title: "Pack eliminado",
+        description: "El pack ha sido eliminado con éxito"
+      });
+    } catch (error) {
+      console.error('Error deleting pack:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el pack",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAddItem = () => {
@@ -290,6 +301,14 @@ const PackManagement = () => {
       description: "El artículo ha sido eliminado del pack"
     });
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Cargando packs de útiles...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
