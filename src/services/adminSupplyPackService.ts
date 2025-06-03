@@ -37,7 +37,7 @@ export const adminSupplyPackService = {
       schoolId: pack.school_id || '',
       schoolName: pack.school_name,
       grade: pack.grade,
-      items: Array.isArray(pack.items) ? pack.items as SupplyItem[] : [],
+      items: Array.isArray(pack.items) ? pack.items as unknown as SupplyItem[] : [],
       created_at: pack.created_at,
       updated_at: pack.updated_at
     }));
@@ -67,7 +67,7 @@ export const adminSupplyPackService = {
       schoolId: data.school_id || '',
       schoolName: data.school_name,
       grade: data.grade,
-      items: Array.isArray(data.items) ? data.items as SupplyItem[] : [],
+      items: Array.isArray(data.items) ? data.items as unknown as SupplyItem[] : [],
       created_at: data.created_at,
       updated_at: data.updated_at
     };
@@ -100,7 +100,7 @@ export const adminSupplyPackService = {
       schoolId: data.school_id || '',
       schoolName: data.school_name,
       grade: data.grade,
-      items: Array.isArray(data.items) ? data.items as SupplyItem[] : [],
+      items: Array.isArray(data.items) ? data.items as unknown as SupplyItem[] : [],
       created_at: data.created_at,
       updated_at: data.updated_at
     };
