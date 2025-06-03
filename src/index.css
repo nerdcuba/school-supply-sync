@@ -95,10 +95,8 @@
   }
 
   h1, h2, h3 {
-    background: linear-gradient(90deg, #1E90FF, #FFD700);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #1f2937;
+    font-weight: 700;
   }
 }
 
