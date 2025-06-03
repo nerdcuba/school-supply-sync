@@ -53,7 +53,6 @@ const PackManagement = () => {
     "9no Grado", "10mo Grado", "11vo Grado", "12vo Grado"
   ];
 
-  // Cargar datos
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -91,8 +90,11 @@ const PackManagement = () => {
   };
 
   const handleAddPack = async () => {
+    console.log('Attempting to add pack:', newPack);
+    
     // Validación
     if (!newPack.name || !newPack.schoolId || !newPack.grade) {
+      console.log('Validation failed:', { name: newPack.name, schoolId: newPack.schoolId, grade: newPack.grade });
       toast({
         title: "Error",
         description: "Por favor completa todos los campos obligatorios",
@@ -104,13 +106,18 @@ const PackManagement = () => {
     try {
       // Encontrar el nombre de la escuela
       const selectedSchool = schools.find(s => s.id === newPack.schoolId);
+      console.log('Selected school:', selectedSchool);
       
       const packToAdd = {
         ...newPack,
         schoolName: selectedSchool?.name || 'Escuela Desconocida',
       };
       
+      console.log('Pack to add:', packToAdd);
+      
       const createdPack = await adminSupplyPackService.create(packToAdd);
+      console.log('Pack created successfully:', createdPack);
+      
       setPacks([createdPack, ...packs]);
       
       setNewPack({
@@ -130,7 +137,7 @@ const PackManagement = () => {
       console.error('Error adding pack:', error);
       toast({
         title: "Error",
-        description: "No se pudo añadir el pack",
+        description: "No se pudo añadir el pack. Revisa la consola para más detalles.",
         variant: "destructive"
       });
     }
