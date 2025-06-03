@@ -20,8 +20,8 @@ const ElectronicsManagement = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingElectronic, setEditingElectronic] = useState<ElectronicFrontend | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedStock, setSelectedStock] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedStock, setSelectedStock] = useState('all');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -61,12 +61,12 @@ const ElectronicsManagement = () => {
     }
 
     // Filter by category
-    if (selectedCategory) {
+    if (selectedCategory && selectedCategory !== 'all') {
       filtered = filtered.filter(electronic => electronic.category === selectedCategory);
     }
 
     // Filter by stock status
-    if (selectedStock) {
+    if (selectedStock && selectedStock !== 'all') {
       if (selectedStock === 'in-stock') {
         filtered = filtered.filter(electronic => electronic.in_stock);
       } else if (selectedStock === 'out-of-stock') {
@@ -79,8 +79,8 @@ const ElectronicsManagement = () => {
 
   const clearFilters = () => {
     setSearchTerm('');
-    setSelectedCategory('');
-    setSelectedStock('');
+    setSelectedCategory('all');
+    setSelectedStock('all');
   };
 
   const fetchElectronics = async () => {
@@ -426,7 +426,7 @@ const ElectronicsManagement = () => {
                   <SelectValue placeholder="Todas las categorías" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas las categorías</SelectItem>
+                  <SelectItem value="all">Todas las categorías</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
@@ -444,7 +444,7 @@ const ElectronicsManagement = () => {
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="in-stock">En Stock</SelectItem>
                   <SelectItem value="out-of-stock">Agotado</SelectItem>
                 </SelectContent>
