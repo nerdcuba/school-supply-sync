@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -126,19 +127,26 @@ const UserManagement = () => {
     try {
       console.log(`Actualizando rol del usuario ${userId} a ${newRole}`);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          role: newRole,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
+      const { data, error } = await supabase.rpc('update_user_role', {
+        user_id_to_update: userId,
+        new_role: newRole
+      });
 
       if (error) {
         console.error('Error updating user role:', error);
         toast({
           title: "Error",
-          description: "No se pudo actualizar el rol del usuario",
+          description: `No se pudo actualizar el rol del usuario: ${error.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!data) {
+        console.error('La función retornó false - usuario no encontrado');
+        toast({
+          title: "Error",
+          description: "El usuario no fue encontrado en la base de datos",
           variant: "destructive"
         });
         return;
@@ -178,22 +186,29 @@ const UserManagement = () => {
     try {
       console.log('Actualizando usuario:', editingUser.id, data);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          name: data.name,
-          phone: data.phone,
-          address: data.address,
-          role: data.role,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingUser.id);
+      const { data: result, error } = await supabase.rpc('update_user_profile', {
+        user_id_to_update: editingUser.id,
+        user_name: data.name,
+        user_phone: data.phone,
+        user_address: data.address,
+        user_role: data.role
+      });
 
       if (error) {
         console.error('Error updating profile:', error);
         toast({
           title: "Error",
-          description: "No se pudo actualizar el perfil del usuario",
+          description: `No se pudo actualizar el perfil del usuario: ${error.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!result) {
+        console.error('La función retornó false - usuario no encontrado');
+        toast({
+          title: "Error",
+          description: "El usuario no fue encontrado en la base de datos",
           variant: "destructive"
         });
         return;
@@ -276,19 +291,26 @@ const UserManagement = () => {
     try {
       console.log(`${isBlocked ? 'Desbloqueando' : 'Bloqueando'} usuario: ${userId} (${userName})`);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          is_blocked: !isBlocked,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
+      const { data, error } = await supabase.rpc('update_user_block_status', {
+        user_id_to_update: userId,
+        is_blocked: !isBlocked
+      });
 
       if (error) {
         console.error('Error blocking/unblocking user:', error);
         toast({
           title: "Error",
-          description: "No se pudo cambiar el estado del usuario",
+          description: `No se pudo cambiar el estado del usuario: ${error.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!data) {
+        console.error('La función retornó false - usuario no encontrado');
+        toast({
+          title: "Error",
+          description: "El usuario no fue encontrado en la base de datos",
           variant: "destructive"
         });
         return;

@@ -208,6 +208,24 @@ export type Database = {
         Args: { user_id_to_delete: string }
         Returns: boolean
       }
+      update_user_block_status: {
+        Args: { user_id_to_update: string; is_blocked: boolean }
+        Returns: boolean
+      }
+      update_user_profile: {
+        Args: {
+          user_id_to_update: string
+          user_name: string
+          user_phone: string
+          user_address: string
+          user_role: string
+        }
+        Returns: boolean
+      }
+      update_user_role: {
+        Args: { user_id_to_update: string; new_role: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
