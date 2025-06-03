@@ -1,14 +1,16 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useAdmin } from '@/contexts/AdminContext';
-import { LogOut, LayoutDashboard, School, Package, Users, Settings, Shield } from 'lucide-react';
+import { LogOut, LayoutDashboard, School, Package, Users, Settings, Shield, Laptop } from 'lucide-react';
 import SchoolManagement from '@/components/admin/SchoolManagement';
 import PackManagement from '@/components/admin/PackManagement';
 import UserManagement from '@/components/admin/UserManagement';
 import Analytics from '@/components/admin/Analytics';
 import AdminSettings from '@/components/admin/AdminSettings';
+import ElectronicsManagement from '@/components/admin/ElectronicsManagement';
 
 const AdminDashboard = () => {
   const { isAdminAuthenticated, adminLogout } = useAdmin();
@@ -46,7 +48,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className="container mx-auto py-6 px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-5 gap-2">
+          <TabsList className="grid grid-cols-6 gap-2">
             <TabsTrigger value="analytics" className="flex items-center">
               <LayoutDashboard size={16} className="mr-2" />
               Analítica
@@ -58,6 +60,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="packs" className="flex items-center">
               <Package size={16} className="mr-2" />
               Packs de Útiles
+            </TabsTrigger>
+            <TabsTrigger value="electronics" className="flex items-center">
+              <Laptop size={16} className="mr-2" />
+              Electrónicos
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center">
               <Users size={16} className="mr-2" />
@@ -79,6 +85,10 @@ const AdminDashboard = () => {
           
           <TabsContent value="packs">
             <PackManagement />
+          </TabsContent>
+          
+          <TabsContent value="electronics">
+            <ElectronicsManagement />
           </TabsContent>
           
           <TabsContent value="users">

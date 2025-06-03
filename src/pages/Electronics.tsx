@@ -1,140 +1,28 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, ShoppingCart, Star, Filter } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { electronicsService } from "@/services/electronicsService";
+import { useToast } from "@/hooks/use-toast";
 
-const electronicsData = [
-  {
-    id: "laptop-dell-1",
-    name: "Dell Inspiron 15 3000",
-    category: "Laptops",
-    price: 449.99,
-    originalPrice: 599.99,
-    brand: "Dell",
-    rating: 4.2,
-    reviews: 124,
-    description: "Laptop ideal para estudiantes con procesador Intel Core i5, 8GB RAM, 256GB SSD",
-    image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop",
-    features: ["Intel Core i5", "8GB RAM", "256GB SSD", "15.6\" Display"],
-    inStock: true
-  },
-  {
-    id: "tablet-ipad-1",
-    name: "iPad 9th Generation",
-    category: "Tablets",
-    price: 329.99,
-    originalPrice: 399.99,
-    brand: "Apple",
-    rating: 4.7,
-    reviews: 892,
-    description: "Tablet perfecta para tomar notas, leer y proyectos escolares",
-    image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=300&fit=crop",
-    features: ["10.2\" Retina Display", "64GB Storage", "Touch ID", "All-Day Battery"],
-    inStock: true
-  },
-  {
-    id: "headphones-sony-1",
-    name: "Sony WH-CH720N",
-    category: "Audífonos",
-    price: 89.99,
-    originalPrice: 149.99,
-    brand: "Sony",
-    rating: 4.4,
-    reviews: 256,
-    description: "Audífonos con cancelación de ruido ideales para estudiar",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop",
-    features: ["Noise Canceling", "Bluetooth 5.0", "35hr Battery", "Quick Charge"],
-    inStock: true
-  },
-  {
-    id: "recorder-olympus-1",
-    name: "Olympus VN-541PC",
-    category: "Grabadores",
-    price: 39.99,
-    originalPrice: 59.99,
-    brand: "Olympus",
-    rating: 4.1,
-    reviews: 78,
-    description: "Grabador de voz digital para conferencias y clases",
-    image: "https://images.unsplash.com/photo-1590658165737-15a047b7a2c8?w=400&h=300&fit=crop",
-    features: ["4GB Memory", "USB Direct", "Voice Playback", "Long Battery Life"],
-    inStock: true
-  },
-  {
-    id: "laptop-hp-1",
-    name: "HP Pavilion 14",
-    category: "Laptops",
-    price: 549.99,
-    originalPrice: 699.99,
-    brand: "HP",
-    rating: 4.3,
-    reviews: 167,
-    description: "Laptop compacta y potente para estudiantes universitarios",
-    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=300&fit=crop",
-    features: ["AMD Ryzen 5", "8GB RAM", "512GB SSD", "14\" Full HD"],
-    inStock: true
-  },
-  {
-    id: "tablet-samsung-1",
-    name: "Samsung Galaxy Tab A8",
-    category: "Tablets",
-    price: 199.99,
-    originalPrice: 279.99,
-    brand: "Samsung",
-    rating: 4.0,
-    reviews: 145,
-    description: "Tablet Android versátil para estudios y entretenimiento",
-    image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=300&fit=crop",
-    features: ["10.5\" Display", "32GB Storage", "Quad Speakers", "Long Battery"],
-    inStock: false
-  },
-  {
-    id: "headphones-bose-1",
-    name: "Bose QuietComfort 45",
-    category: "Audífonos",
-    price: 279.99,
-    originalPrice: 329.99,
-    brand: "Bose",
-    rating: 4.8,
-    reviews: 534,
-    description: "Audífonos premium con la mejor cancelación de ruido",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop",
-    features: ["World-Class Noise Canceling", "22hr Battery", "TriPort Technology", "Comfortable Fit"],
-    inStock: true
-  },
-  {
-    id: "calculator-ti-1",
-    name: "Texas Instruments TI-84 Plus CE",
-    category: "Calculadoras",
-    price: 119.99,
-    originalPrice: 149.99,
-    brand: "Texas Instruments",
-    rating: 4.6,
-    reviews: 312,
-    description: "Calculadora gráfica para matemáticas avanzadas y ciencias",
-    image: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=400&h=300&fit=crop",
-    features: ["Color Display", "Rechargeable", "Pre-loaded Apps", "Graphing Capabilities"],
-    inStock: true
-  },
-  {
-    id: "mouse-logitech-1",
-    name: "Logitech MX Master 3S",
-    category: "Accesorios",
-    price: 99.99,
-    originalPrice: 129.99,
-    brand: "Logitech",
-    rating: 4.7,
-    reviews: 423,
-    description: "Mouse inalámbrico de precisión para trabajo y estudios",
-    image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=300&fit=crop",
-    features: ["8K DPI Sensor", "Wireless", "Multi-Device", "Ergonomic Design"],
-    inStock: true
-  }
-];
+interface Electronic {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  original_price?: number;
+  brand: string;
+  rating: number;
+  reviews: number;
+  description?: string;
+  image?: string;
+  features: string[];
+  in_stock: boolean;
+}
 
 const categories = ["Todos", "Laptops", "Tablets", "Audífonos", "Grabadores", "Calculadoras", "Accesorios"];
 
@@ -145,18 +33,42 @@ interface ElectronicsProps {
 const Electronics = ({ onAddToCart }: ElectronicsProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [electronics, setElectronics] = useState<Electronic[]>([]);
+  const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
+  const { toast } = useToast();
 
-  const filteredElectronics = electronicsData.filter(product => {
+  useEffect(() => {
+    fetchElectronics();
+  }, []);
+
+  const fetchElectronics = async () => {
+    try {
+      const { data, error } = await electronicsService.getElectronics();
+      if (error) throw error;
+      setElectronics(data);
+    } catch (error) {
+      console.error('Error fetching electronics:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los productos electrónicos",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredElectronics = electronics.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === "Todos" || product.category === selectedCategory;
     
     return matchesSearch && matchesCategory;
   });
 
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = (product: Electronic) => {
     if (onAddToCart) {
       onAddToCart({
         id: product.id,
@@ -167,6 +79,14 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xl">Cargando productos electrónicos...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -220,14 +140,16 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
             <div className="text-primary mb-2">
               <ShoppingCart size={32} className="mx-auto" />
             </div>
-            <h3 className="text-2xl font-bold text-textPrimary mb-2">{electronicsData.length}</h3>
+            <h3 className="text-2xl font-bold text-textPrimary mb-2">{electronics.length}</h3>
             <p className="text-textPrimary">Productos Disponibles</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
             <div className="text-secondary mb-2">
               <Star size={32} className="mx-auto" />
             </div>
-            <h3 className="text-2xl font-bold text-textPrimary mb-2">4.5</h3>
+            <h3 className="text-2xl font-bold text-textPrimary mb-2">
+              {electronics.length > 0 ? (electronics.reduce((acc, e) => acc + e.rating, 0) / electronics.length).toFixed(1) : '0'}
+            </h3>
             <p className="text-textPrimary">Calificación Promedio</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
@@ -249,20 +171,20 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
               {/* Product Image */}
               <div className="relative h-48 overflow-hidden">
                 <img
-                  src={product.image}
+                  src={product.image || "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop"}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
-                {!product.inStock && (
+                {!product.in_stock && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                     <Badge variant="destructive" className="text-lg px-4 py-2">
                       Agotado
                     </Badge>
                   </div>
                 )}
-                {product.originalPrice > product.price && (
+                {product.original_price && product.original_price > product.price && (
                   <Badge className="absolute top-2 left-2 bg-red-500 text-white">
-                    -${(product.originalPrice - product.price).toFixed(0)}
+                    -${(product.original_price - product.price).toFixed(0)}
                   </Badge>
                 )}
               </div>
@@ -310,9 +232,9 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
                     <span className="text-2xl font-bold text-primary">
                       ${product.price}
                     </span>
-                    {product.originalPrice > product.price && (
+                    {product.original_price && product.original_price > product.price && (
                       <span className="text-sm text-gray-500 line-through">
-                        ${product.originalPrice}
+                        ${product.original_price}
                       </span>
                     )}
                   </div>
@@ -321,15 +243,15 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
                 {/* Add to Cart Button */}
                 <Button
                   onClick={() => handleAddToCart(product)}
-                  disabled={!product.inStock}
+                  disabled={!product.in_stock}
                   className={`w-full ${
-                    product.inStock 
+                    product.in_stock 
                       ? "bg-green-600 hover:bg-green-700 text-white" 
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
                 >
                   <ShoppingCart size={16} className="mr-2" />
-                  {product.inStock ? "Agregar al Carrito" : "Agotado"}
+                  {product.in_stock ? "Agregar al Carrito" : "Agotado"}
                 </Button>
               </CardContent>
             </Card>
