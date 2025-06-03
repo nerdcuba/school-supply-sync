@@ -5,6 +5,37 @@ import { Database } from '@/integrations/supabase/types';
 type Electronic = Database['public']['Tables']['electronics']['Row'];
 type ElectronicInsert = Database['public']['Tables']['electronics']['Insert'];
 
+// Tipo para el frontend con features como string[]
+export interface ElectronicFrontend {
+  id: string;
+  name: string;
+  category: string;
+  brand: string;
+  price: number;
+  original_price?: number;
+  description?: string;
+  image?: string;
+  features: string[];
+  rating: number;
+  reviews: number;
+  in_stock: boolean;
+  created_at: string;
+}
+
+// Función para transformar datos de Supabase al formato del frontend
+const transformElectronicData = (electronic: Electronic): ElectronicFrontend => {
+  return {
+    ...electronic,
+    features: Array.isArray(electronic.features) ? electronic.features as string[] : [],
+    rating: electronic.rating || 0,
+    reviews: electronic.reviews || 0,
+    in_stock: electronic.in_stock || true,
+    original_price: electronic.original_price || undefined,
+    description: electronic.description || undefined,
+    image: electronic.image || undefined,
+  };
+};
+
 export const electronicsService = {
   // Obtener todos los productos electrónicos
   async getElectronics() {
@@ -15,7 +46,10 @@ export const electronicsService = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return { data: data || [], error: null };
+      return { 
+        data: (data || []).map(transformElectronicData), 
+        error: null 
+      };
     } catch (error) {
       console.error('Error fetching electronics:', error);
       return { data: [], error };
@@ -32,7 +66,10 @@ export const electronicsService = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return { data: data || [], error: null };
+      return { 
+        data: (data || []).map(transformElectronicData), 
+        error: null 
+      };
     } catch (error) {
       console.error('Error fetching electronics by category:', error);
       return { data: [], error };
@@ -49,7 +86,10 @@ export const electronicsService = {
         .single();
 
       if (error) throw error;
-      return { data, error: null };
+      return { 
+        data: data ? transformElectronicData(data) : null, 
+        error: null 
+      };
     } catch (error) {
       console.error('Error fetching electronic by ID:', error);
       return { data: null, error };
@@ -66,7 +106,10 @@ export const electronicsService = {
         .single();
 
       if (error) throw error;
-      return { data, error: null };
+      return { 
+        data: data ? transformElectronicData(data) : null, 
+        error: null 
+      };
     } catch (error) {
       console.error('Error creating electronic:', error);
       return { data: null, error };
@@ -84,7 +127,10 @@ export const electronicsService = {
         .single();
 
       if (error) throw error;
-      return { data, error: null };
+      return { 
+        data: data ? transformElectronicData(data) : null, 
+        error: null 
+      };
     } catch (error) {
       console.error('Error updating electronic:', error);
       return { data: null, error };
@@ -117,7 +163,10 @@ export const electronicsService = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return { data: data || [], error: null };
+      return { 
+        data: (data || []).map(transformElectronicData), 
+        error: null 
+      };
     } catch (error) {
       console.error('Error searching electronics:', error);
       return { data: [], error };

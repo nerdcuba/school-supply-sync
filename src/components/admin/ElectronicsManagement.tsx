@@ -11,28 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Edit, Trash2, Star, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-interface Electronic {
-  id: string;
-  name: string;
-  category: string;
-  brand: string;
-  price: number;
-  original_price?: number;
-  description?: string;
-  image?: string;
-  features: string[];
-  rating: number;
-  reviews: number;
-  in_stock: boolean;
-  created_at: string;
-}
+import { electronicsService, ElectronicFrontend } from '@/services/electronicsService';
 
 const ElectronicsManagement = () => {
-  const [electronics, setElectronics] = useState<Electronic[]>([]);
+  const [electronics, setElectronics] = useState<ElectronicFrontend[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingElectronic, setEditingElectronic] = useState<Electronic | null>(null);
+  const [editingElectronic, setEditingElectronic] = useState<ElectronicFrontend | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -57,13 +42,9 @@ const ElectronicsManagement = () => {
 
   const fetchElectronics = async () => {
     try {
-      const { data, error } = await supabase
-        .from('electronics')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const { data, error } = await electronicsService.getElectronics();
       if (error) throw error;
-      setElectronics(data || []);
+      setElectronics(data);
     } catch (error) {
       console.error('Error fetching electronics:', error);
       toast({
@@ -93,7 +74,7 @@ const ElectronicsManagement = () => {
     setEditingElectronic(null);
   };
 
-  const handleEdit = (electronic: Electronic) => {
+  const handleEdit = (electronic: ElectronicFrontend) => {
     setEditingElectronic(electronic);
     setFormData({
       name: electronic.name,

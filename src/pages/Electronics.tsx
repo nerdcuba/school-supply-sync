@@ -6,23 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, ShoppingCart, Star, Filter } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { electronicsService } from "@/services/electronicsService";
+import { electronicsService, ElectronicFrontend } from "@/services/electronicsService";
 import { useToast } from "@/hooks/use-toast";
-
-interface Electronic {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  original_price?: number;
-  brand: string;
-  rating: number;
-  reviews: number;
-  description?: string;
-  image?: string;
-  features: string[];
-  in_stock: boolean;
-}
 
 const categories = ["Todos", "Laptops", "Tablets", "Audífonos", "Grabadores", "Calculadoras", "Accesorios"];
 
@@ -33,7 +18,7 @@ interface ElectronicsProps {
 const Electronics = ({ onAddToCart }: ElectronicsProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
-  const [electronics, setElectronics] = useState<Electronic[]>([]);
+  const [electronics, setElectronics] = useState<ElectronicFrontend[]>([]);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -68,7 +53,7 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleAddToCart = (product: Electronic) => {
+  const handleAddToCart = (product: ElectronicFrontend) => {
     if (onAddToCart) {
       onAddToCart({
         id: product.id,
