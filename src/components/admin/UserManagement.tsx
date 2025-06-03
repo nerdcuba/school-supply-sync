@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,7 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set());
+  const [deletedUserIds, setDeletedUserIds] = useState<Set<string>>(new Set());
 
   const form = useForm<EditUserForm>();
 
@@ -54,24 +55,39 @@ const UserManagement = () => {
       }, (payload) => {
         console.log('Realtime event detected:', payload.eventType, payload);
         
-        // Solo recargar si no estamos en proceso de eliminación
         if (payload.eventType === 'DELETE') {
-          // Remover el usuario de la lista local
+          // Solo remover el usuario de la lista local, no recargar
           const deletedUserId = payload.old?.id;
           if (deletedUserId) {
+            console.log(`Removiendo usuario ${deletedUserId} de la lista local`);
             setUsers(prevUsers => prevUsers.filter(user => user.id !== deletedUserId));
-            setDeletingUsers(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(deletedUserId);
-              return newSet;
-            });
+            // Mantener el registro de que fue eliminado
+            setDeletedUserIds(prev => new Set(prev).add(deletedUserId));
           }
         } else if (payload.eventType === 'INSERT') {
-          // Agregar nuevo usuario
-          loadUsers();
+          // Solo agregar si no está en la lista de eliminados
+          const newUser = payload.new as UserProfile;
+          if (newUser && !deletedUserIds.has(newUser.id)) {
+            console.log('Agregando nuevo usuario:', newUser);
+            setUsers(prevUsers => {
+              // Verificar que no existe ya
+              if (prevUsers.find(u => u.id === newUser.id)) {
+                return prevUsers;
+              }
+              return [newUser, ...prevUsers];
+            });
+          }
         } else if (payload.eventType === 'UPDATE') {
-          // Actualizar usuario existente
-          loadUsers();
+          // Solo actualizar si no está en la lista de eliminados
+          const updatedUser = payload.new as UserProfile;
+          if (updatedUser && !deletedUserIds.has(updatedUser.id)) {
+            console.log('Actualizando usuario:', updatedUser);
+            setUsers(prevUsers => 
+              prevUsers.map(user => 
+                user.id === updatedUser.id ? updatedUser : user
+              )
+            );
+          }
         }
       })
       .subscribe();
@@ -79,7 +95,7 @@ const UserManagement = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [deletedUserIds]);
 
   const loadUsers = async () => {
     try {
@@ -99,9 +115,11 @@ const UserManagement = () => {
         return;
       }
 
-      console.log('Usuarios cargados:', data?.length, 'usuarios');
-      console.log('Lista de usuarios:', data?.map(u => ({ id: u.id, name: u.name, email: u.email })));
-      setUsers(data || []);
+      // Filtrar usuarios que no están en la lista de eliminados
+      const filteredData = data?.filter(user => !deletedUserIds.has(user.id)) || [];
+      console.log('Usuarios cargados:', filteredData.length, 'usuarios');
+      console.log('Lista de usuarios:', filteredData.map(u => ({ id: u.id, name: u.name, email: u.email })));
+      setUsers(filteredData);
     } catch (error) {
       console.error('Error loading users:', error);
       toast({
@@ -141,8 +159,6 @@ const UserManagement = () => {
         title: "Rol actualizado",
         description: `El rol del usuario ha sido actualizado a ${newRole}`
       });
-
-      await loadUsers();
     } catch (error) {
       console.error('Error updating user role:', error);
       toast({
@@ -200,7 +216,6 @@ const UserManagement = () => {
       });
 
       setEditDialogOpen(false);
-      await loadUsers();
     } catch (error) {
       console.error('Error updating user:', error);
       toast({
@@ -217,8 +232,9 @@ const UserManagement = () => {
       console.log(`Usuario ID: ${userId}`);
       console.log(`Usuario Nombre: ${userName}`);
       
-      // Marcar usuario como en proceso de eliminación
-      setDeletingUsers(prev => new Set(prev).add(userId));
+      // Marcar inmediatamente como eliminado para evitar que aparezca en la UI
+      setDeletedUserIds(prev => new Set(prev).add(userId));
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       
       // Verificar que el usuario existe antes de eliminarlo
       const { data: userExists, error: checkError } = await supabase
@@ -233,11 +249,6 @@ const UserManagement = () => {
           title: "Error",
           description: "Usuario no encontrado",
           variant: "destructive"
-        });
-        setDeletingUsers(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(userId);
-          return newSet;
         });
         return;
       }
@@ -271,18 +282,17 @@ const UserManagement = () => {
           description: `Error al eliminar el perfil: ${profileError.message}`,
           variant: "destructive"
         });
-        setDeletingUsers(prev => {
+        // Revertir cambios locales si falla
+        setDeletedUserIds(prev => {
           const newSet = new Set(prev);
           newSet.delete(userId);
           return newSet;
         });
+        await loadUsers();
         return;
       }
 
       console.log('✓ Perfil eliminado exitosamente');
-
-      // Eliminar inmediatamente de la UI local (no esperar al realtime)
-      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
 
       toast({
         title: "Usuario eliminado",
@@ -296,11 +306,13 @@ const UserManagement = () => {
         description: "Error inesperado al eliminar el usuario",
         variant: "destructive"
       });
-      setDeletingUsers(prev => {
+      // Revertir cambios locales si falla
+      setDeletedUserIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(userId);
         return newSet;
       });
+      await loadUsers();
     }
   };
 
@@ -331,8 +343,6 @@ const UserManagement = () => {
         title: isBlocked ? "Usuario desbloqueado" : "Usuario bloqueado",
         description: `El usuario ${userName} ha sido ${isBlocked ? 'desbloqueado' : 'bloqueado'} correctamente`
       });
-
-      await loadUsers();
     } catch (error) {
       console.error('Error blocking/unblocking user:', error);
       toast({
@@ -343,18 +353,16 @@ const UserManagement = () => {
     }
   };
 
-  // Filtrar usuarios que no están en proceso de eliminación
-  const filteredUsers = users
-    .filter(user => !deletingUsers.has(user.id))
-    .filter(user =>
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  // Filtrar usuarios basado en la búsqueda
+  const filteredUsers = users.filter(user =>
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const totalUsers = users.filter(user => !deletingUsers.has(user.id)).length;
-  const adminUsers = users.filter(u => !deletingUsers.has(u.id) && u.role === 'Admin').length;
-  const clientUsers = users.filter(u => !deletingUsers.has(u.id) && u.role === 'Cliente').length;
-  const blockedUsers = users.filter(u => !deletingUsers.has(u.id) && u.is_blocked).length;
+  const totalUsers = users.length;
+  const adminUsers = users.filter(u => u.role === 'Admin').length;
+  const clientUsers = users.filter(u => u.role === 'Cliente').length;
+  const blockedUsers = users.filter(u => u.is_blocked).length;
 
   if (loading) {
     return (
@@ -477,7 +485,6 @@ const UserManagement = () => {
                           size="sm"
                           onClick={() => handleEditUser(user)}
                           className="p-2"
-                          disabled={deletingUsers.has(user.id)}
                         >
                           <Edit size={16} />
                         </Button>
@@ -488,7 +495,6 @@ const UserManagement = () => {
                           size="sm"
                           onClick={() => handleBlockUser(user.id, user.is_blocked || false, user.name || user.email)}
                           className="p-2"
-                          disabled={deletingUsers.has(user.id)}
                         >
                           {user.is_blocked ? <ShieldOff size={16} /> : <Ban size={16} />}
                         </Button>
@@ -500,7 +506,6 @@ const UserManagement = () => {
                               variant="destructive" 
                               size="sm" 
                               className="p-2"
-                              disabled={deletingUsers.has(user.id)}
                             >
                               <Trash2 size={16} />
                             </Button>
@@ -532,7 +537,6 @@ const UserManagement = () => {
                             size="sm"
                             onClick={() => updateUserRole(user.id, 'Admin')}
                             className="p-2"
-                            disabled={deletingUsers.has(user.id)}
                           >
                             <Shield size={16} />
                           </Button>
@@ -542,7 +546,6 @@ const UserManagement = () => {
                             size="sm"
                             onClick={() => updateUserRole(user.id, 'Cliente')}
                             className="p-2"
-                            disabled={deletingUsers.has(user.id)}
                           >
                             <UserX size={16} />
                           </Button>
