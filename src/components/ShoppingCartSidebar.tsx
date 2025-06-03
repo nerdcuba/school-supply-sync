@@ -35,8 +35,8 @@ const ShoppingCartSidebar = ({
 }: ShoppingCartSidebarProps) => {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-lg">
-        <SheetHeader>
+      <SheetContent className="w-full sm:max-w-lg flex flex-col h-full">
+        <SheetHeader className="flex-shrink-0">
           <SheetTitle className="flex items-center space-x-2">
             <ShoppingBag size={20} />
             <span>Carrito de Compras</span>
@@ -49,9 +49,9 @@ const ShoppingCartSidebar = ({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col h-full mt-6">
-          {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 mt-6">
+          {/* Cart Items - Scrollable */}
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
             {items.length === 0 ? (
               <div className="text-center py-12">
                 <ShoppingBag size={48} className="mx-auto text-gray-400 mb-4" />
@@ -64,8 +64,8 @@ const ShoppingCartSidebar = ({
               items.map((item) => (
                 <div key={item.id} className="bg-gray-50 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 line-clamp-2 break-words">{item.name}</h4>
                       <p className="text-sm text-gray-600">{item.brand}</p>
                       <Badge variant="secondary" className="mt-1">
                         {item.category}
@@ -75,7 +75,7 @@ const ShoppingCartSidebar = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => onRemoveItem(item.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0 ml-2"
                     >
                       <Trash2 size={16} />
                     </Button>
@@ -112,9 +112,9 @@ const ShoppingCartSidebar = ({
             )}
           </div>
 
-          {/* Cart Summary */}
+          {/* Cart Summary - Fixed at bottom */}
           {items.length > 0 && (
-            <div className="border-t pt-4 mt-4 space-y-4">
+            <div className="border-t pt-4 mt-4 space-y-4 flex-shrink-0">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
