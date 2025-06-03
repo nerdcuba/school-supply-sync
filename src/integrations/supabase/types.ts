@@ -181,6 +181,7 @@ export type Database = {
           address: string
           created_at: string
           id: string
+          is_active: boolean
           name: string
           phone: string
           principal: string | null
@@ -191,6 +192,7 @@ export type Database = {
           address: string
           created_at?: string
           id?: string
+          is_active?: boolean
           name: string
           phone: string
           principal?: string | null
@@ -201,6 +203,7 @@ export type Database = {
           address?: string
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
           phone?: string
           principal?: string | null

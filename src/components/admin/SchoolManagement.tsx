@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { School, Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { School, Plus, Pencil, Trash2, Search, Power, PowerOff } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { schoolService, School as SchoolType } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +20,8 @@ const SchoolManagement = () => {
     address: '',
     phone: '',
     principal: '',
-    website: ''
+    website: '',
+    is_active: true
   });
   const [editingSchool, setEditingSchool] = useState<SchoolType | null>(null);
   const [deletingSchool, setDeletingSchool] = useState<SchoolType | null>(null);
@@ -28,7 +29,7 @@ const SchoolManagement = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
-  // Cargar escuelas desde Supabase
+  // Cargar escuelas desde Supabase - usar getAllForAdmin para ver todas las escuelas
   useEffect(() => {
     loadSchools();
     
@@ -51,7 +52,7 @@ const SchoolManagement = () => {
 
   const loadSchools = async () => {
     try {
-      const data = await schoolService.getAll();
+      const data = await schoolService.getAllForAdmin();
       setSchools(data);
     } catch (error) {
       toast({
@@ -99,7 +100,8 @@ const SchoolManagement = () => {
         address: '',
         phone: '',
         principal: '',
-        website: ''
+        website: '',
+        is_active: true
       });
       setOpenAddDialog(false);
       
@@ -175,6 +177,26 @@ const SchoolManagement = () => {
       toast({
         title: "Error",
         description: "No se pudo eliminar la escuela",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Alternar estado activo/inactivo de una escuela
+  const handleToggleActive = async (school: SchoolType) => {
+    try {
+      await schoolService.toggleActive(school.id, !school.is_active);
+      
+      toast({
+        title: school.is_active ? "Escuela deshabilitada" : "Escuela habilitada",
+        description: school.is_active 
+          ? "La escuela ya no será visible en el frontend" 
+          : "La escuela ahora es visible en el frontend"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo cambiar el estado de la escuela",
         variant: "destructive"
       });
     }
@@ -289,6 +311,7 @@ const SchoolManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Estado</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Dirección</TableHead>
                   <TableHead>Teléfono</TableHead>
@@ -298,13 +321,37 @@ const SchoolManagement = () => {
               </TableHeader>
               <TableBody>
                 {filteredSchools.map((school) => (
-                  <TableRow key={school.id}>
+                  <TableRow key={school.id} className={!school.is_active ? 'opacity-50' : ''}>
+                    <TableCell>
+                      <div className="flex items-center">
+                        {school.is_active ? (
+                          <div className="flex items-center text-green-600">
+                            <Power size={16} className="mr-1" />
+                            <span className="text-sm font-medium">Activa</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-red-600">
+                            <PowerOff size={16} className="mr-1" />
+                            <span className="text-sm font-medium">Inactiva</span>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-medium">{school.name}</TableCell>
                     <TableCell>{school.address}</TableCell>
                     <TableCell>{school.phone}</TableCell>
                     <TableCell>{school.principal || '-'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleActive(school)}
+                          className={school.is_active ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}
+                          title={school.is_active ? 'Deshabilitar escuela' : 'Habilitar escuela'}
+                        >
+                          {school.is_active ? <PowerOff size={14} /> : <Power size={14} />}
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
