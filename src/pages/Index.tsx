@@ -64,7 +64,7 @@ const Index = () => {
       <section className="py-16 px-4 bg-background">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12 text-textPrimary">
-            Todo lo que necesitas para el éxito escolar
+            {t('home.products.title')}
           </h2>
           <div className="grid md:grid-cols-2 gap-8">
             {/* Electronics */}
@@ -73,15 +73,15 @@ const Index = () => {
                 <div className="bg-blue-500 bg-opacity-10 text-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Laptop size={32} />
                 </div>
-                <CardTitle className="text-2xl mb-2 text-center">Electrónicos</CardTitle>
+                <CardTitle className="text-2xl mb-2 text-center">{t('home.electronics.title')}</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-textPrimary mb-4">
-                  Laptops, tablets, audífonos, grabadores de voz y más tecnología para el aprendizaje
+                  {t('home.electronics.desc')}
                 </p>
                 <Link to="/electronics">
                   <Button className="bg-blue-500 hover:bg-blue-600 text-white">
-                    Ver Electrónicos
+                    {t('home.electronics.cta')}
                   </Button>
                 </Link>
               </CardContent>
@@ -93,15 +93,15 @@ const Index = () => {
                 <div className="bg-green-500 bg-opacity-10 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <GraduationCap size={32} />
                 </div>
-                <CardTitle className="text-2xl mb-2 text-center">Packs por Grado</CardTitle>
+                <CardTitle className="text-2xl mb-2 text-center">{t('home.packs.title')}</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-textPrimary mb-4">
-                  Paquetes completos organizados por grado escolar con todos los útiles necesarios
+                  {t('home.packs.desc')}
                 </p>
                 <Link to="/schools">
                   <Button className="bg-green-500 hover:bg-green-600 text-white">
-                    Ver Packs
+                    {t('home.packs.cta')}
                   </Button>
                 </Link>
               </CardContent>
@@ -114,7 +114,7 @@ const Index = () => {
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12 text-textPrimary">
-            Lo que dicen nuestros clientes
+            {t('home.reviews.title')}
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="card-vibrant">
@@ -128,7 +128,7 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-textPrimary text-center italic">
-                  "Excelente servicio. Todos los útiles llegaron a tiempo y de gran calidad. Mi hijo está súper contento con su pack escolar."
+                  {t('home.reviews.maria')}
                 </p>
               </CardContent>
             </Card>
@@ -144,7 +144,7 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-textPrimary text-center italic">
-                  "La laptop que compramos es perfecta para las clases virtuales. Entrega rápida y precio justo."
+                  {t('home.reviews.carlos')}
                 </p>
               </CardContent>
             </Card>
@@ -160,7 +160,7 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-textPrimary text-center italic">
-                  "Me encanta que todo venga organizado por grado. Ya no tengo que preocuparme por olvidar algo importante."
+                  {t('home.reviews.ana')}
                 </p>
               </CardContent>
             </Card>
@@ -182,7 +182,7 @@ const Index = () => {
             </div>
             <div>
               <div className="text-4xl font-bold text-accent mb-2">95%</div>
-              <p className="text-textPrimary">Satisfacción</p>
+              <p className="text-textPrimary">{t('home.stats.satisfaction')}</p>
             </div>
           </div>
         </div>
@@ -192,10 +192,10 @@ const Index = () => {
       <section className="py-20 px-4 bg-primary text-white">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold mb-6 text-white">
-            ¿Listo para simplificar el regreso a clases?
+            {t('home.cta.ready')}
           </h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto text-gray-100">
-            Únete a miles de familias que ya confían en Plan Ahead Solutions para sus necesidades escolares.
+            {t('home.cta.join')}
           </p>
           <Link to="/schools">
             <Button size="lg" className="bg-white text-primary hover:bg-background hover:scale-105 px-8 py-4 text-lg transition-all duration-200">

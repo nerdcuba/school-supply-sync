@@ -84,10 +84,10 @@ const HowItWorks = () => {
           <Card className="max-w-2xl mx-auto bg-blue-600 text-white">
             <CardContent className="p-8">
               <h2 className="text-2xl font-bold mb-4">
-                ¿Listo para comenzar?
+                {t('howItWorks.cta.ready')}
               </h2>
               <p className="text-blue-100 mb-6">
-                Encuentra tu escuela y simplifica tus compras escolares hoy mismo.
+                {t('howItWorks.cta.find')}
               </p>
               <Link to="/schools">
                 <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">

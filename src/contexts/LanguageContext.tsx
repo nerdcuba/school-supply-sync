@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 type Language = 'es' | 'en';
@@ -36,6 +35,20 @@ const translations = {
     'home.features.convenient.desc': 'Ordena todos los útiles necesarios desde la comodidad de tu hogar.',
     'home.features.organized.title': 'Mantente Organizado',
     'home.features.organized.desc': 'Lleva un registro de tus compras y listas por grado.',
+    'home.products.title': 'Todo lo que necesitas para el éxito escolar',
+    'home.electronics.title': 'Electrónicos',
+    'home.electronics.desc': 'Laptops, tablets, audífonos, grabadores de voz y más tecnología para el aprendizaje',
+    'home.electronics.cta': 'Ver Electrónicos',
+    'home.packs.title': 'Packs por Grado',
+    'home.packs.desc': 'Paquetes completos organizados por grado escolar con todos los útiles necesarios',
+    'home.packs.cta': 'Ver Packs',
+    'home.reviews.title': 'Lo que dicen nuestros clientes',
+    'home.reviews.maria': '"Excelente servicio. Todos los útiles llegaron a tiempo y de gran calidad. Mi hijo está súper contento con su pack escolar."',
+    'home.reviews.carlos': '"La laptop que compramos es perfecta para las clases virtuales. Entrega rápida y precio justo."',
+    'home.reviews.ana': '"Me encanta que todo venga organizado por grado. Ya no tengo que preocuparme por olvidar algo importante."',
+    'home.stats.satisfaction': 'Satisfacción',
+    'home.cta.ready': '¿Listo para simplificar el regreso a clases?',
+    'home.cta.join': 'Únete a miles de familias que ya confían en Plan Ahead Solutions para sus necesidades escolares.',
 
     // Schools page
     'schools.title': 'Encuentra tu Escuela',
@@ -132,6 +145,8 @@ const translations = {
     'howItWorks.step2.desc': 'Elige el grado de tu hijo para ver la lista oficial de útiles.',
     'howItWorks.step3.title': 'Compra el Pack',
     'howItWorks.step3.desc': 'Agrega el pack completo al carrito y finaliza tu compra.',
+    'howItWorks.cta.ready': '¿Listo para comenzar?',
+    'howItWorks.cta.find': 'Encuentra tu escuela y simplifica tus compras escolares hoy mismo.',
 
     // Contact
     'contact.title': 'Contáctanos',
@@ -187,6 +202,20 @@ const translations = {
     'home.features.convenient.desc': 'Order all necessary supplies from the comfort of your home.',
     'home.features.organized.title': 'Stay Organized',
     'home.features.organized.desc': 'Keep track of your purchases and lists by grade.',
+    'home.products.title': 'Everything you need for school success',
+    'home.electronics.title': 'Electronics',
+    'home.electronics.desc': 'Laptops, tablets, headphones, voice recorders and more technology for learning',
+    'home.electronics.cta': 'View Electronics',
+    'home.packs.title': 'Grade Packs',
+    'home.packs.desc': 'Complete packages organized by school grade with all necessary supplies',
+    'home.packs.cta': 'View Packs',
+    'home.reviews.title': 'What our customers say',
+    'home.reviews.maria': '"Excellent service. All supplies arrived on time and great quality. My son is super happy with his school pack."',
+    'home.reviews.carlos': '"The laptop we bought is perfect for virtual classes. Fast delivery and fair price."',
+    'home.reviews.ana': '"I love that everything comes organized by grade. I no longer have to worry about forgetting something important."',
+    'home.stats.satisfaction': 'Satisfaction',
+    'home.cta.ready': 'Ready to simplify back to school?',
+    'home.cta.join': 'Join thousands of families who already trust Plan Ahead Solutions for their school needs.',
 
     // Schools page
     'schools.title': 'Find Your School',
@@ -283,6 +312,8 @@ const translations = {
     'howItWorks.step2.desc': 'Choose your child\'s grade to see the official supply list.',
     'howItWorks.step3.title': 'Buy the Pack',
     'howItWorks.step3.desc': 'Add the complete pack to cart and complete your purchase.',
+    'howItWorks.cta.ready': 'Ready to get started?',
+    'howItWorks.cta.find': 'Find your school and simplify your school shopping today.',
 
     // Contact
     'contact.title': 'Contact Us',
