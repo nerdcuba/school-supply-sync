@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -32,57 +31,65 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
 
+  console.log('🔧 AuthProvider render - Estado:', { 
+    user: user?.email || 'null', 
+    session: !!session, 
+    loading 
+  });
+
   useEffect(() => {
-    // Configurar listener de autenticación
+    console.log('🚀 AuthProvider useEffect - INICIANDO configuración');
+    
+    // Verificar sesión existente PRIMERO
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('📋 Sesión inicial:', { 
+        hasSession: !!session, 
+        user: session?.user?.email || 'ninguno',
+        error: error?.message || 'sin error'
+      });
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+      
+      console.log('🏁 Sesión inicial procesada - loading = false');
+    });
+
+    // Configurar listener para cambios futuros
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔄 AUTH STATE CHANGE:', { 
+          event, 
+          hasSession: !!session,
+          user: session?.user?.email || 'ninguno'
+        });
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Verificar si el usuario está bloqueado
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('is_blocked')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profile?.is_blocked) {
-            // Si está bloqueado, cerrar sesión
-            await supabase.auth.signOut();
-            setUser(null);
-            setSession(null);
-            setPurchases([]);
-            return;
-          }
-          
-          // Cargar órdenes del usuario cuando se autentique
+          console.log('✅ Usuario autenticado en cambio de estado');
           setTimeout(() => {
             loadUserOrders();
           }, 0);
         } else {
+          console.log('❌ No hay usuario en cambio de estado');
           setPurchases([]);
         }
         
-        setLoading(false);
+        // No cambiar loading aquí, ya se cambió en getSession
       }
     );
 
-    // Verificar sesión existente
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserOrders();
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('🧹 Limpiando suscripción');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserOrders = async () => {
     try {
+      console.log('📦 Cargando órdenes...');
       const orders = await orderService.getUserOrders();
       const formattedPurchases = orders.map(order => ({
         id: order.id,
@@ -92,8 +99,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         status: order.status
       }));
       setPurchases(formattedPurchases);
+      console.log('✅ Órdenes cargadas:', formattedPurchases.length);
     } catch (error) {
-      console.error('Error loading user orders:', error);
+      console.error('❌ Error cargando órdenes:', error);
     }
   };
 
@@ -193,18 +201,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const contextValue = {
+    user,
+    session,
+    purchases,
+    loading,
+    login,
+    register,
+    logout,
+    updateProfile,
+    addPurchase
+  };
+
+  console.log('🎯 AuthProvider contexto final:', {
+    user: user?.email || 'null',
+    loading,
+    hasSession: !!session
+  });
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      purchases,
-      loading,
-      login,
-      register,
-      logout,
-      updateProfile,
-      addPurchase
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -215,5 +231,11 @@ export const useAuth = () => {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+  
+  console.log('🎣 useAuth llamado - retornando:', {
+    user: context.user?.email || 'null',
+    loading: context.loading
+  });
+  
   return context;
 };
