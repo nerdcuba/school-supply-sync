@@ -345,7 +345,7 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
-        <Badge variant="secondary">{totalUsers} usuarios registrados}</Badge>
+        <Badge variant="secondary">{totalUsers} usuarios registrados</Badge>
       </div>
 
       {/* User Stats */}
