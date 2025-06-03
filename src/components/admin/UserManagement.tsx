@@ -245,8 +245,7 @@ const UserManagement = () => {
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', userId)
-        .select('*', { count: 'exact' });
+        .eq('id', userId);
 
       if (profileError) {
         console.error('❌ Error eliminando perfil:', profileError);
@@ -260,7 +259,7 @@ const UserManagement = () => {
         return;
       }
 
-      console.log(`✓ Perfil eliminado exitosamente. Registros afectados: ${count}`);
+      console.log('✓ Perfil eliminado exitosamente');
 
       toast({
         title: "Usuario eliminado",
@@ -346,7 +345,7 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
-        <Badge variant="secondary">{totalUsers} usuarios registrados</Badge>
+        <Badge variant="secondary">{totalUsers} usuarios registrados}</Badge>
       </div>
 
       {/* User Stats */}
