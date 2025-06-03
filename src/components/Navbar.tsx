@@ -64,10 +64,10 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
             <Button
               onClick={onOpenCart}
               variant="outline"
+              size="icon"
               className="relative border-primary text-primary hover:bg-primary hover:text-white transition-all duration-200"
             >
-              <ShoppingCart size={20} className="mr-2" />
-              {t('nav.cart')}
+              <ShoppingCart size={20} />
               {cartItemsCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-secondary text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
                   {cartItemsCount}
@@ -78,14 +78,12 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
             {user ? (
               <div className="flex items-center space-x-2">
                 <Link to="/dashboard">
-                  <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-textPrimary transition-all duration-200">
-                    <User size={20} className="mr-2" />
-                    {t('nav.dashboard')}
+                  <Button variant="outline" size="icon" className="border-accent text-accent hover:bg-accent hover:text-textPrimary transition-all duration-200">
+                    <User size={20} />
                   </Button>
                 </Link>
-                <Button onClick={handleLogout} variant="outline" className="hover:bg-secondary hover:text-white hover:border-secondary transition-all duration-200">
-                  <LogOut size={20} className="mr-2" />
-                  {t('nav.logout')}
+                <Button onClick={handleLogout} variant="outline" size="icon" className="hover:bg-secondary hover:text-white hover:border-secondary transition-all duration-200">
+                  <LogOut size={20} />
                 </Button>
               </div>
             ) : (
