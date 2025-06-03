@@ -2,15 +2,17 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, School, Package } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, School, Package, Laptop } from 'lucide-react';
 import { dashboardService } from '@/services/dashboardService';
 import { orderService } from '@/services/orderService';
+import { electronicsService } from '@/services/electronicsService';
 
 const Analytics = () => {
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalSchools: 0,
     totalPacks: 0,
+    totalElectronics: 0,
     totalRevenue: 0,
     avgOrderValue: 0
   });
@@ -24,12 +26,16 @@ const Analytics = () => {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const [adminStats, allOrders] = await Promise.all([
+      const [adminStats, allOrders, electronicsData] = await Promise.all([
         dashboardService.getAdminStats(),
-        orderService.getAll()
+        orderService.getAll(),
+        electronicsService.getElectronics()
       ]);
       
-      setStats(adminStats);
+      setStats({
+        ...adminStats,
+        totalElectronics: electronicsData.data.length
+      });
       setRecentOrders(allOrders.slice(0, 10));
     } catch (error) {
       console.error('Error loading analytics:', error);
@@ -54,7 +60,7 @@ const Analytics = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Órdenes</CardTitle>
@@ -93,6 +99,20 @@ const Analytics = () => {
             <div className="flex items-center text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
               Packs disponibles
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Productos Electrónicos</CardTitle>
+            <Laptop className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalElectronics}</div>
+            <div className="flex items-center text-xs text-muted-foreground">
+              <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
+              Productos disponibles
             </div>
           </CardContent>
         </Card>
