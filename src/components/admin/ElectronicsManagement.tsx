@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,16 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Star, Package } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Edit, Trash2, Star, Package, Search, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { electronicsService, ElectronicFrontend } from '@/services/electronicsService';
 
 const ElectronicsManagement = () => {
   const [electronics, setElectronics] = useState<ElectronicFrontend[]>([]);
+  const [filteredElectronics, setFilteredElectronics] = useState<ElectronicFrontend[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingElectronic, setEditingElectronic] = useState<ElectronicFrontend | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedStock, setSelectedStock] = useState('');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -39,6 +43,45 @@ const ElectronicsManagement = () => {
   useEffect(() => {
     fetchElectronics();
   }, []);
+
+  useEffect(() => {
+    filterElectronics();
+  }, [electronics, searchTerm, selectedCategory, selectedStock]);
+
+  const filterElectronics = () => {
+    let filtered = [...electronics];
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(electronic =>
+        electronic.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        electronic.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (electronic.description && electronic.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Filter by category
+    if (selectedCategory) {
+      filtered = filtered.filter(electronic => electronic.category === selectedCategory);
+    }
+
+    // Filter by stock status
+    if (selectedStock) {
+      if (selectedStock === 'in-stock') {
+        filtered = filtered.filter(electronic => electronic.in_stock);
+      } else if (selectedStock === 'out-of-stock') {
+        filtered = filtered.filter(electronic => !electronic.in_stock);
+      }
+    }
+
+    setFilteredElectronics(filtered);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('');
+    setSelectedStock('');
+  };
 
   const fetchElectronics = async () => {
     try {
@@ -356,6 +399,75 @@ const ElectronicsManagement = () => {
             </Dialog>
           </div>
         </CardHeader>
+        
+        {/* Search and Filter Section */}
+        <CardContent className="border-b pb-4">
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            {/* Search Bar */}
+            <div className="flex-1">
+              <Label htmlFor="search">Buscar productos</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="search"
+                  placeholder="Buscar por nombre, marca o descripción..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Category Filter */}
+            <div className="min-w-[200px]">
+              <Label htmlFor="category-filter">Categoría</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas las categorías" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas las categorías</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Stock Filter */}
+            <div className="min-w-[160px]">
+              <Label htmlFor="stock-filter">Estado</Label>
+              <Select value={selectedStock} onValueChange={setSelectedStock}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="in-stock">En Stock</SelectItem>
+                  <SelectItem value="out-of-stock">Agotado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Clear Filters Button */}
+            <Button 
+              variant="outline" 
+              onClick={clearFilters}
+              className="flex items-center"
+            >
+              <Filter size={16} className="mr-2" />
+              Limpiar
+            </Button>
+          </div>
+
+          {/* Results Summary */}
+          <div className="mt-4 text-sm text-gray-600">
+            Mostrando {filteredElectronics.length} de {electronics.length} productos
+          </div>
+        </CardContent>
+
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
@@ -371,7 +483,7 @@ const ElectronicsManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {electronics.map((electronic) => (
+                {filteredElectronics.map((electronic) => (
                   <TableRow key={electronic.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
@@ -437,9 +549,12 @@ const ElectronicsManagement = () => {
                 ))}
               </TableBody>
             </Table>
-            {electronics.length === 0 && (
+            {filteredElectronics.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                No hay productos electrónicos registrados
+                {searchTerm || selectedCategory || selectedStock 
+                  ? "No se encontraron productos con los filtros aplicados"
+                  : "No hay productos electrónicos registrados"
+                }
               </div>
             )}
           </div>
