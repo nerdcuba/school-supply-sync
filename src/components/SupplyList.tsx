@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Download, Printer, ArrowLeft, Package } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { schoolService } from "@/services/schoolService";
+import { adminSupplyPackService, AdminSupplyPack } from "@/services/adminSupplyPackService";
 
 interface SupplyListProps {
   school: string;
@@ -13,78 +14,6 @@ interface SupplyListProps {
   onSelectGrade: (grade: string) => void;
   onAddToCart: (item: any) => void;
 }
-
-// Datos estáticos de los packs (esto podría moverse a Supabase en el futuro)
-const gradeData = {
-  "Kindergarten": {
-    supplies: [
-      { id: "k1", name: "Crayones de 24 colores", brand: "Crayola", price: 3.99, quantity: 2, category: "Arte" },
-      { id: "k2", name: "Marcadores lavables", brand: "Crayola", price: 4.99, quantity: 1, category: "Arte" },
-      { id: "k3", name: "Pegamento en barra", brand: "Elmer's", price: 1.99, quantity: 4, category: "Oficina" },
-      { id: "k4", name: "Tijeras punta roma", brand: "Fiskars", price: 3.49, quantity: 1, category: "Oficina" },
-      { id: "k5", name: "Cuadernos de composición", brand: "Mead", price: 2.99, quantity: 3, category: "Papel" },
-      { id: "k6", name: "Lápices #2", brand: "Ticonderoga", price: 4.99, quantity: 1, category: "Escritura" },
-      { id: "k7", name: "Carpetas de plástico", brand: "Generic", price: 0.99, quantity: 5, category: "Organización" }
-    ]
-  },
-  "1er Grado": {
-    supplies: [
-      { id: "1g1", name: "Lápices #2", brand: "Ticonderoga", price: 4.99, quantity: 2, category: "Escritura" },
-      { id: "1g2", name: "Borradores rosas", brand: "Pink Pearl", price: 1.99, quantity: 4, category: "Escritura" },
-      { id: "1g3", name: "Crayones de 24 colores", brand: "Crayola", price: 3.99, quantity: 1, category: "Arte" },
-      { id: "1g4", name: "Marcadores lavables", brand: "Crayola", price: 4.99, quantity: 1, category: "Arte" },
-      { id: "1g5", name: "Cuadernos rayados", brand: "Mead", price: 2.99, quantity: 4, category: "Papel" },
-      { id: "1g6", name: "Folders manila", brand: "Generic", price: 0.79, quantity: 10, category: "Organización" },
-      { id: "1g7", name: "Pegamento líquido", brand: "Elmer's", price: 2.49, quantity: 2, category: "Oficina" }
-    ]
-  },
-  "2do Grado": {
-    supplies: [
-      { id: "2g1", name: "Lápices #2", brand: "Ticonderoga", price: 4.99, quantity: 2, category: "Escritura" },
-      { id: "2g2", name: "Lápices de colores", brand: "Crayola", price: 5.99, quantity: 1, category: "Arte" },
-      { id: "2g3", name: "Cuadernos de matemáticas", brand: "Mead", price: 3.49, quantity: 2, category: "Papel" },
-      { id: "2g4", name: "Cuadernos de escritura", brand: "Mead", price: 3.49, quantity: 2, category: "Papel" },
-      { id: "2g5", name: "Carpeta de 3 anillos", brand: "Avery", price: 7.99, quantity: 1, category: "Organización" },
-      { id: "2g6", name: "Separadores de materias", brand: "Avery", price: 2.99, quantity: 1, category: "Organización" },
-      { id: "2g7", name: "Regla de 12 pulgadas", brand: "Generic", price: 1.49, quantity: 1, category: "Matemáticas" }
-    ]
-  },
-  "3er Grado": {
-    supplies: [
-      { id: "3g1", name: "Lápices #2", brand: "Ticonderoga", price: 4.99, quantity: 3, category: "Escritura" },
-      { id: "3g2", name: "Bolígrafos azules", brand: "BIC", price: 3.99, quantity: 1, category: "Escritura" },
-      { id: "3g3", name: "Bolígrafos rojos", brand: "BIC", price: 3.99, quantity: 1, category: "Escritura" },
-      { id: "3g4", name: "Resaltadores", brand: "Sharpie", price: 4.99, quantity: 1, category: "Escritura" },
-      { id: "3g5", name: "Cuadernos de espiral", brand: "Mead", price: 2.99, quantity: 4, category: "Papel" },
-      { id: "3g6", name: "Papel rayado suelto", brand: "Mead", price: 3.99, quantity: 2, category: "Papel" },
-      { id: "3g7", name: "Calculadora básica", brand: "Texas Instruments", price: 12.99, quantity: 1, category: "Matemáticas" }
-    ]
-  },
-  "4to Grado": {
-    supplies: [
-      { id: "4g1", name: "Lápices mecánicos", brand: "BIC", price: 3.99, quantity: 2, category: "Escritura" },
-      { id: "4g2", name: "Minas para lápiz mecánico", brand: "BIC", price: 2.99, quantity: 2, category: "Escritura" },
-      { id: "4g3", name: "Bolígrafos de gel", brand: "Pilot", price: 6.99, quantity: 1, category: "Escritura" },
-      { id: "4g4", name: "Cuadernos universitarios", brand: "Mead", price: 4.99, quantity: 3, category: "Papel" },
-      { id: "4g5", name: "Carpetas expandibles", brand: "Pendaflex", price: 8.99, quantity: 2, category: "Organización" },
-      { id: "4g6", name: "Notas adhesivas", brand: "Post-it", price: 4.99, quantity: 2, category: "Oficina" },
-      { id: "4g7", name: "Transportador", brand: "Generic", price: 2.49, quantity: 1, category: "Matemáticas" }
-    ]
-  },
-  "5to Grado": {
-    supplies: [
-      { id: "5g1", name: "Lápices mecánicos", brand: "BIC", price: 3.99, quantity: 3, category: "Escritura" },
-      { id: "5g2", name: "Bolígrafos multicolor", brand: "BIC", price: 5.99, quantity: 1, category: "Escritura" },
-      { id: "5g3", name: "Cuadernos de materias", brand: "Five Star", price: 7.99, quantity: 4, category: "Papel" },
-      { id: "5g4", name: "Archivador acordeón", brand: "Pendaflex", price: 12.99, quantity: 1, category: "Organización" },
-      { id: "5g5", name: "Calculadora científica", brand: "Texas Instruments", price: 24.99, quantity: 1, category: "Matemáticas" },
-      { id: "5g6", name: "Set de geometría", brand: "Staedtler", price: 8.99, quantity: 1, category: "Matemáticas" },
-      { id: "5g7", name: "Diccionario Inglés-Español", brand: "Merriam-Webster", price: 15.99, quantity: 1, category: "Referencia" }
-    ]
-  }
-};
-
-const grades = ["Kindergarten", "1er Grado", "2do Grado", "3er Grado", "4to Grado", "5to Grado"];
 
 const categoryColors: { [key: string]: string } = {
   "Arte": "bg-purple-100 text-purple-800",
@@ -99,17 +28,34 @@ const categoryColors: { [key: string]: string } = {
 const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [schoolData, setSchoolData] = useState<any>(null);
+  const [supplyPacks, setSupplyPacks] = useState<AdminSupplyPack[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Cargar datos de la escuela desde Supabase
+  // Cargar datos de la escuela y packs desde Supabase
   useEffect(() => {
     const loadSchoolData = async () => {
       try {
-        const schools = await schoolService.getAll();
+        setLoading(true);
+        const [schools, allPacks] = await Promise.all([
+          schoolService.getAll(),
+          adminSupplyPackService.getAll()
+        ]);
+        
         const currentSchool = schools.find(s => s.name === school);
         setSchoolData(currentSchool);
+        
+        // Filtrar packs por escuela
+        const schoolPacks = allPacks.filter(pack => 
+          pack.schoolName === school || pack.schoolId === currentSchool?.id
+        );
+        setSupplyPacks(schoolPacks);
       } catch (error) {
         console.error('Error loading school data:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo cargar la información de la escuela",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
@@ -127,6 +73,34 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
   }
 
   if (!grade) {
+    // Obtener grados únicos de los packs de esta escuela
+    const availableGrades = [...new Set(supplyPacks.map(pack => pack.grade))].sort();
+    
+    if (availableGrades.length === 0) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Listas de Útiles - {school}
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              No hay packs de útiles disponibles para esta escuela actualmente.
+            </p>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+            <Package size={48} className="mx-auto text-yellow-500 mb-4" />
+            <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+              Packs no disponibles
+            </h3>
+            <p className="text-yellow-700">
+              Los packs de útiles para esta escuela están siendo preparados. 
+              Por favor, contacta al administrador para más información.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6">
         <div className="text-center mb-8">
@@ -139,9 +113,11 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {grades.map((gradeOption) => {
-            const gradeSupplies = gradeData[gradeOption as keyof typeof gradeData]?.supplies || [];
-            const packTotal = gradeSupplies.reduce((total, supply) => total + (supply.price * supply.quantity), 0);
+          {availableGrades.map((gradeOption) => {
+            const gradePacks = supplyPacks.filter(pack => pack.grade === gradeOption);
+            const packTotal = gradePacks.reduce((total, pack) => {
+              return total + pack.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            }, 0);
             
             return (
               <Card
@@ -160,7 +136,7 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
                 <CardContent className="text-center space-y-3">
                   <div className="space-y-1">
                     <p className="text-gray-600">
-                      {gradeSupplies.length} artículos incluidos
+                      {gradePacks.reduce((total, pack) => total + pack.items.length, 0)} artículos incluidos
                     </p>
                     <p className="text-2xl font-bold text-green-600">
                       ${packTotal.toFixed(2)}
@@ -178,30 +154,57 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
     );
   }
 
-  const supplies = gradeData[grade as keyof typeof gradeData]?.supplies || [];
-  const categories = [...new Set(supplies.map(supply => supply.category))];
-  const filteredSupplies = selectedCategory
-    ? supplies.filter(supply => supply.category === selectedCategory)
-    : supplies;
+  // Mostrar packs específicos del grado seleccionado
+  const gradeSupplyPacks = supplyPacks.filter(pack => pack.grade === grade);
+  
+  if (gradeSupplyPacks.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg p-6 shadow-lg">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Pack de Útiles - {grade}
+          </h2>
+          <p className="text-gray-600">{school}</p>
+        </div>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+          <Package size={48} className="mx-auto text-yellow-500 mb-4" />
+          <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+            Pack no disponible para {grade}
+          </h3>
+          <p className="text-yellow-700">
+            El pack de útiles para {grade} no está disponible actualmente.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const totalCost = supplies.reduce((total, supply) => total + (supply.price * supply.quantity), 0);
+  // Combinar todos los items de los packs del grado
+  const allSupplies = gradeSupplyPacks.flatMap(pack => pack.items);
+  const categories = [...new Set(allSupplies.map(supply => supply.category || 'General'))];
+  const filteredSupplies = selectedCategory
+    ? allSupplies.filter(supply => (supply.category || 'General') === selectedCategory)
+    : allSupplies;
+
+  const totalCost = allSupplies.reduce((total, supply) => total + (supply.price * supply.quantity), 0);
 
   const handleAddPackToCart = () => {
     const packItem = {
-      id: `pack-${grade?.toLowerCase().replace(/\s+/g, '-')}`,
-      name: `Pack Completo ${grade}`,
+      id: `pack-${grade?.toLowerCase().replace(/\s+/g, '-')}-${school.toLowerCase().replace(/\s+/g, '-')}`,
+      name: `Pack Completo ${grade} - ${school}`,
       brand: "Plan Ahead Solutions",
       price: totalCost,
       quantity: 1,
       category: "Pack Completo",
-      supplies: supplies,
-      school: school
+      supplies: allSupplies,
+      school: school,
+      grade: grade
     };
     
     onAddToCart(packItem);
     toast({
       title: "Pack agregado al carrito",
-      description: `Pack completo de ${grade} agregado a tu carrito con ${supplies.length} artículos.`,
+      description: `Pack completo de ${grade} para ${school} agregado a tu carrito con ${allSupplies.length} artículos.`,
     });
   };
 
@@ -237,7 +240,7 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
                 </p>
               )}
               <div className="flex items-center space-x-4 mt-2">
-                <span className="text-sm text-gray-500">{supplies.length} artículos</span>
+                <span className="text-sm text-gray-500">{allSupplies.length} artículos</span>
                 <span className="text-lg font-bold text-green-600">
                   Total del pack: ${totalCost.toFixed(2)}
                 </span>
@@ -296,7 +299,7 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
             onClick={() => setSelectedCategory(null)}
             size="sm"
           >
-            Todo el pack ({supplies.length})
+            Todo el pack ({allSupplies.length})
           </Button>
           {categories.map((category) => (
             <Button
@@ -306,7 +309,7 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
               size="sm"
               className={selectedCategory === category ? "bg-blue-600 hover:bg-blue-700" : ""}
             >
-              {category} ({supplies.filter(s => s.category === category).length})
+              {category} ({allSupplies.filter(s => (s.category || 'General') === category).length})
             </Button>
           ))}
         </div>
@@ -320,18 +323,17 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
           </h4>
         </div>
         
-        {filteredSupplies.map((supply) => (
-          <Card key={supply.id} className="border-l-4 border-l-green-500">
+        {filteredSupplies.map((supply, index) => (
+          <Card key={`${supply.id}-${index}`} className="border-l-4 border-l-green-500">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     <h4 className="text-lg font-semibold text-gray-900">{supply.name}</h4>
-                    <Badge className={categoryColors[supply.category] || "bg-gray-100 text-gray-800"}>
-                      {supply.category}
+                    <Badge className={categoryColors[supply.category || 'General'] || "bg-gray-100 text-gray-800"}>
+                      {supply.category || 'General'}
                     </Badge>
                   </div>
-                  <p className="text-gray-600 mb-1">Marca recomendada: {supply.brand}</p>
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span>Cantidad incluida: {supply.quantity}</span>
                     <span className="text-lg font-semibold text-green-600">${supply.price} c/u</span>
