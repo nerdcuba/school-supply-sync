@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -223,69 +222,33 @@ const UserManagement = () => {
       console.log(`Usuario ID: ${userId}`);
       console.log(`Usuario Nombre: ${userName}`);
       
-      // Primero verificar que el usuario existe
-      console.log('=== VERIFICANDO EXISTENCIA DEL USUARIO ===');
-      const { data: existingUser, error: checkError } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .eq('id', userId)
-        .single();
+      // Usar la función de base de datos que puede bypasear RLS
+      console.log('=== ELIMINANDO USUARIO CON FUNCIÓN RPC ===');
+      const { data, error } = await supabase.rpc('delete_user_profile', {
+        user_id_to_delete: userId
+      });
 
-      if (checkError || !existingUser) {
-        console.log('❌ Usuario no encontrado en la base de datos');
+      if (error) {
+        console.error('❌ Error eliminando usuario:', error);
         toast({
           title: "Error",
-          description: "Usuario no encontrado en la base de datos",
+          description: `No se pudo eliminar el usuario: ${error.message}`,
           variant: "destructive"
         });
         return;
       }
 
-      console.log('✓ Usuario encontrado:', existingUser);
-
-      // Eliminar órdenes asociadas primero
-      console.log('=== ELIMINANDO ÓRDENES ASOCIADAS ===');
-      const { error: ordersError } = await supabase
-        .from('orders')
-        .delete()
-        .eq('user_id', userId);
-
-      if (ordersError) {
-        console.warn('⚠️ Error eliminando órdenes:', ordersError);
-      } else {
-        console.log('✓ Órdenes eliminadas correctamente');
-      }
-
-      // Eliminar el perfil del usuario
-      console.log('=== ELIMINANDO PERFIL DE USUARIO ===');
-      
-      const { error: profileError, data: deletedData } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId)
-        .select();
-
-      if (profileError) {
-        console.error('❌ Error eliminando perfil:', profileError);
+      if (!data) {
+        console.error('❌ La función retornó false - usuario no encontrado');
         toast({
           title: "Error",
-          description: `No se pudo eliminar el usuario: ${profileError.message}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (!deletedData || deletedData.length === 0) {
-        console.error('❌ No se eliminó ningún registro de la base de datos');
-        toast({
-          title: "Error", 
-          description: "El usuario no pudo ser eliminado de la base de datos",
+          description: "El usuario no fue encontrado en la base de datos",
           variant: "destructive"
         });
         return;
       }
       
-      console.log('✓ Perfil eliminado exitosamente. Registros eliminados:', deletedData.length);
+      console.log('✓ Usuario eliminado exitosamente');
 
       // Actualizar la lista local inmediatamente
       setUsers(prevUsers => {
