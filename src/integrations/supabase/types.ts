@@ -92,6 +92,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_blocked: boolean | null
           name: string | null
           phone: string | null
           role: string | null
@@ -102,6 +103,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id: string
+          is_blocked?: boolean | null
           name?: string | null
           phone?: string | null
           role?: string | null
@@ -112,6 +114,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_blocked?: boolean | null
           name?: string | null
           phone?: string | null
           role?: string | null

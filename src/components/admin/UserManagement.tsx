@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Search, Users, UserCheck, UserX, Edit, Trash2, Ban, UserPlus } from 'lucide-react';
+import { Search, Users, UserCheck, UserX, Edit, Trash2, Ban, UserPlus, Shield, ShieldOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
@@ -162,21 +162,10 @@ const UserManagement = () => {
         return;
       }
 
-      // Si el email cambió, actualizar en auth.users (esto requiere privilegios de admin)
-      if (data.email !== editingUser.email) {
-        // Nota: Cambiar email en auth.users requiere permisos especiales
-        // Por ahora solo actualizamos el perfil
-        toast({
-          title: "Información",
-          description: "El perfil se actualizó. Para cambiar el email, el usuario debe hacerlo desde su cuenta.",
-          variant: "default"
-        });
-      } else {
-        toast({
-          title: "Usuario actualizado",
-          description: "Los datos del usuario han sido actualizados correctamente"
-        });
-      }
+      toast({
+        title: "Usuario actualizado",
+        description: "Los datos del usuario han sido actualizados correctamente"
+      });
 
       setEditDialogOpen(false);
       loadUsers();
@@ -384,55 +373,32 @@ const UserManagement = () => {
                       {new Date(user.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        {/* Botón Editar */}
+                      <div className="flex justify-end space-x-1">
+                        {/* 1. Botón Editar */}
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditUser(user)}
+                          className="p-2"
                         >
-                          <Edit size={16} className="mr-1" />
-                          Editar
+                          <Edit size={16} />
                         </Button>
 
-                        {/* Botón Cambiar Rol */}
-                        {user.role !== 'admin' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateUserRole(user.id, 'admin')}
-                          >
-                            <UserPlus size={16} className="mr-1" />
-                            Hacer Admin
-                          </Button>
-                        )}
-                        {user.role === 'admin' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateUserRole(user.id, 'user')}
-                          >
-                            <UserX size={16} className="mr-1" />
-                            Quitar Admin
-                          </Button>
-                        )}
-
-                        {/* Botón Bloquear/Desbloquear */}
+                        {/* 2. Botón Bloquear/Desbloquear */}
                         <Button
                           variant={user.is_blocked ? "default" : "destructive"}
                           size="sm"
                           onClick={() => handleBlockUser(user.id, user.is_blocked || false, user.name || user.email)}
+                          className="p-2"
                         >
-                          <Ban size={16} className="mr-1" />
-                          {user.is_blocked ? 'Desbloquear' : 'Bloquear'}
+                          {user.is_blocked ? <ShieldOff size={16} /> : <Ban size={16} />}
                         </Button>
 
-                        {/* Botón Eliminar con confirmación */}
+                        {/* 3. Botón Eliminar con confirmación */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm">
-                              <Trash2 size={16} className="mr-1" />
-                              Eliminar
+                            <Button variant="destructive" size="sm" className="p-2">
+                              <Trash2 size={16} />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -454,6 +420,27 @@ const UserManagement = () => {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+
+                        {/* 4. Botón Cambiar Rol Admin */}
+                        {user.role !== 'admin' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateUserRole(user.id, 'admin')}
+                            className="p-2"
+                          >
+                            <Shield size={16} />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateUserRole(user.id, 'user')}
+                            className="p-2"
+                          >
+                            <UserX size={16} />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
