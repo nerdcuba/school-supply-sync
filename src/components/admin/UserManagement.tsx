@@ -218,10 +218,30 @@ const UserManagement = () => {
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
-      console.log(`=== INICIANDO ELIMINACIÓN SIMPLE ===`);
+      console.log(`=== INICIANDO ELIMINACIÓN DE USUARIO ===`);
       console.log(`Usuario ID: ${userId}`);
       console.log(`Usuario Nombre: ${userName}`);
       
+      // Primero verificar que el usuario existe
+      console.log('=== VERIFICANDO EXISTENCIA DEL USUARIO ===');
+      const { data: existingUser, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .eq('id', userId)
+        .single();
+
+      if (checkError || !existingUser) {
+        console.log('❌ Usuario no encontrado en la base de datos');
+        toast({
+          title: "Error",
+          description: "Usuario no encontrado en la base de datos",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('✓ Usuario encontrado:', existingUser);
+
       // Eliminar órdenes asociadas primero
       console.log('=== ELIMINANDO ÓRDENES ASOCIADAS ===');
       const { error: ordersError } = await supabase
@@ -230,30 +250,54 @@ const UserManagement = () => {
         .eq('user_id', userId);
 
       if (ordersError) {
-        console.warn('Error eliminando órdenes:', ordersError);
+        console.warn('⚠️ Error eliminando órdenes:', ordersError);
       } else {
         console.log('✓ Órdenes eliminadas correctamente');
       }
 
-      // Eliminar el perfil del usuario
+      // Eliminar el perfil del usuario usando el servicio RPC si es necesario
       console.log('=== ELIMINANDO PERFIL DE USUARIO ===');
-      const { error: profileError, data } = await supabase
+      
+      // Intentar eliminación directa primero
+      const { error: profileError, data: deletedData } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId)
         .select();
 
       if (profileError) {
-        console.error('❌ Error eliminando perfil:', profileError);
-        toast({
-          title: "Error",
-          description: `Error al eliminar el perfil: ${profileError.message}`,
-          variant: "destructive"
+        console.error('❌ Error eliminando perfil directamente:', profileError);
+        
+        // Si hay error RLS, intentar con función de base de datos
+        console.log('=== INTENTANDO ELIMINACIÓN VIA RPC ===');
+        const { error: rpcError } = await supabase.rpc('delete_user_profile', {
+          user_id: userId
         });
-        return;
-      }
 
-      console.log('✓ Perfil eliminado exitosamente. Registros eliminados:', data?.length || 0);
+        if (rpcError) {
+          console.error('❌ Error eliminando via RPC:', rpcError);
+          toast({
+            title: "Error",
+            description: `No se pudo eliminar el usuario: ${rpcError.message}`,
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        console.log('✓ Usuario eliminado via RPC');
+      } else {
+        if (!deletedData || deletedData.length === 0) {
+          console.error('❌ No se eliminó ningún registro de la base de datos');
+          toast({
+            title: "Error", 
+            description: "El usuario no pudo ser eliminado de la base de datos",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        console.log('✓ Perfil eliminado exitosamente. Registros eliminados:', deletedData.length);
+      }
 
       // Actualizar la lista local inmediatamente
       setUsers(prevUsers => {
