@@ -37,7 +37,7 @@ export const adminSupplyPackService = {
       schoolId: pack.school_id || '',
       schoolName: pack.school_name,
       grade: pack.grade,
-      items: Array.isArray(pack.items) ? pack.items : [],
+      items: Array.isArray(pack.items) ? pack.items as SupplyItem[] : [],
       created_at: pack.created_at,
       updated_at: pack.updated_at
     }));
@@ -51,7 +51,7 @@ export const adminSupplyPackService = {
         school_id: pack.schoolId,
         school_name: pack.schoolName,
         grade: pack.grade,
-        items: pack.items
+        items: pack.items as any
       })
       .select()
       .single();
@@ -67,7 +67,7 @@ export const adminSupplyPackService = {
       schoolId: data.school_id || '',
       schoolName: data.school_name,
       grade: data.grade,
-      items: Array.isArray(data.items) ? data.items : [],
+      items: Array.isArray(data.items) ? data.items as SupplyItem[] : [],
       created_at: data.created_at,
       updated_at: data.updated_at
     };
@@ -80,7 +80,7 @@ export const adminSupplyPackService = {
     if (pack.schoolId) updateData.school_id = pack.schoolId;
     if (pack.schoolName) updateData.school_name = pack.schoolName;
     if (pack.grade) updateData.grade = pack.grade;
-    if (pack.items) updateData.items = pack.items;
+    if (pack.items) updateData.items = pack.items as any;
 
     const { data, error } = await supabase
       .from('admin_supply_packs')
@@ -100,7 +100,7 @@ export const adminSupplyPackService = {
       schoolId: data.school_id || '',
       schoolName: data.school_name,
       grade: data.grade,
-      items: Array.isArray(data.items) ? data.items : [],
+      items: Array.isArray(data.items) ? data.items as SupplyItem[] : [],
       created_at: data.created_at,
       updated_at: data.updated_at
     };
