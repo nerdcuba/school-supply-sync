@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, ShoppingCart, User, Menu, X, Laptop } from "lucide-react";
+import { GraduationCap, ShoppingCart, User, Menu, X, Laptop, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSelector from "./LanguageSelector";
@@ -84,6 +84,7 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                   </Button>
                 </Link>
                 <Button onClick={handleLogout} variant="outline" className="hover:bg-secondary hover:text-white hover:border-secondary transition-all duration-200">
+                  <LogOut size={20} className="mr-2" />
                   {t('nav.logout')}
                 </Button>
               </div>
@@ -181,6 +182,7 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
                       </Button>
                     </Link>
                     <Button onClick={handleLogout} variant="outline" className="w-full hover:bg-secondary hover:text-white hover:border-secondary">
+                      <LogOut size={20} className="mr-2" />
                       {t('nav.logout')}
                     </Button>
                   </div>
