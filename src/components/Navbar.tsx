@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, ShoppingCart, User, Menu, X, Laptop, LogOut } from "lucide-react";
+import { GraduationCap, ShoppingCart, User, Menu, X, Laptop, LogOut, Home, School, HelpCircle, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSelector from "./LanguageSelector";
@@ -39,21 +39,25 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="nav-link">
-              {t('nav.home')}
+            <Link to="/" className="nav-link flex items-center space-x-1">
+              <Home size={16} />
+              <span>{t('nav.home')}</span>
             </Link>
-            <Link to="/schools" className="nav-link">
-              {t('nav.schools')}
+            <Link to="/schools" className="nav-link flex items-center space-x-1">
+              <School size={16} />
+              <span>{t('nav.schools')}</span>
             </Link>
             <Link to="/electronics" className="nav-link flex items-center space-x-1">
               <Laptop size={16} />
               <span>Electrónicos</span>
             </Link>
-            <Link to="/how-it-works" className="nav-link">
-              {t('nav.howItWorks')}
+            <Link to="/how-it-works" className="nav-link flex items-center space-x-1">
+              <HelpCircle size={16} />
+              <span>{t('nav.howItWorks')}</span>
             </Link>
-            <Link to="/contact" className="nav-link">
-              {t('nav.contact')}
+            <Link to="/contact" className="nav-link flex items-center space-x-1">
+              <Mail size={16} />
+              <span>{t('nav.contact')}</span>
             </Link>
           </div>
 
@@ -115,17 +119,19 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
             <div className="flex flex-col space-y-2">
               <Link
                 to="/"
-                className="nav-link py-2"
+                className="nav-link py-2 flex items-center space-x-1"
                 onClick={() => setIsMenuOpen(false)}
               >
-                {t('nav.home')}
+                <Home size={16} />
+                <span>{t('nav.home')}</span>
               </Link>
               <Link
                 to="/schools"
-                className="nav-link py-2"
+                className="nav-link py-2 flex items-center space-x-1"
                 onClick={() => setIsMenuOpen(false)}
               >
-                {t('nav.schools')}
+                <School size={16} />
+                <span>{t('nav.schools')}</span>
               </Link>
               <Link
                 to="/electronics"
@@ -137,17 +143,19 @@ const Navbar = ({ cartItemsCount, onOpenCart }: NavbarProps) => {
               </Link>
               <Link
                 to="/how-it-works"
-                className="nav-link py-2"
+                className="nav-link py-2 flex items-center space-x-1"
                 onClick={() => setIsMenuOpen(false)}
               >
-                {t('nav.howItWorks')}
+                <HelpCircle size={16} />
+                <span>{t('nav.howItWorks')}</span>
               </Link>
               <Link
                 to="/contact"
-                className="nav-link py-2"
+                className="nav-link py-2 flex items-center space-x-1"
                 onClick={() => setIsMenuOpen(false)}
               >
-                {t('nav.contact')}
+                <Mail size={16} />
+                <span>{t('nav.contact')}</span>
               </Link>
               
               <div className="pt-4 border-t">
