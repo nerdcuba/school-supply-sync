@@ -39,8 +39,8 @@ const AdminDashboard = () => {
             <h1 className="text-xl font-bold">Panel de Administración</h1>
           </div>
           <Button 
-            variant="outline" 
-            className="text-white border-white hover:bg-white hover:text-purple-900 transition-colors duration-200" 
+            variant="ghost" 
+            className="text-white hover:bg-white hover:text-purple-900 transition-colors duration-200" 
             onClick={handleLogout}
           >
             <LogOut size={16} className="mr-2" />
