@@ -154,11 +154,11 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
               className="relative overflow-hidden group transform transition-all duration-200 ease-out hover:scale-105 hover:shadow-xl"
             >
               {/* Product Image */}
-              <div className="relative h-48 overflow-hidden">
+              <div className="relative h-64 overflow-hidden bg-gray-50">
                 <img
                   src={product.image || "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop"}
                   alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
                 />
                 {!product.in_stock && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
