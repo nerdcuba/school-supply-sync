@@ -194,6 +194,37 @@ const UserManagement = () => {
     try {
       console.log(`Iniciando eliminación del usuario: ${userId} (${userName})`);
       
+      // Primero verificar si el usuario existe
+      const { data: existingUser, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, email, name')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error verificando usuario:', checkError);
+        toast({
+          title: "Error",
+          description: `Error al verificar el usuario: ${checkError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!existingUser) {
+        console.log('Usuario no encontrado en la base de datos');
+        toast({
+          title: "Usuario no encontrado",
+          description: "El usuario ya no existe en la base de datos",
+          variant: "destructive"
+        });
+        // Recargar la lista para reflejar el estado actual
+        await loadUsers();
+        return;
+      }
+
+      console.log('Usuario encontrado:', existingUser);
+
       // Eliminar órdenes asociadas primero
       console.log('Eliminando órdenes del usuario...');
       const { error: ordersError } = await supabase
@@ -214,7 +245,7 @@ const UserManagement = () => {
         .from('profiles')
         .delete()
         .eq('id', userId)
-        .select();
+        .select('id, email, name');
 
       if (profileError) {
         console.error('Error deleting profile:', profileError);
@@ -226,19 +257,9 @@ const UserManagement = () => {
         return;
       }
 
-      if (!deletedProfile || deletedProfile.length === 0) {
-        console.error('No se eliminó ningún perfil');
-        toast({
-          title: "Error", 
-          description: "No se encontró el usuario para eliminar",
-          variant: "destructive"
-        });
-        return;
-      }
+      console.log('Perfil eliminado exitosamente:', deletedProfile);
 
-      console.log('Perfil eliminado:', deletedProfile);
-
-      // Intentar eliminar el usuario de auth también
+      // Intentar eliminar el usuario de auth también (opcional)
       console.log('Intentando eliminar usuario de auth...');
       const { error: authError } = await supabase.auth.admin.deleteUser(userId);
       
@@ -312,7 +333,7 @@ const UserManagement = () => {
   );
 
   const totalUsers = users.length;
-  const adminUsers = users.filter(u => u.role === 'admin').length;
+  const adminUsers = users.filter(u => u.role === 'Admin').length;
   const clientUsers = users.filter(u => u.role === 'Cliente').length;
   const blockedUsers = users.filter(u => u.is_blocked).length;
 
@@ -417,7 +438,7 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
                         {user.role || 'Cliente'}
                       </Badge>
                     </TableCell>
@@ -479,11 +500,11 @@ const UserManagement = () => {
                         </AlertDialog>
 
                         {/* 4. Botón Cambiar Rol Admin */}
-                        {user.role !== 'admin' ? (
+                        {user.role !== 'Admin' ? (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateUserRole(user.id, 'admin')}
+                            onClick={() => updateUserRole(user.id, 'Admin')}
                             className="p-2"
                           >
                             <Shield size={16} />
@@ -581,7 +602,7 @@ const UserManagement = () => {
                     <FormControl>
                       <select {...field} className="w-full p-2 border rounded-md">
                         <option value="Cliente">Cliente</option>
-                        <option value="admin">Administrador</option>
+                        <option value="Admin">Administrador</option>
                       </select>
                     </FormControl>
                     <FormMessage />
