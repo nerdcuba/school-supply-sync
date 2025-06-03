@@ -242,7 +242,7 @@ const UserManagement = () => {
 
       // Eliminar el perfil del usuario
       console.log('=== ELIMINANDO PERFIL ===');
-      const { error: profileError, count } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId)
