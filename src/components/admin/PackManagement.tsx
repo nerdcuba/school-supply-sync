@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { PackageOpen, Plus, Pencil, Trash2, Search, DollarSign, PlusCircle, X } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-interface SchoolType {
-  id: string;
-  name: string;
-}
+import { schoolService, School } from '@/services/schoolService';
 
 interface SupplyItem {
   id: string;
@@ -34,8 +29,9 @@ interface PackType {
 
 const PackManagement = () => {
   const [packs, setPacks] = useState<PackType[]>([]);
-  const [schools, setSchools] = useState<SchoolType[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loadingSchools, setLoadingSchools] = useState(true);
 
   const [newPack, setNewPack] = useState<PackType>({
     id: '',
@@ -72,37 +68,48 @@ const PackManagement = () => {
     "9no Grado", "10mo Grado", "11vo Grado", "12vo Grado"
   ];
 
-  // Cargar datos desde localStorage
+  // Cargar datos
   useEffect(() => {
-    const savedPacks = localStorage.getItem('planAheadPacks');
-    if (savedPacks) {
-      setPacks(JSON.parse(savedPacks));
-    }
+    const loadData = async () => {
+      // Cargar packs desde localStorage
+      const savedPacks = localStorage.getItem('planAheadPacks');
+      if (savedPacks) {
+        setPacks(JSON.parse(savedPacks));
+      }
 
-    const savedSchools = localStorage.getItem('planAheadSchools');
-    if (savedSchools) {
-      setSchools(JSON.parse(savedSchools));
-    }
+      // Cargar escuelas desde Supabase
+      try {
+        const schoolsData = await schoolService.getAll();
+        setSchools(schoolsData);
+      } catch (error) {
+        console.error('Error loading schools:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las escuelas",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingSchools(false);
+      }
+    };
+
+    loadData();
   }, []);
 
-  // Guardar packs en localStorage
   useEffect(() => {
     localStorage.setItem('planAheadPacks', JSON.stringify(packs));
   }, [packs]);
 
-  // Filtrar packs según término de búsqueda
   const filteredPacks = packs.filter(pack => 
     pack.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     pack.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     pack.grade.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calcula el total de un pack
   const calculatePackTotal = (items: SupplyItem[]) => {
     return items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toFixed(2);
   };
 
-  // Agregar nuevo pack
   const handleAddPack = () => {
     // Validación
     if (!newPack.name || !newPack.schoolId || !newPack.grade) {
@@ -140,7 +147,6 @@ const PackManagement = () => {
     });
   };
 
-  // Actualizar pack existente
   const handleUpdatePack = () => {
     if (!editingPack) return;
 
@@ -175,7 +181,6 @@ const PackManagement = () => {
     });
   };
 
-  // Eliminar pack
   const handleDeletePack = () => {
     if (!deletingPack) return;
     
@@ -190,7 +195,6 @@ const PackManagement = () => {
     });
   };
 
-  // Agregar ítem a un pack
   const handleAddItem = () => {
     // Validación
     if (!newItem.name || newItem.quantity <= 0 || newItem.price < 0) {
@@ -236,7 +240,6 @@ const PackManagement = () => {
     });
   };
 
-  // Actualizar ítem en un pack
   const handleUpdateItem = () => {
     if (!editingItem || !editingPack) return;
 
@@ -268,7 +271,6 @@ const PackManagement = () => {
     });
   };
 
-  // Eliminar ítem de un pack
   const handleDeleteItem = () => {
     if (deletingItemIndex === null || !editingPack) return;
     
@@ -403,7 +405,11 @@ const PackManagement = () => {
                   <SelectValue placeholder="Selecciona una escuela" />
                 </SelectTrigger>
                 <SelectContent>
-                  {schools.length === 0 ? (
+                  {loadingSchools ? (
+                    <SelectItem value="loading" disabled>
+                      Cargando escuelas...
+                    </SelectItem>
+                  ) : schools.length === 0 ? (
                     <SelectItem value="no-schools" disabled>
                       No hay escuelas disponibles
                     </SelectItem>
@@ -631,7 +637,6 @@ const PackManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo para eliminar pack */}
       <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -653,7 +658,6 @@ const PackManagement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Diálogo para añadir ítem */}
       <Dialog open={openAddItemDialog} onOpenChange={setOpenAddItemDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -705,7 +709,6 @@ const PackManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo para editar ítem */}
       <Dialog open={openEditItemDialog} onOpenChange={setOpenEditItemDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -758,7 +761,6 @@ const PackManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo para confirmar eliminación de ítem */}
       <AlertDialog open={openDeleteItemDialog} onOpenChange={setOpenDeleteItemDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
