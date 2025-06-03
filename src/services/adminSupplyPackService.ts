@@ -1,10 +1,10 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface SupplyItem {
   id: string;
   name: string;
   quantity: number;
-  price: number;
   category?: string;
 }
 
@@ -14,6 +14,7 @@ export interface AdminSupplyPack {
   schoolId: string;
   schoolName: string;
   grade: string;
+  price: number;
   items: SupplyItem[];
   created_at?: string;
   updated_at?: string;
@@ -37,6 +38,7 @@ export const adminSupplyPackService = {
       schoolId: pack.school_id || '',
       schoolName: pack.school_name,
       grade: pack.grade,
+      price: pack.price || 0,
       items: Array.isArray(pack.items) ? pack.items as unknown as SupplyItem[] : [],
       created_at: pack.created_at,
       updated_at: pack.updated_at
@@ -51,6 +53,7 @@ export const adminSupplyPackService = {
         school_id: pack.schoolId,
         school_name: pack.schoolName,
         grade: pack.grade,
+        price: pack.price,
         items: pack.items as any
       })
       .select()
@@ -67,6 +70,7 @@ export const adminSupplyPackService = {
       schoolId: data.school_id || '',
       schoolName: data.school_name,
       grade: data.grade,
+      price: data.price || 0,
       items: Array.isArray(data.items) ? data.items as unknown as SupplyItem[] : [],
       created_at: data.created_at,
       updated_at: data.updated_at
@@ -80,6 +84,7 @@ export const adminSupplyPackService = {
     if (pack.schoolId) updateData.school_id = pack.schoolId;
     if (pack.schoolName) updateData.school_name = pack.schoolName;
     if (pack.grade) updateData.grade = pack.grade;
+    if (pack.price !== undefined) updateData.price = pack.price;
     if (pack.items) updateData.items = pack.items as any;
 
     const { data, error } = await supabase
@@ -100,6 +105,7 @@ export const adminSupplyPackService = {
       schoolId: data.school_id || '',
       schoolName: data.school_name,
       grade: data.grade,
+      price: data.price || 0,
       items: Array.isArray(data.items) ? data.items as unknown as SupplyItem[] : [],
       created_at: data.created_at,
       updated_at: data.updated_at

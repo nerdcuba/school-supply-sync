@@ -16,6 +16,7 @@ export type Database = {
           id: string
           items: Json
           name: string
+          price: number
           school_id: string | null
           school_name: string
           updated_at: string
@@ -26,6 +27,7 @@ export type Database = {
           id?: string
           items?: Json
           name: string
+          price?: number
           school_id?: string | null
           school_name: string
           updated_at?: string
@@ -36,6 +38,7 @@ export type Database = {
           id?: string
           items?: Json
           name?: string
+          price?: number
           school_id?: string | null
           school_name?: string
           updated_at?: string

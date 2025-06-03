@@ -115,9 +115,7 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {availableGrades.map((gradeOption) => {
             const gradePacks = supplyPacks.filter(pack => pack.grade === gradeOption);
-            const packTotal = gradePacks.reduce((total, pack) => {
-              return total + pack.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            }, 0);
+            const packPrice = gradePacks.length > 0 ? gradePacks[0].price : 0;
             
             return (
               <Card
@@ -139,7 +137,7 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
                       {gradePacks.reduce((total, pack) => total + pack.items.length, 0)} artículos incluidos
                     </p>
                     <p className="text-2xl font-bold text-green-600">
-                      ${packTotal.toFixed(2)}
+                      ${packPrice.toFixed(2)}
                     </p>
                   </div>
                   <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
@@ -186,7 +184,7 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
     ? allSupplies.filter(supply => (supply.category || 'General') === selectedCategory)
     : allSupplies;
 
-  const totalCost = allSupplies.reduce((total, supply) => total + (supply.price * supply.quantity), 0);
+  const totalCost = gradeSupplyPacks.length > 0 ? gradeSupplyPacks[0].price : 0;
 
   const handleAddPackToCart = () => {
     const packItem = {
@@ -336,14 +334,7 @@ const SupplyList = ({ school, grade, onSelectGrade, onAddToCart }: SupplyListPro
                   </div>
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span>Cantidad incluida: {supply.quantity}</span>
-                    <span className="text-lg font-semibold text-green-600">${supply.price} c/u</span>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">Subtotal en pack</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    ${(supply.price * supply.quantity).toFixed(2)}
-                  </p>
                 </div>
               </div>
             </CardContent>

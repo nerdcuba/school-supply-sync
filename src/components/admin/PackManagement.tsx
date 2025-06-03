@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,14 +25,14 @@ const PackManagement = () => {
     schoolId: '',
     schoolName: '',
     grade: '',
+    price: 0,
     items: []
   });
 
   const [newItem, setNewItem] = useState<SupplyItem>({
     id: '',
     name: '',
-    quantity: 1,
-    price: 0
+    quantity: 1
   });
 
   const [editingPack, setEditingPack] = useState<AdminSupplyPack | null>(null);
@@ -85,19 +86,15 @@ const PackManagement = () => {
     pack.grade.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const calculatePackTotal = (items: SupplyItem[]) => {
-    return items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toFixed(2);
-  };
-
   const handleAddPack = async () => {
     console.log('Attempting to add pack:', newPack);
     
     // Validación
-    if (!newPack.name || !newPack.schoolId || !newPack.grade) {
-      console.log('Validation failed:', { name: newPack.name, schoolId: newPack.schoolId, grade: newPack.grade });
+    if (!newPack.name || !newPack.schoolId || !newPack.grade || newPack.price < 0) {
+      console.log('Validation failed:', { name: newPack.name, schoolId: newPack.schoolId, grade: newPack.grade, price: newPack.price });
       toast({
         title: "Error",
-        description: "Por favor completa todos los campos obligatorios",
+        description: "Por favor completa todos los campos obligatorios y asegúrate de que el precio sea válido",
         variant: "destructive"
       });
       return;
@@ -125,6 +122,7 @@ const PackManagement = () => {
         schoolId: '',
         schoolName: '',
         grade: '',
+        price: 0,
         items: []
       });
       setOpenAddDialog(false);
@@ -147,10 +145,10 @@ const PackManagement = () => {
     if (!editingPack) return;
 
     // Validación
-    if (!editingPack.name || !editingPack.schoolId || !editingPack.grade) {
+    if (!editingPack.name || !editingPack.schoolId || !editingPack.grade || editingPack.price < 0) {
       toast({
         title: "Error",
-        description: "Por favor completa todos los campos obligatorios",
+        description: "Por favor completa todos los campos obligatorios y asegúrate de que el precio sea válido",
         variant: "destructive"
       });
       return;
@@ -215,10 +213,10 @@ const PackManagement = () => {
 
   const handleAddItem = () => {
     // Validación
-    if (!newItem.name || newItem.quantity <= 0 || newItem.price < 0) {
+    if (!newItem.name || newItem.quantity <= 0) {
       toast({
         title: "Error",
-        description: "Por favor ingresa un nombre, cantidad y precio válidos",
+        description: "Por favor ingresa un nombre y cantidad válidos",
         variant: "destructive"
       });
       return;
@@ -247,8 +245,7 @@ const PackManagement = () => {
     setNewItem({
       id: '',
       name: '',
-      quantity: 1,
-      price: 0
+      quantity: 1
     });
     setOpenAddItemDialog(false);
     
@@ -262,10 +259,10 @@ const PackManagement = () => {
     if (!editingItem || !editingPack) return;
 
     // Validación
-    if (!editingItem.name || editingItem.quantity <= 0 || editingItem.price < 0) {
+    if (!editingItem.name || editingItem.quantity <= 0) {
       toast({
         title: "Error",
-        description: "Por favor ingresa un nombre, cantidad y precio válidos",
+        description: "Por favor ingresa un nombre y cantidad válidos",
         variant: "destructive"
       });
       return;
@@ -359,7 +356,7 @@ const PackManagement = () => {
                   <TableHead>Escuela</TableHead>
                   <TableHead>Grado</TableHead>
                   <TableHead>Artículos</TableHead>
-                  <TableHead>Precio Total</TableHead>
+                  <TableHead>Precio del Pack</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -370,7 +367,7 @@ const PackManagement = () => {
                     <TableCell>{pack.schoolName}</TableCell>
                     <TableCell>{pack.grade}</TableCell>
                     <TableCell>{pack.items.length} artículos</TableCell>
-                    <TableCell>${calculatePackTotal(pack.items)}</TableCell>
+                    <TableCell>${pack.price.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
@@ -467,6 +464,24 @@ const PackManagement = () => {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="pack-price">Precio del Pack ($)*</Label>
+              <div className="relative">
+                <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                <Input 
+                  id="pack-price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="pl-8"
+                  value={newPack.price}
+                  onChange={(e) => setNewPack({...newPack, price: parseFloat(e.target.value) || 0})}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
 
             <div className="grid gap-2">
               <div className="flex justify-between items-center">
@@ -489,8 +504,6 @@ const PackManagement = () => {
                       <TableRow>
                         <TableHead>Artículo</TableHead>
                         <TableHead>Cantidad</TableHead>
-                        <TableHead>Precio Unit.</TableHead>
-                        <TableHead>Subtotal</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -498,8 +511,6 @@ const PackManagement = () => {
                         <TableRow key={item.id}>
                           <TableCell>{item.name}</TableCell>
                           <TableCell>{item.quantity}</TableCell>
-                          <TableCell>${item.price.toFixed(2)}</TableCell>
-                          <TableCell>${(item.quantity * item.price).toFixed(2)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -509,12 +520,6 @@ const PackManagement = () => {
                 <p className="text-sm text-gray-500 text-center py-4 border rounded-md">
                   No hay artículos añadidos
                 </p>
-              )}
-
-              {newPack.items.length > 0 && (
-                <div className="text-right font-semibold">
-                  Total: ${calculatePackTotal(newPack.items)}
-                </div>
               )}
             </div>
           </div>
@@ -580,6 +585,23 @@ const PackManagement = () => {
               </div>
 
               <div className="grid gap-2">
+                <Label htmlFor="edit-pack-price">Precio del Pack ($)*</Label>
+                <div className="relative">
+                  <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                  <Input 
+                    id="edit-pack-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="pl-8"
+                    value={editingPack.price}
+                    onChange={(e) => setEditingPack({...editingPack, price: parseFloat(e.target.value) || 0})}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
                 <div className="flex justify-between items-center">
                   <Label>Artículos ({editingPack.items.length})</Label>
                   <Button 
@@ -600,8 +622,6 @@ const PackManagement = () => {
                         <TableRow>
                           <TableHead>Artículo</TableHead>
                           <TableHead>Cantidad</TableHead>
-                          <TableHead>Precio Unit.</TableHead>
-                          <TableHead>Subtotal</TableHead>
                           <TableHead className="w-[80px]">Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -610,8 +630,6 @@ const PackManagement = () => {
                           <TableRow key={item.id}>
                             <TableCell>{item.name}</TableCell>
                             <TableCell>{item.quantity}</TableCell>
-                            <TableCell>${item.price.toFixed(2)}</TableCell>
-                            <TableCell>${(item.quantity * item.price).toFixed(2)}</TableCell>
                             <TableCell>
                               <div className="flex space-x-1">
                                 <Button 
@@ -646,12 +664,6 @@ const PackManagement = () => {
                   <p className="text-sm text-gray-500 text-center py-4 border rounded-md">
                     No hay artículos añadidos
                   </p>
-                )}
-
-                {editingPack.items.length > 0 && (
-                  <div className="text-right font-semibold">
-                    Total: ${calculatePackTotal(editingPack.items)}
-                  </div>
                 )}
               </div>
             </div>
@@ -711,22 +723,6 @@ const PackManagement = () => {
                 required
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="item-price">Precio Unitario ($)*</Label>
-              <div className="relative">
-                <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                <Input 
-                  id="item-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="pl-8"
-                  value={newItem.price}
-                  onChange={(e) => setNewItem({...newItem, price: parseFloat(e.target.value) || 0})}
-                  required
-                />
-              </div>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenAddItemDialog(false)}>Cancelar</Button>
@@ -761,22 +757,6 @@ const PackManagement = () => {
                   onChange={(e) => setEditingItem({...editingItem, quantity: parseInt(e.target.value) || 0})}
                   required
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-item-price">Precio Unitario ($)*</Label>
-                <div className="relative">
-                  <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                  <Input 
-                    id="edit-item-price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="pl-8"
-                    value={editingItem.price}
-                    onChange={(e) => setEditingItem({...editingItem, price: parseFloat(e.target.value) || 0})}
-                    required
-                  />
-                </div>
               </div>
             </div>
           )}
