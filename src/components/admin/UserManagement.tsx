@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -259,20 +258,12 @@ const UserManagement = () => {
 
       console.log('Perfil eliminado exitosamente:', deletedProfile);
 
-      // Intentar eliminar el usuario de auth también (opcional)
-      console.log('Intentando eliminar usuario de auth...');
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (authError) {
-        console.warn('Error eliminando usuario de auth (esto puede ser normal):', authError);
-        // No mostramos error al usuario porque el perfil ya fue eliminado
-      } else {
-        console.log('Usuario eliminado de auth correctamente');
-      }
+      // NOTA: No intentamos eliminar del sistema de auth porque requiere permisos especiales
+      console.log('El usuario fue eliminado del sistema (perfil), pero su cuenta de auth permanece inactiva');
 
       toast({
         title: "Usuario eliminado",
-        description: `El usuario ${userName} ha sido eliminado correctamente`
+        description: `El usuario ${userName} ha sido eliminado correctamente del sistema`
       });
 
       // Recargar la lista inmediatamente
@@ -349,7 +340,7 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
-        <Badge variant="secondary">{totalUsers} usuarios registrados</Badge>
+        <Badge variant="secondary">{totalUsers} usuarios registrados}</Badge>
       </div>
 
       {/* User Stats */}
