@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -40,6 +39,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Verificar si el usuario está bloqueado
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_blocked')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile?.is_blocked) {
+            // Si está bloqueado, cerrar sesión
+            await supabase.auth.signOut();
+            setUser(null);
+            setSession(null);
+            setPurchases([]);
+            return;
+          }
+          
           // Cargar órdenes del usuario cuando se autentique
           setTimeout(() => {
             loadUserOrders();

@@ -5,9 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Users, UserCheck, UserX } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Search, Users, UserCheck, UserX, Edit, Trash2, Ban, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
 
 interface UserProfile {
   id: string;
@@ -17,12 +21,25 @@ interface UserProfile {
   created_at: string;
   address?: string;
   phone?: string;
+  is_blocked?: boolean;
+}
+
+interface EditUserForm {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  role: string;
 }
 
 const UserManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const form = useForm<EditUserForm>();
 
   useEffect(() => {
     loadUsers();
@@ -96,13 +113,148 @@ const UserManagement = () => {
         description: "El rol del usuario ha sido actualizado correctamente"
       });
 
-      // Recargar usuarios
       loadUsers();
     } catch (error) {
       console.error('Error updating user role:', error);
       toast({
         title: "Error",
         description: "Error inesperado al actualizar el rol",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditUser = (user: UserProfile) => {
+    setEditingUser(user);
+    form.reset({
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      address: user.address || '',
+      role: user.role || 'user'
+    });
+    setEditDialogOpen(true);
+  };
+
+  const onSubmitEdit = async (data: EditUserForm) => {
+    if (!editingUser) return;
+
+    try {
+      // Actualizar perfil en Supabase
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          name: data.name,
+          phone: data.phone,
+          address: data.address,
+          role: data.role,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingUser.id);
+
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar el perfil del usuario",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Si el email cambió, actualizar en auth.users (esto requiere privilegios de admin)
+      if (data.email !== editingUser.email) {
+        // Nota: Cambiar email en auth.users requiere permisos especiales
+        // Por ahora solo actualizamos el perfil
+        toast({
+          title: "Información",
+          description: "El perfil se actualizó. Para cambiar el email, el usuario debe hacerlo desde su cuenta.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Usuario actualizado",
+          description: "Los datos del usuario han sido actualizados correctamente"
+        });
+      }
+
+      setEditDialogOpen(false);
+      loadUsers();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Error",
+        description: "Error inesperado al actualizar el usuario",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    try {
+      // Primero eliminar el perfil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('Error deleting profile:', profileError);
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar el perfil del usuario",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Usuario eliminado",
+        description: `El usuario ${userName} ha sido eliminado correctamente`
+      });
+
+      loadUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: "Error inesperado al eliminar el usuario",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleBlockUser = async (userId: string, isBlocked: boolean, userName: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_blocked: !isBlocked,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error blocking/unblocking user:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo cambiar el estado del usuario",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: isBlocked ? "Usuario desbloqueado" : "Usuario bloqueado",
+        description: `El usuario ${userName} ha sido ${isBlocked ? 'desbloqueado' : 'bloqueado'} correctamente`
+      });
+
+      loadUsers();
+    } catch (error) {
+      console.error('Error blocking/unblocking user:', error);
+      toast({
+        title: "Error",
+        description: "Error inesperado al cambiar el estado del usuario",
         variant: "destructive"
       });
     }
@@ -116,6 +268,7 @@ const UserManagement = () => {
   const totalUsers = users.length;
   const adminUsers = users.filter(u => u.role === 'admin').length;
   const regularUsers = users.filter(u => u.role === 'user' || u.role === 'Cliente').length;
+  const blockedUsers = users.filter(u => u.is_blocked).length;
 
   if (loading) {
     return (
@@ -133,7 +286,7 @@ const UserManagement = () => {
       </div>
 
       {/* User Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
@@ -166,6 +319,17 @@ const UserManagement = () => {
             <p className="text-xs text-muted-foreground">Usuarios estándar</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Usuarios Bloqueados</CardTitle>
+            <Ban className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{blockedUsers}</div>
+            <p className="text-xs text-muted-foreground">Usuarios bloqueados</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search */}
@@ -194,6 +358,7 @@ const UserManagement = () => {
                   <TableHead>Usuario</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Rol</TableHead>
+                  <TableHead>Estado</TableHead>
                   <TableHead>Fecha de Registro</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -211,16 +376,33 @@ const UserManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      <Badge variant={user.is_blocked ? 'destructive' : 'default'}>
+                        {user.is_blocked ? 'Bloqueado' : 'Activo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       {new Date(user.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
+                        {/* Botón Editar */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Edit size={16} className="mr-1" />
+                          Editar
+                        </Button>
+
+                        {/* Botón Cambiar Rol */}
                         {user.role !== 'admin' && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => updateUserRole(user.id, 'admin')}
                           >
+                            <UserPlus size={16} className="mr-1" />
                             Hacer Admin
                           </Button>
                         )}
@@ -230,9 +412,48 @@ const UserManagement = () => {
                             size="sm"
                             onClick={() => updateUserRole(user.id, 'user')}
                           >
+                            <UserX size={16} className="mr-1" />
                             Quitar Admin
                           </Button>
                         )}
+
+                        {/* Botón Bloquear/Desbloquear */}
+                        <Button
+                          variant={user.is_blocked ? "default" : "destructive"}
+                          size="sm"
+                          onClick={() => handleBlockUser(user.id, user.is_blocked || false, user.name || user.email)}
+                        >
+                          <Ban size={16} className="mr-1" />
+                          {user.is_blocked ? 'Desbloquear' : 'Bloquear'}
+                        </Button>
+
+                        {/* Botón Eliminar con confirmación */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 size={16} className="mr-1" />
+                              Eliminar
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer. Esto eliminará permanentemente el usuario 
+                                <strong> {user.name || user.email}</strong> y todos sus datos asociados.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteUser(user.id, user.name || user.email)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Eliminar Usuario
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -242,6 +463,101 @@ const UserManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog para editar usuario */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Usuario</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmitEdit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Nombre del usuario" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" placeholder="email@ejemplo.com" disabled />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Número de teléfono" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Dirección del usuario" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rol</FormLabel>
+                    <FormControl>
+                      <select {...field} className="w-full p-2 border rounded-md">
+                        <option value="user">Usuario</option>
+                        <option value="admin">Administrador</option>
+                        <option value="Cliente">Cliente</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  Guardar Cambios
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
