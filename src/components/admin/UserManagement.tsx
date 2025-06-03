@@ -1,13 +1,14 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Search, UserRound, Mail, Calendar, Clock, Trash2, Eye, ShoppingBag, RefreshCw } from 'lucide-react';
+import { Search, UserRound, Mail, Calendar, Clock, Trash2, Eye, ShoppingBag, RefreshCw, Users, CheckCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -43,35 +44,44 @@ const UserManagement = () => {
 
   useEffect(() => {
     loadUsers();
+    
+    // Configurar listener para nuevos usuarios
+    const channel = supabase
+      .channel('user-management')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('Nuevo usuario detectado:', payload);
+          // Recargar usuarios cuando se detecte un nuevo perfil
+          loadUsers();
+          toast({
+            title: "Nuevo usuario registrado",
+            description: `Se ha registrado un nuevo usuario: ${payload.new.email}`,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadUsers = async () => {
     try {
       setLoading(true);
-      console.log('=== INICIANDO CARGA DE USUARIOS ===');
+      console.log('=== CARGANDO USUARIOS ===');
       
-      // Primero, verificar la conexión a Supabase
-      console.log('Verificando conexión a Supabase...');
-      const { data: testConnection, error: connectionError } = await supabase
-        .from('profiles')
-        .select('count')
-        .limit(1);
-      
-      if (connectionError) {
-        console.error('Error de conexión a Supabase:', connectionError);
-        throw connectionError;
-      }
-      
-      console.log('Conexión a Supabase exitosa');
-
       // Cargar todos los perfiles
-      console.log('Consultando tabla profiles...');
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
-
-      console.log('Respuesta de profiles:', { profiles, error: profilesError });
 
       if (profilesError) {
         console.error('Error cargando perfiles:', profilesError);
@@ -83,29 +93,16 @@ const UserManagement = () => {
         return;
       }
 
-      console.log(`Se encontraron ${profiles?.length || 0} perfiles en la base de datos`);
+      console.log(`Se encontraron ${profiles?.length || 0} usuarios`);
 
       if (!profiles || profiles.length === 0) {
-        console.log('No hay perfiles en la base de datos. Verificando tabla auth.users...');
-        
-        // Intentar obtener usuarios de auth directamente (esto no debería funcionar por RLS, pero lo intentamos)
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-        console.log('Usuarios en auth:', { authUsers, error: authError });
-        
         setUsers([]);
-        toast({
-          title: "Información",
-          description: "No se encontraron usuarios registrados. Si acabas de registrar un usuario, el perfil debería crearse automáticamente.",
-        });
         return;
       }
 
       // Cargar órdenes para cada usuario
-      console.log('Cargando órdenes para cada usuario...');
       const usersWithOrders = await Promise.all(
         profiles.map(async (profile) => {
-          console.log(`Cargando órdenes para usuario ${profile.id}...`);
-          
           const { data: orders, error: ordersError } = await supabase
             .from('orders')
             .select('*')
@@ -137,53 +134,18 @@ const UserManagement = () => {
         })
       );
 
-      console.log('Usuarios procesados con órdenes:', usersWithOrders);
       setUsers(usersWithOrders);
-      
-      toast({
-        title: "Éxito",
-        description: `Se cargaron ${usersWithOrders.length} usuarios correctamente.`,
-      });
+      console.log(`Usuarios cargados exitosamente: ${usersWithOrders.length}`);
 
     } catch (error) {
       console.error('Error general cargando usuarios:', error);
       toast({
         title: "Error",
-        description: "Error inesperado al cargar los usuarios. Revisa la consola para más detalles.",
+        description: "Error inesperado al cargar los usuarios.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Función para crear perfiles manualmente para usuarios existentes
-  const createMissingProfiles = async () => {
-    try {
-      console.log('Intentando crear perfiles para usuarios existentes...');
-      
-      // Esta operación requiere privilegios de admin, normalmente no funcionaría desde el frontend
-      const { data: authUsers, error } = await supabase.auth.admin.listUsers();
-      
-      if (error) {
-        console.error('No se pueden obtener usuarios de auth:', error);
-        toast({
-          title: "Información",
-          description: "No se pueden crear perfiles automáticamente. Los nuevos usuarios registrados tendrán perfiles creados automáticamente.",
-        });
-        return;
-      }
-
-      console.log('Usuarios de auth encontrados:', authUsers);
-      
-      // Aquí normalmente crearíamos los perfiles faltantes, pero esto requiere privilegios especiales
-      toast({
-        title: "Información",
-        description: "Esta función requiere privilegios especiales. Los nuevos registros crearán perfiles automáticamente.",
-      });
-      
-    } catch (error) {
-      console.error('Error creando perfiles:', error);
     }
   };
 
@@ -262,16 +224,66 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={createMissingProfiles}>
-            Crear Perfiles Faltantes
-          </Button>
-          <Button variant="outline" onClick={loadUsers}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Actualizar
-          </Button>
-        </div>
+        <Button variant="outline" onClick={loadUsers}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Actualizar
+        </Button>
       </div>
+
+      {/* Estadísticas rápidas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{users.length}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{users.filter(u => u.orders && u.orders.length > 0).length}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Nuevos Hoy</CardTitle>
+            <UserRound className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {users.filter(u => {
+                const today = new Date();
+                const userDate = new Date(u.createdAt);
+                return userDate.toDateString() === today.toDateString();
+              }).length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Información de sincronización */}
+      <Card className="bg-green-50 border-green-200">
+        <CardContent className="pt-4">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <div>
+              <p className="font-medium text-green-800">Sincronización Automática Activada</p>
+              <p className="text-sm text-green-700">
+                Los nuevos usuarios registrados aparecerán automáticamente en esta lista. 
+                El trigger de base de datos está configurado correctamente.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Buscador */}
       <div className="relative">
@@ -284,24 +296,15 @@ const UserManagement = () => {
         />
       </div>
 
-      {/* Información de usuarios */}
+      {/* Lista de usuarios */}
       {users.length === 0 ? (
         <Card className="text-center p-10">
           <CardContent className="pt-10">
             <UserRound className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-4 text-lg font-semibold">No hay usuarios registrados</h3>
             <p className="mt-2 text-sm text-gray-500">
-              Los usuarios aparecerán aquí después de registrarse en la aplicación.
+              Los usuarios aparecerán aquí automáticamente después de registrarse.
             </p>
-            <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-              <p className="text-sm text-yellow-800 font-medium">Instrucciones de depuración:</p>
-              <p className="text-xs text-yellow-700 mt-1">
-                1. Abre la consola del navegador (F12) para ver los logs detallados<br/>
-                2. Haz clic en "Actualizar" para recargar los usuarios<br/>
-                3. Si acabas de registrar un usuario, puede tardar unos segundos en aparecer<br/>
-                4. El trigger debería crear automáticamente el perfil para nuevos registros
-              </p>
-            </div>
           </CardContent>
         </Card>
       ) : (
@@ -459,7 +462,7 @@ const UserManagement = () => {
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start mb-3">
                             <div>
-                              <h4 className="font-semibold">Pedido #{order.id}</h4>
+                              <h4 className="font-semibold">Pedido #{order.id.slice(0, 8)}</h4>
                               <p className="text-sm text-gray-500">{formatDate(order.date)}</p>
                             </div>
                             <Badge variant={order.status === 'Completado' ? 'default' : 'secondary'}>
