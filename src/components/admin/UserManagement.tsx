@@ -406,15 +406,35 @@ const UserManagement = () => {
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-        <Input
-          className="pl-10"
-          placeholder="Buscar usuarios por email, nombre, rol o teléfono..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="flex items-center space-x-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Buscar usuarios por email, nombre, rol o teléfono..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        {searchTerm && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSearchTerm('')}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            Limpiar
+          </Button>
+        )}
       </div>
+
+      {/* Mostrar resultados de búsqueda */}
+      {searchTerm && (
+        <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+          Mostrando {filteredUsers.length} de {totalUsers} usuarios
+          {searchTerm && ` para "${searchTerm}"`}
+        </div>
+      )}
 
       {/* Users Table */}
       <Card>
