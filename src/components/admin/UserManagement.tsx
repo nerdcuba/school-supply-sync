@@ -192,61 +192,73 @@ const UserManagement = () => {
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
-      console.log(`Eliminando usuario: ${userId} (${userName})`);
+      console.log(`Iniciando eliminación del usuario: ${userId} (${userName})`);
       
-      // Primero verificar si el usuario existe
-      const { data: existingUser, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .single();
-
-      if (checkError || !existingUser) {
-        console.error('Usuario no encontrado:', checkError);
-        toast({
-          title: "Error",
-          description: "Usuario no encontrado",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Eliminar órdenes del usuario primero (si existen)
+      // Eliminar órdenes asociadas primero
+      console.log('Eliminando órdenes del usuario...');
       const { error: ordersError } = await supabase
         .from('orders')
         .delete()
         .eq('user_id', userId);
 
       if (ordersError) {
-        console.warn('Error eliminando órdenes del usuario:', ordersError);
-        // Continuar con la eliminación del perfil incluso si hay error con las órdenes
+        console.warn('Error eliminando órdenes:', ordersError);
+        // Continuar aunque falle la eliminación de órdenes
+      } else {
+        console.log('Órdenes eliminadas correctamente');
       }
 
       // Eliminar el perfil del usuario
-      const { error: profileError } = await supabase
+      console.log('Eliminando perfil del usuario...');
+      const { data: deletedProfile, error: profileError } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', userId);
+        .eq('id', userId)
+        .select();
 
       if (profileError) {
         console.error('Error deleting profile:', profileError);
         toast({
           title: "Error",
-          description: `No se pudo eliminar el usuario: ${profileError.message}`,
+          description: `Error al eliminar el perfil: ${profileError.message}`,
           variant: "destructive"
         });
         return;
       }
 
-      console.log('Usuario eliminado exitosamente');
+      if (!deletedProfile || deletedProfile.length === 0) {
+        console.error('No se eliminó ningún perfil');
+        toast({
+          title: "Error", 
+          description: "No se encontró el usuario para eliminar",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Perfil eliminado:', deletedProfile);
+
+      // Intentar eliminar el usuario de auth también
+      console.log('Intentando eliminar usuario de auth...');
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (authError) {
+        console.warn('Error eliminando usuario de auth (esto puede ser normal):', authError);
+        // No mostramos error al usuario porque el perfil ya fue eliminado
+      } else {
+        console.log('Usuario eliminado de auth correctamente');
+      }
+
       toast({
         title: "Usuario eliminado",
         description: `El usuario ${userName} ha sido eliminado correctamente`
       });
 
+      // Recargar la lista inmediatamente
       await loadUsers();
+      
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('Error eliminando usuario:', error);
       toast({
         title: "Error",
         description: "Error inesperado al eliminar el usuario",
