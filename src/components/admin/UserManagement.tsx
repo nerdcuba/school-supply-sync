@@ -63,6 +63,7 @@ const UserManagement = () => {
 
   const loadUsers = async () => {
     try {
+      console.log('Cargando usuarios...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -78,6 +79,7 @@ const UserManagement = () => {
         return;
       }
 
+      console.log('Usuarios cargados:', data);
       setUsers(data || []);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -93,9 +95,14 @@ const UserManagement = () => {
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
+      console.log(`Actualizando rol del usuario ${userId} a ${newRole}`);
+      
       const { error } = await supabase
         .from('profiles')
-        .update({ role: newRole })
+        .update({ 
+          role: newRole,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', userId);
 
       if (error) {
@@ -108,12 +115,13 @@ const UserManagement = () => {
         return;
       }
 
+      console.log('Rol actualizado exitosamente');
       toast({
         title: "Rol actualizado",
         description: `El rol del usuario ha sido actualizado a ${newRole}`
       });
 
-      loadUsers();
+      await loadUsers();
     } catch (error) {
       console.error('Error updating user role:', error);
       toast({
@@ -125,6 +133,7 @@ const UserManagement = () => {
   };
 
   const handleEditUser = (user: UserProfile) => {
+    console.log('Editando usuario:', user);
     setEditingUser(user);
     form.reset({
       name: user.name || '',
@@ -140,7 +149,9 @@ const UserManagement = () => {
     if (!editingUser) return;
 
     try {
-      const { error: profileError } = await supabase
+      console.log('Actualizando usuario:', editingUser.id, data);
+      
+      const { error } = await supabase
         .from('profiles')
         .update({
           name: data.name,
@@ -151,8 +162,8 @@ const UserManagement = () => {
         })
         .eq('id', editingUser.id);
 
-      if (profileError) {
-        console.error('Error updating profile:', profileError);
+      if (error) {
+        console.error('Error updating profile:', error);
         toast({
           title: "Error",
           description: "No se pudo actualizar el perfil del usuario",
@@ -161,13 +172,14 @@ const UserManagement = () => {
         return;
       }
 
+      console.log('Usuario actualizado exitosamente');
       toast({
         title: "Usuario actualizado",
         description: "Los datos del usuario han sido actualizados correctamente"
       });
 
       setEditDialogOpen(false);
-      loadUsers();
+      await loadUsers();
     } catch (error) {
       console.error('Error updating user:', error);
       toast({
@@ -180,6 +192,37 @@ const UserManagement = () => {
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
+      console.log(`Eliminando usuario: ${userId} (${userName})`);
+      
+      // Primero verificar si el usuario existe
+      const { data: existingUser, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (checkError || !existingUser) {
+        console.error('Usuario no encontrado:', checkError);
+        toast({
+          title: "Error",
+          description: "Usuario no encontrado",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Eliminar órdenes del usuario primero (si existen)
+      const { error: ordersError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('user_id', userId);
+
+      if (ordersError) {
+        console.warn('Error eliminando órdenes del usuario:', ordersError);
+        // Continuar con la eliminación del perfil incluso si hay error con las órdenes
+      }
+
+      // Eliminar el perfil del usuario
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
@@ -189,18 +232,19 @@ const UserManagement = () => {
         console.error('Error deleting profile:', profileError);
         toast({
           title: "Error",
-          description: "No se pudo eliminar el perfil del usuario",
+          description: `No se pudo eliminar el usuario: ${profileError.message}`,
           variant: "destructive"
         });
         return;
       }
 
+      console.log('Usuario eliminado exitosamente');
       toast({
         title: "Usuario eliminado",
         description: `El usuario ${userName} ha sido eliminado correctamente`
       });
 
-      loadUsers();
+      await loadUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
       toast({
@@ -213,6 +257,8 @@ const UserManagement = () => {
 
   const handleBlockUser = async (userId: string, isBlocked: boolean, userName: string) => {
     try {
+      console.log(`${isBlocked ? 'Desbloqueando' : 'Bloqueando'} usuario: ${userId} (${userName})`);
+      
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -231,12 +277,13 @@ const UserManagement = () => {
         return;
       }
 
+      console.log(`Usuario ${isBlocked ? 'desbloqueado' : 'bloqueado'} exitosamente`);
       toast({
         title: isBlocked ? "Usuario desbloqueado" : "Usuario bloqueado",
         description: `El usuario ${userName} ha sido ${isBlocked ? 'desbloqueado' : 'bloqueado'} correctamente`
       });
 
-      loadUsers();
+      await loadUsers();
     } catch (error) {
       console.error('Error blocking/unblocking user:', error);
       toast({
