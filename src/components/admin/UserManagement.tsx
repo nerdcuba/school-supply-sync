@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -331,10 +330,12 @@ const UserManagement = () => {
     }
   };
 
-  // Filtrar usuarios basado en la búsqueda
+  // Filtrar usuarios basado en la búsqueda mejorada
   const filteredUsers = users.filter(user =>
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.phone?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalUsers = users.length;
@@ -409,7 +410,7 @@ const UserManagement = () => {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
         <Input
           className="pl-10"
-          placeholder="Buscar usuarios por email o nombre..."
+          placeholder="Buscar usuarios por email, nombre, rol o teléfono..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />

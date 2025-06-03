@@ -68,7 +68,8 @@ const SchoolManagement = () => {
   // Filtrar escuelas según término de búsqueda
   const filteredSchools = schools.filter(school => 
     school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    school.address.toLowerCase().includes(searchTerm.toLowerCase())
+    school.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (school.principal && school.principal.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Agregar nueva escuela
@@ -283,12 +284,12 @@ const SchoolManagement = () => {
         </Dialog>
       </div>
 
-      {/* Buscador */}
+      {/* Buscador mejorado */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
         <Input
           className="pl-10"
-          placeholder="Buscar escuelas por nombre o dirección..."
+          placeholder="Buscar escuelas por nombre, dirección o director..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
