@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface SupplyItem {
@@ -6,6 +5,7 @@ export interface SupplyItem {
   name: string;
   quantity: number;
   price: number;
+  category?: string;
 }
 
 export interface AdminSupplyPack {
