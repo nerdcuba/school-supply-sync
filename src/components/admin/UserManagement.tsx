@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Search, Users, UserCheck, UserX, Edit, Trash2, Ban, UserPlus, Shield, ShieldOff } from 'lucide-react';
+import { Search, Users, UserCheck, UserX, Edit, Trash2, Ban, Shield, ShieldOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
@@ -110,7 +110,7 @@ const UserManagement = () => {
 
       toast({
         title: "Rol actualizado",
-        description: "El rol del usuario ha sido actualizado correctamente"
+        description: `El rol del usuario ha sido actualizado a ${newRole}`
       });
 
       loadUsers();
@@ -131,7 +131,7 @@ const UserManagement = () => {
       email: user.email || '',
       phone: user.phone || '',
       address: user.address || '',
-      role: user.role || 'user'
+      role: user.role || 'Cliente'
     });
     setEditDialogOpen(true);
   };
@@ -140,7 +140,6 @@ const UserManagement = () => {
     if (!editingUser) return;
 
     try {
-      // Actualizar perfil en Supabase
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -181,7 +180,6 @@ const UserManagement = () => {
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
-      // Primero eliminar el perfil
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
@@ -256,7 +254,7 @@ const UserManagement = () => {
 
   const totalUsers = users.length;
   const adminUsers = users.filter(u => u.role === 'admin').length;
-  const regularUsers = users.filter(u => u.role === 'user' || u.role === 'Cliente').length;
+  const clientUsers = users.filter(u => u.role === 'Cliente').length;
   const blockedUsers = users.filter(u => u.is_blocked).length;
 
   if (loading) {
@@ -300,12 +298,12 @@ const UserManagement = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuarios Regulares</CardTitle>
+            <CardTitle className="text-sm font-medium">Clientes</CardTitle>
             <UserX className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{regularUsers}</div>
-            <p className="text-xs text-muted-foreground">Usuarios estándar</p>
+            <div className="text-2xl font-bold">{clientUsers}</div>
+            <p className="text-xs text-muted-foreground">Usuarios clientes</p>
           </CardContent>
         </Card>
 
@@ -361,7 +359,7 @@ const UserManagement = () => {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {user.role || 'user'}
+                        {user.role || 'Cliente'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -435,7 +433,7 @@ const UserManagement = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateUserRole(user.id, 'user')}
+                            onClick={() => updateUserRole(user.id, 'Cliente')}
                             className="p-2"
                           >
                             <UserX size={16} />
@@ -523,9 +521,8 @@ const UserManagement = () => {
                     <FormLabel>Rol</FormLabel>
                     <FormControl>
                       <select {...field} className="w-full p-2 border rounded-md">
-                        <option value="user">Usuario</option>
-                        <option value="admin">Administrador</option>
                         <option value="Cliente">Cliente</option>
+                        <option value="admin">Administrador</option>
                       </select>
                     </FormControl>
                     <FormMessage />
