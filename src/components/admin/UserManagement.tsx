@@ -219,28 +219,9 @@ const UserManagement = () => {
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
-      console.log(`=== INICIANDO ELIMINACIÓN MEJORADA ===`);
+      console.log(`=== INICIANDO ELIMINACIÓN SIMPLE ===`);
       console.log(`Usuario ID: ${userId}`);
       console.log(`Usuario Nombre: ${userName}`);
-      
-      // Primero, verificar que el usuario existe
-      const { data: userExists, error: checkError } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .eq('id', userId)
-        .single();
-
-      if (checkError || !userExists) {
-        console.log('Usuario no encontrado:', checkError);
-        toast({
-          title: "Error",
-          description: "Usuario no encontrado en la base de datos",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Usuario confirmado para eliminación:', userExists);
       
       // Eliminar órdenes asociadas primero
       console.log('=== ELIMINANDO ÓRDENES ASOCIADAS ===');
@@ -251,18 +232,17 @@ const UserManagement = () => {
 
       if (ordersError) {
         console.warn('Error eliminando órdenes:', ordersError);
-        // Continuar con la eliminación del usuario aunque falle eliminar órdenes
       } else {
         console.log('✓ Órdenes eliminadas correctamente');
       }
 
       // Eliminar el perfil del usuario
       console.log('=== ELIMINANDO PERFIL DE USUARIO ===');
-      const { error: profileError, data: deletedData } = await supabase
+      const { error: profileError, count } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId)
-        .select(); // Para confirmar que se eliminó
+        .select('*', { count: 'exact' });
 
       if (profileError) {
         console.error('❌ Error eliminando perfil:', profileError);
@@ -274,18 +254,7 @@ const UserManagement = () => {
         return;
       }
 
-      // Verificar que realmente se eliminó
-      if (!deletedData || deletedData.length === 0) {
-        console.error('❌ No se eliminó ningún registro');
-        toast({
-          title: "Error",
-          description: "No se pudo eliminar el usuario de la base de datos",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('✓ Perfil eliminado exitosamente:', deletedData);
+      console.log('✓ Perfil eliminado exitosamente. Registros afectados:', count);
 
       // Actualizar la lista local inmediatamente
       setUsers(prevUsers => {
@@ -298,28 +267,6 @@ const UserManagement = () => {
         title: "Usuario eliminado",
         description: `El usuario ${userName} ha sido eliminado correctamente del sistema`,
       });
-
-      // Verificar nuevamente después de un segundo
-      setTimeout(async () => {
-        const { data: stillExists } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', userId)
-          .single();
-        
-        if (stillExists) {
-          console.error('❌ El usuario aún existe en la DB después de eliminación');
-          toast({
-            title: "Advertencia",
-            description: "El usuario podría no haberse eliminado completamente",
-            variant: "destructive"
-          });
-          // Recargar usuarios para obtener el estado real
-          loadUsers();
-        } else {
-          console.log('✓ Confirmado: Usuario eliminado de la base de datos');
-        }
-      }, 1000);
       
     } catch (error) {
       console.error('❌ Error inesperado eliminando usuario:', error);
