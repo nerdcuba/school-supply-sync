@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -255,10 +256,9 @@ const UserManagement = () => {
         console.log('✓ Órdenes eliminadas correctamente');
       }
 
-      // Eliminar el perfil del usuario usando el servicio RPC si es necesario
+      // Eliminar el perfil del usuario
       console.log('=== ELIMINANDO PERFIL DE USUARIO ===');
       
-      // Intentar eliminación directa primero
       const { error: profileError, data: deletedData } = await supabase
         .from('profiles')
         .delete()
@@ -266,38 +266,26 @@ const UserManagement = () => {
         .select();
 
       if (profileError) {
-        console.error('❌ Error eliminando perfil directamente:', profileError);
-        
-        // Si hay error RLS, intentar con función de base de datos
-        console.log('=== INTENTANDO ELIMINACIÓN VIA RPC ===');
-        const { error: rpcError } = await supabase.rpc('delete_user_profile', {
-          user_id: userId
+        console.error('❌ Error eliminando perfil:', profileError);
+        toast({
+          title: "Error",
+          description: `No se pudo eliminar el usuario: ${profileError.message}`,
+          variant: "destructive"
         });
-
-        if (rpcError) {
-          console.error('❌ Error eliminando via RPC:', rpcError);
-          toast({
-            title: "Error",
-            description: `No se pudo eliminar el usuario: ${rpcError.message}`,
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        console.log('✓ Usuario eliminado via RPC');
-      } else {
-        if (!deletedData || deletedData.length === 0) {
-          console.error('❌ No se eliminó ningún registro de la base de datos');
-          toast({
-            title: "Error", 
-            description: "El usuario no pudo ser eliminado de la base de datos",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        console.log('✓ Perfil eliminado exitosamente. Registros eliminados:', deletedData.length);
+        return;
       }
+
+      if (!deletedData || deletedData.length === 0) {
+        console.error('❌ No se eliminó ningún registro de la base de datos');
+        toast({
+          title: "Error", 
+          description: "El usuario no pudo ser eliminado de la base de datos",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log('✓ Perfil eliminado exitosamente. Registros eliminados:', deletedData.length);
 
       // Actualizar la lista local inmediatamente
       setUsers(prevUsers => {
