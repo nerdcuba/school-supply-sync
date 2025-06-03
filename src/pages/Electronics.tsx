@@ -9,8 +9,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { electronicsService, ElectronicFrontend } from "@/services/electronicsService";
 import { useToast } from "@/hooks/use-toast";
 
-const categories = ["Todos", "Laptops", "Tablets", "Audífonos", "Grabadores", "Calculadoras", "Accesorios"];
-
 interface ElectronicsProps {
   onAddToCart?: (item: any) => void;
 }
@@ -22,6 +20,17 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
   const { toast } = useToast();
+
+  // Categories array with translations
+  const categories = [
+    t('electronics.all'),
+    t('electronics.laptops'), 
+    t('electronics.tablets'),
+    t('electronics.headphones'),
+    t('electronics.recorders'),
+    t('electronics.calculators'),
+    t('electronics.accessories')
+  ];
 
   useEffect(() => {
     fetchElectronics();
@@ -35,7 +44,7 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
     } catch (error) {
       console.error('Error fetching electronics:', error);
       toast({
-        title: "Error",
+        title: t('common.error'),
         description: "No se pudieron cargar los productos electrónicos",
         variant: "destructive",
       });
@@ -48,7 +57,7 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = selectedCategory === "Todos" || product.category === selectedCategory;
+    const matchesCategory = selectedCategory === t('electronics.all') || product.category === selectedCategory;
     
     return matchesSearch && matchesCategory;
   });
@@ -68,7 +77,7 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-xl">Cargando productos electrónicos...</div>
+        <div className="text-xl">{t('common.loading')}</div>
       </div>
     );
   }
@@ -79,11 +88,10 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 text-textPrimary">
-            Electrónicos para Estudiantes
+            {t('electronics.title')}
           </h1>
           <p className="text-xl text-textPrimary max-w-3xl mx-auto mb-8">
-            Encuentra laptops, tablets, audífonos y otros dispositivos electrónicos 
-            esenciales para tu éxito académico
+            {t('electronics.subtitle')}
           </p>
           
           {/* Search */}
@@ -91,7 +99,7 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <Input
-                placeholder="Buscar productos electrónicos..."
+                placeholder={t('electronics.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 py-3 text-lg border-2 border-primary focus:border-primary"
@@ -126,7 +134,7 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
               <ShoppingCart size={32} className="mx-auto" />
             </div>
             <h3 className="text-2xl font-bold text-textPrimary mb-2">{electronics.length}</h3>
-            <p className="text-textPrimary">Productos Disponibles</p>
+            <p className="text-textPrimary">{t('electronics.productsAvailable')}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
             <div className="text-secondary mb-2">
@@ -135,14 +143,14 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
             <h3 className="text-2xl font-bold text-textPrimary mb-2">
               {electronics.length > 0 ? (electronics.reduce((acc, e) => acc + e.rating, 0) / electronics.length).toFixed(1) : '0'}
             </h3>
-            <p className="text-textPrimary">Calificación Promedio</p>
+            <p className="text-textPrimary">{t('electronics.averageRating')}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
             <div className="text-accent mb-2">
               <ShoppingCart size={32} className="mx-auto" />
             </div>
-            <h3 className="text-2xl font-bold text-textPrimary mb-2">Envío</h3>
-            <p className="text-textPrimary">Gratis en pedidos +$50</p>
+            <h3 className="text-2xl font-bold text-textPrimary mb-2">{t('electronics.shipping')}</h3>
+            <p className="text-textPrimary">{t('electronics.freeShipping')}</p>
           </div>
         </div>
 
@@ -163,7 +171,7 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
                 {!product.in_stock && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                     <Badge variant="destructive" className="text-lg px-4 py-2">
-                      Agotado
+                      {t('electronics.outOfStock')}
                     </Badge>
                   </div>
                 )}
@@ -236,7 +244,7 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
                   }`}
                 >
                   <ShoppingCart size={16} className="mr-2" />
-                  {product.in_stock ? "Agregar al Carrito" : "Agotado"}
+                  {product.in_stock ? t('electronics.addToCart') : t('electronics.outOfStock')}
                 </Button>
               </CardContent>
             </Card>
@@ -248,19 +256,19 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
           <div className="text-center py-12">
             <Search size={48} className="mx-auto text-gray-400 mb-4" />
             <h3 className="text-xl font-semibold text-textPrimary mb-2">
-              No se encontraron productos
+              {t('electronics.noProducts')}
             </h3>
             <p className="text-textPrimary mb-4">
-              Intenta con otros términos de búsqueda o categorías diferentes
+              {t('electronics.noProductsDesc')}
             </p>
             <Button
               onClick={() => {
                 setSearchTerm("");
-                setSelectedCategory("Todos");
+                setSelectedCategory(t('electronics.all'));
               }}
               variant="outline"
             >
-              Limpiar filtros
+              {t('electronics.clearFilters')}
             </Button>
           </div>
         )}
@@ -268,14 +276,13 @@ const Electronics = ({ onAddToCart }: ElectronicsProps) => {
         {/* CTA Section */}
         <div className="bg-white rounded-lg p-8 shadow-lg mt-12 text-center border border-primary">
           <h2 className="text-2xl font-bold text-textPrimary mb-4">
-            ¿Necesitas ayuda para elegir?
+            {t('electronics.needHelp')}
           </h2>
           <p className="text-textPrimary mb-6">
-            Nuestro equipo de expertos puede ayudarte a encontrar los productos 
-            electrónicos perfectos para tus necesidades académicas.
+            {t('electronics.helpDesc')}
           </p>
           <Button className="btn-secondary">
-            Contactar Especialista
+            {t('electronics.contactSpecialist')}
           </Button>
         </div>
       </div>

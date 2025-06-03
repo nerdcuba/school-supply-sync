@@ -26,7 +26,7 @@ const Schools = () => {
       } catch (error) {
         console.error('Error loading schools:', error);
         toast({
-          title: "Error",
+          title: t('common.error'),
           description: "No se pudieron cargar las escuelas",
           variant: "destructive"
         });
@@ -49,7 +49,7 @@ const Schools = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-lg">Cargando escuelas...</div>
+        <div className="text-lg">{t('schools.loadingSchools')}</div>
       </div>
     );
   }
@@ -104,7 +104,7 @@ const Schools = () => {
               <MapPin size={32} className="mx-auto" />
             </div>
             <h3 className="text-2xl font-bold text-textPrimary mb-2">Miami-Dade</h3>
-            <p className="text-textPrimary">Condado Cubierto</p>
+            <p className="text-textPrimary">{t('schools.countyCovered')}</p>
           </div>
         </div>
 
@@ -127,7 +127,7 @@ const Schools = () => {
                   
                   {/* School Badge */}
                   <Badge className="absolute top-2 left-2 bg-primary text-white">
-                    Escuela
+                    {t('schools.school')}
                   </Badge>
                 </div>
 
@@ -137,7 +137,7 @@ const Schools = () => {
                     <div className="flex items-center space-x-1">
                       <Users className="w-4 h-4 text-gray-600" />
                       <span className="text-sm text-gray-600">
-                        {school.principal || 'Director/a'}
+                        {school.principal || t('schools.principal')}
                       </span>
                     </div>
                   </div>
@@ -154,7 +154,7 @@ const Schools = () => {
 
                   {/* School Info */}
                   <div className="flex justify-between text-sm text-textPrimary mb-4">
-                    <span className="font-medium">Tel: {school.phone}</span>
+                    <span className="font-medium">{t('schools.phone')}: {school.phone}</span>
                     {school.website && (
                       <a 
                         href={school.website} 
@@ -162,7 +162,7 @@ const Schools = () => {
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline"
                       >
-                        Sitio Web
+                        {t('schools.website')}
                       </a>
                     )}
                   </div>
@@ -183,10 +183,10 @@ const Schools = () => {
           <div className="text-center py-12">
             <BookOpen size={48} className="mx-auto text-gray-400 mb-4" />
             <h3 className="text-xl font-semibold text-textPrimary mb-2">
-              No hay escuelas registradas
+              {t('schools.noSchoolsRegistered')}
             </h3>
             <p className="text-textPrimary mb-4">
-              Aún no se han añadido escuelas al sistema
+              {t('schools.noSchoolsDesc')}
             </p>
           </div>
         )}
@@ -205,7 +205,7 @@ const Schools = () => {
               onClick={() => setSearchTerm("")}
               variant="outline"
             >
-              Limpiar búsqueda
+              {t('schools.clearSearch')}
             </Button>
           </div>
         )}
@@ -214,14 +214,14 @@ const Schools = () => {
         {filteredSchools.length > 9 && (
           <div className="text-center mt-8">
             <p className="text-textPrimary mb-4">
-              Mostrando 9 de {filteredSchools.length} escuelas
+              {t('schools.showing')} 9 {t('schools.of')} {filteredSchools.length} {t('schools.showingSchools')}
             </p>
             <Button
               onClick={() => setSearchTerm("")}
               variant="outline"
               className="border-primary text-primary hover:bg-primary hover:text-white"
             >
-              Ver todas las escuelas
+              {t('schools.viewAllSchools')}
             </Button>
           </div>
         )}
@@ -229,15 +229,14 @@ const Schools = () => {
         {/* CTA Section */}
         <div className="bg-white rounded-lg p-8 shadow-lg mt-12 text-center border border-primary">
           <h2 className="text-2xl font-bold text-textPrimary mb-4">
-            ¿No encuentras tu escuela?
+            {t('schools.cantFindSchool')}
           </h2>
           <p className="text-textPrimary mb-6">
-            Estamos constantemente añadiendo nuevas escuelas a nuestra plataforma. 
-            Contáctanos para solicitar que incluyamos tu escuela.
+            {t('schools.cantFindSchoolDesc')}
           </p>
           <Link to="/contact">
             <Button className="btn-secondary">
-              Solicitar Nueva Escuela
+              {t('schools.requestNewSchool')}
             </Button>
           </Link>
         </div>

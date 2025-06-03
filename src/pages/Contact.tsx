@@ -26,8 +26,8 @@ const Contact = () => {
     // Simulate form submission
     setTimeout(() => {
       toast({
-        title: "Mensaje enviado",
-        description: "Nos pondremos en contacto contigo pronto.",
+        title: t('messages.welcome'),
+        description: t('contact.send'),
       });
       setFormData({ name: "", email: "", subject: "", message: "" });
       setIsLoading(false);
@@ -58,9 +58,9 @@ const Contact = () => {
           {/* Contact Form */}
           <Card>
             <CardHeader>
-              <CardTitle>Envíanos un mensaje</CardTitle>
+              <CardTitle>{t('contact.sendMessage')}</CardTitle>
               <CardDescription>
-                Completa el formulario y nos pondremos en contacto contigo lo antes posible.
+                {t('contact.sendMessageDesc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -122,13 +122,13 @@ const Contact = () => {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Información de contacto</CardTitle>
+                <CardTitle>{t('contact.contactInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Mail className="text-blue-600" size={20} />
                   <div>
-                    <p className="font-medium">Email</p>
+                    <p className="font-medium">{t('contact.email')}</p>
                     <p className="text-gray-600">info@planaheadsolutions.com</p>
                   </div>
                 </div>
@@ -136,7 +136,7 @@ const Contact = () => {
                 <div className="flex items-center space-x-3">
                   <Phone className="text-blue-600" size={20} />
                   <div>
-                    <p className="font-medium">Teléfono</p>
+                    <p className="font-medium">{t('contact.phone')}</p>
                     <p className="text-gray-600">(555) 123-4567</p>
                   </div>
                 </div>
@@ -144,7 +144,7 @@ const Contact = () => {
                 <div className="flex items-center space-x-3">
                   <MapPin className="text-blue-600" size={20} />
                   <div>
-                    <p className="font-medium">Ubicación</p>
+                    <p className="font-medium">{t('contact.location')}</p>
                     <p className="text-gray-600">Miami, Florida</p>
                   </div>
                 </div>
@@ -152,8 +152,8 @@ const Contact = () => {
                 <div className="flex items-center space-x-3">
                   <Clock className="text-blue-600" size={20} />
                   <div>
-                    <p className="font-medium">Horario de atención</p>
-                    <p className="text-gray-600">Lun - Vie: 9:00 AM - 6:00 PM</p>
+                    <p className="font-medium">{t('contact.schedule')}</p>
+                    <p className="text-gray-600">{t('contact.scheduleTime')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -161,12 +161,12 @@ const Contact = () => {
 
             <Card className="bg-blue-600 text-white">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-4">¿Necesitas ayuda inmediata?</h3>
+                <h3 className="text-xl font-bold mb-4">{t('contact.needHelp')}</h3>
                 <p className="mb-4">
-                  Si tienes una pregunta urgente, no dudes en llamarnos durante nuestro horario de atención.
+                  {t('contact.urgentQuestion')}
                 </p>
                 <Button variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
-                  Llamar ahora
+                  {t('contact.callNow')}
                 </Button>
               </CardContent>
             </Card>

@@ -2,45 +2,47 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Slide {
-  title: string;
-  subtitle: string;
-  buttonText: string;
+  titleKey: string;
+  subtitleKey: string;
+  buttonTextKey: string;
   buttonLink: string;
   bgImage: string;
   buttonStyle: 'primary' | 'secondary' | 'accent';
 }
 
-const slides: Slide[] = [
-  {
-    title: 'Bienvenido a Plan Ahead Solutions',
-    subtitle: 'Encuentra las listas oficiales de tu escuela en segundos',
-    buttonText: 'Buscar mi escuela',
-    buttonLink: '/schools',
-    bgImage: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-    buttonStyle: 'secondary'
-  },
-  {
-    title: 'Compra todo lo que necesitas sin salir de casa',
-    subtitle: 'Envío rápido y devoluciones fáciles',
-    buttonText: 'Ver Packs Populares',
-    buttonLink: '/schools',
-    bgImage: 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-    buttonStyle: 'accent'
-  },
-  {
-    title: 'Mantente organizado',
-    subtitle: 'Registra tus compras y accede a tus listas cuando quieras',
-    buttonText: 'Mi perfil',
-    buttonLink: '/dashboard',
-    bgImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-    buttonStyle: 'primary'
-  }
-];
-
 const HeroSlider = () => {
   const [current, setCurrent] = useState(0);
+  const { t } = useLanguage();
+
+  const slides: Slide[] = [
+    {
+      titleKey: 'hero.slide1.title',
+      subtitleKey: 'hero.slide1.subtitle',
+      buttonTextKey: 'hero.slide1.button',
+      buttonLink: '/schools',
+      bgImage: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+      buttonStyle: 'secondary'
+    },
+    {
+      titleKey: 'hero.slide2.title',
+      subtitleKey: 'hero.slide2.subtitle',
+      buttonTextKey: 'hero.slide2.button',
+      buttonLink: '/schools',
+      bgImage: 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+      buttonStyle: 'accent'
+    },
+    {
+      titleKey: 'hero.slide3.title',
+      subtitleKey: 'hero.slide3.subtitle',
+      buttonTextKey: 'hero.slide3.button',
+      buttonLink: '/dashboard',
+      bgImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+      buttonStyle: 'primary'
+    }
+  ];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -88,14 +90,14 @@ const HeroSlider = () => {
           <div className="relative z-10 flex items-center justify-center h-full px-4">
             <div className="text-center text-white max-w-4xl mx-auto">
               <h1 className="text-3xl md:text-5xl font-bold mb-4 text-white animate-fade-in">
-                {slide.title}
+                {t(slide.titleKey)}
               </h1>
               <p className="text-lg md:text-xl mb-8 text-gray-200 animate-fade-in">
-                {slide.subtitle}
+                {t(slide.subtitleKey)}
               </p>
               <Link to={slide.buttonLink}>
                 <button className={`${getButtonClass(slide.buttonStyle)} animate-fade-in`}>
-                  {slide.buttonText}
+                  {t(slide.buttonTextKey)}
                 </button>
               </Link>
             </div>
