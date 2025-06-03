@@ -37,6 +37,7 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set());
 
   const form = useForm<EditUserForm>();
 
@@ -52,8 +53,24 @@ const UserManagement = () => {
         table: 'profiles'
       }, (payload) => {
         console.log('Realtime event detected:', payload.eventType, payload);
-        // Solo recargar si no es una eliminación que acabamos de hacer
-        if (payload.eventType !== 'DELETE') {
+        
+        // Solo recargar si no estamos en proceso de eliminación
+        if (payload.eventType === 'DELETE') {
+          // Remover el usuario de la lista local
+          const deletedUserId = payload.old?.id;
+          if (deletedUserId) {
+            setUsers(prevUsers => prevUsers.filter(user => user.id !== deletedUserId));
+            setDeletingUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(deletedUserId);
+              return newSet;
+            });
+          }
+        } else if (payload.eventType === 'INSERT') {
+          // Agregar nuevo usuario
+          loadUsers();
+        } else if (payload.eventType === 'UPDATE') {
+          // Actualizar usuario existente
           loadUsers();
         }
       })
@@ -200,6 +217,9 @@ const UserManagement = () => {
       console.log(`Usuario ID: ${userId}`);
       console.log(`Usuario Nombre: ${userName}`);
       
+      // Marcar usuario como en proceso de eliminación
+      setDeletingUsers(prev => new Set(prev).add(userId));
+      
       // Verificar que el usuario existe antes de eliminarlo
       const { data: userExists, error: checkError } = await supabase
         .from('profiles')
@@ -214,18 +234,15 @@ const UserManagement = () => {
           description: "Usuario no encontrado",
           variant: "destructive"
         });
-        await loadUsers();
+        setDeletingUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(userId);
+          return newSet;
+        });
         return;
       }
 
       console.log('Usuario confirmado para eliminación:', userExists);
-
-      // Eliminar de la UI inmediatamente para feedback visual
-      setUsers(prevUsers => {
-        const filtered = prevUsers.filter(user => user.id !== userId);
-        console.log(`Usuarios en UI después de filtrar: ${filtered.length}`);
-        return filtered;
-      });
       
       // Eliminar órdenes asociadas primero
       console.log('=== ELIMINANDO ÓRDENES ===');
@@ -249,37 +266,40 @@ const UserManagement = () => {
 
       if (profileError) {
         console.error('❌ Error eliminando perfil:', profileError);
-        // Si hay error, recargar la lista para mostrar el estado real
-        await loadUsers();
         toast({
           title: "Error",
           description: `Error al eliminar el perfil: ${profileError.message}`,
           variant: "destructive"
+        });
+        setDeletingUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(userId);
+          return newSet;
         });
         return;
       }
 
       console.log('✓ Perfil eliminado exitosamente');
 
+      // Eliminar inmediatamente de la UI local (no esperar al realtime)
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+
       toast({
         title: "Usuario eliminado",
         description: `El usuario ${userName} ha sido eliminado correctamente del sistema`
       });
-
-      // Verificar que la eliminación fue exitosa recargando después de un delay
-      setTimeout(async () => {
-        console.log('=== VERIFICANDO ELIMINACIÓN ===');
-        await loadUsers();
-      }, 2000);
       
     } catch (error) {
       console.error('❌ Error inesperado eliminando usuario:', error);
-      // En caso de error, recargar para mostrar el estado real
-      await loadUsers();
       toast({
         title: "Error",
         description: "Error inesperado al eliminar el usuario",
         variant: "destructive"
+      });
+      setDeletingUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
       });
     }
   };
@@ -323,15 +343,18 @@ const UserManagement = () => {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar usuarios que no están en proceso de eliminación
+  const filteredUsers = users
+    .filter(user => !deletingUsers.has(user.id))
+    .filter(user =>
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-  const totalUsers = users.length;
-  const adminUsers = users.filter(u => u.role === 'Admin').length;
-  const clientUsers = users.filter(u => u.role === 'Cliente').length;
-  const blockedUsers = users.filter(u => u.is_blocked).length;
+  const totalUsers = users.filter(user => !deletingUsers.has(user.id)).length;
+  const adminUsers = users.filter(u => !deletingUsers.has(u.id) && u.role === 'Admin').length;
+  const clientUsers = users.filter(u => !deletingUsers.has(u.id) && u.role === 'Cliente').length;
+  const blockedUsers = users.filter(u => !deletingUsers.has(u.id) && u.is_blocked).length;
 
   if (loading) {
     return (
@@ -454,6 +477,7 @@ const UserManagement = () => {
                           size="sm"
                           onClick={() => handleEditUser(user)}
                           className="p-2"
+                          disabled={deletingUsers.has(user.id)}
                         >
                           <Edit size={16} />
                         </Button>
@@ -464,6 +488,7 @@ const UserManagement = () => {
                           size="sm"
                           onClick={() => handleBlockUser(user.id, user.is_blocked || false, user.name || user.email)}
                           className="p-2"
+                          disabled={deletingUsers.has(user.id)}
                         >
                           {user.is_blocked ? <ShieldOff size={16} /> : <Ban size={16} />}
                         </Button>
@@ -471,7 +496,12 @@ const UserManagement = () => {
                         {/* 3. Botón Eliminar con confirmación */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" className="p-2">
+                            <Button 
+                              variant="destructive" 
+                              size="sm" 
+                              className="p-2"
+                              disabled={deletingUsers.has(user.id)}
+                            >
                               <Trash2 size={16} />
                             </Button>
                           </AlertDialogTrigger>
@@ -502,6 +532,7 @@ const UserManagement = () => {
                             size="sm"
                             onClick={() => updateUserRole(user.id, 'Admin')}
                             className="p-2"
+                            disabled={deletingUsers.has(user.id)}
                           >
                             <Shield size={16} />
                           </Button>
@@ -511,6 +542,7 @@ const UserManagement = () => {
                             size="sm"
                             onClick={() => updateUserRole(user.id, 'Cliente')}
                             className="p-2"
+                            disabled={deletingUsers.has(user.id)}
                           >
                             <UserX size={16} />
                           </Button>
