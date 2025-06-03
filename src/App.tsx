@@ -12,6 +12,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ShoppingCartSidebar from "@/components/ShoppingCartSidebar";
 import CheckoutModal from "@/components/CheckoutModal";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Schools from "./pages/Schools";
 import SchoolDetails from "./pages/SchoolDetails";
@@ -28,6 +29,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 const queryClient = new QueryClient();
 
 const App = () => {
+  console.log('🚀 App component renderizando');
+  
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -96,7 +99,14 @@ const App = () => {
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route 
+                        path="/dashboard" 
+                        element={
+                          <ProtectedRoute>
+                            <Dashboard />
+                          </ProtectedRoute>
+                        } 
+                      />
                       
                       {/* Rutas de administración */}
                       <Route path="/admin/login" element={<AdminLogin />} />
