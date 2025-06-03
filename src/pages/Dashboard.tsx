@@ -1,31 +1,44 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { ShoppingBag, Package, Clock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useState, useEffect } from "react";
+import { orderService } from "@/services/orderService";
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, purchases, loading } = useAuth();
   const { t } = useLanguage();
+  const [stats, setStats] = useState({
+    totalPurchases: 0,
+    totalItems: 0,
+    lastPurchaseDate: null as string | null
+  });
 
-  // Mock purchase history data
-  const purchases = [
-    {
-      id: "1",
-      date: "2024-01-15",
-      school: "Redland Elementary School",
-      grade: "3er Grado",
-      items: 15,
-      total: 89.99
-    },
-    {
-      id: "2", 
-      date: "2024-01-10",
-      school: "Sunset Elementary School",
-      grade: "1er Grado", 
-      items: 12,
-      total: 67.50
+  // Calcular estadísticas basadas en las compras reales de Supabase
+  useEffect(() => {
+    if (purchases && purchases.length > 0) {
+      const totalItems = purchases.reduce((sum, purchase) => {
+        return sum + (Array.isArray(purchase.items) ? purchase.items.length : 0);
+      }, 0);
+
+      const lastPurchase = purchases[0]; // Las compras vienen ordenadas por fecha desc
+      
+      setStats({
+        totalPurchases: purchases.length,
+        totalItems,
+        lastPurchaseDate: lastPurchase?.date || null
+      });
     }
-  ];
+  }, [purchases]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center">
+        <div className="text-lg">Cargando dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
@@ -50,7 +63,7 @@ const Dashboard = () => {
               <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{purchases.length}</div>
+              <div className="text-2xl font-bold">{stats.totalPurchases}</div>
               <p className="text-xs text-muted-foreground">
                 Este año escolar
               </p>
@@ -65,9 +78,7 @@ const Dashboard = () => {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {purchases.reduce((sum, purchase) => sum + purchase.items, 0)}
-              </div>
+              <div className="text-2xl font-bold">{stats.totalItems}</div>
               <p className="text-xs text-muted-foreground">
                 Total de artículos
               </p>
@@ -83,7 +94,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {purchases.length > 0 ? new Date(purchases[0].date).toLocaleDateString() : 'N/A'}
+                {stats.lastPurchaseDate ? new Date(stats.lastPurchaseDate).toLocaleDateString() : 'N/A'}
               </div>
               <p className="text-xs text-muted-foreground">
                 Fecha más reciente
@@ -116,15 +127,19 @@ const Dashboard = () => {
                 {purchases.map((purchase) => (
                   <div key={purchase.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{purchase.school}</h4>
-                      <p className="text-sm text-gray-600">{purchase.grade}</p>
+                      <h4 className="font-semibold text-gray-900">
+                        Orden #{purchase.id.slice(0, 8)}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {Array.isArray(purchase.items) ? purchase.items.length : 0} artículos
+                      </p>
                       <p className="text-xs text-gray-500">
                         {t('dashboard.orderDate')}: {new Date(purchase.date).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">${purchase.total}</p>
-                      <p className="text-sm text-gray-600">{purchase.items} {t('dashboard.items')}</p>
+                      <p className="text-sm text-gray-600 capitalize">{purchase.status}</p>
                     </div>
                   </div>
                 ))}

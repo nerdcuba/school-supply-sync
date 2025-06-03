@@ -1,70 +1,42 @@
 
 import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
-import { Search, UserRound, Mail, Calendar, Clock, Trash2, Eye, ShoppingBag, RefreshCw, Users, CheckCircle } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, Users, UserCheck, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
-interface UserType {
+interface UserProfile {
   id: string;
-  name: string;
   email: string;
-  createdAt: string;
+  name: string;
   role: string;
-  phone?: string;
+  created_at: string;
   address?: string;
-  orders?: OrderType[];
-}
-
-interface OrderType {
-  id: string;
-  date: string;
-  total: number;
-  status: string;
-  items: any[];
+  phone?: string;
 }
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<UserType[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
-  const [userToDelete, setUserToDelete] = useState<UserType | null>(null);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     loadUsers();
     
-    // Configurar listener para nuevos usuarios
+    // Configurar realtime para usuarios
     const channel = supabase
-      .channel('user-management')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'profiles'
-        },
-        (payload) => {
-          console.log('Nuevo usuario detectado:', payload);
-          // Recargar usuarios cuando se detecte un nuevo perfil
-          loadUsers();
-          toast({
-            title: "Nuevo usuario registrado",
-            description: `Se ha registrado un nuevo usuario: ${payload.new.email}`,
-          });
-        }
-      )
+      .channel('profiles-realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'profiles'
+      }, () => {
+        loadUsers();
+      })
       .subscribe();
 
     return () => {
@@ -74,148 +46,81 @@ const UserManagement = () => {
 
   const loadUsers = async () => {
     try {
-      setLoading(true);
-      console.log('=== CARGANDO USUARIOS ===');
-      
-      // Cargar todos los perfiles
-      const { data: profiles, error: profilesError } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (profilesError) {
-        console.error('Error cargando perfiles:', profilesError);
+      if (error) {
+        console.error('Error loading users:', error);
         toast({
           title: "Error",
-          description: `Error al cargar los usuarios: ${profilesError.message}`,
-          variant: "destructive",
+          description: "No se pudieron cargar los usuarios",
+          variant: "destructive"
         });
         return;
       }
 
-      console.log(`Se encontraron ${profiles?.length || 0} usuarios`);
-
-      if (!profiles || profiles.length === 0) {
-        setUsers([]);
-        return;
-      }
-
-      // Cargar órdenes para cada usuario
-      const usersWithOrders = await Promise.all(
-        profiles.map(async (profile) => {
-          const { data: orders, error: ordersError } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('user_id', profile.id)
-            .order('created_at', { ascending: false });
-
-          if (ordersError) {
-            console.error(`Error cargando órdenes para usuario ${profile.id}:`, ordersError);
-          }
-
-          const formattedOrders = (orders || []).map(order => ({
-            id: order.id,
-            date: order.created_at,
-            total: order.total,
-            status: order.status || 'Completado',
-            items: Array.isArray(order.items) ? order.items : []
-          }));
-
-          return {
-            id: profile.id,
-            name: profile.name || 'Sin nombre',
-            email: profile.email || 'Sin email',
-            createdAt: profile.created_at,
-            role: profile.role || 'Cliente',
-            phone: profile.phone || undefined,
-            address: profile.address || undefined,
-            orders: formattedOrders
-          };
-        })
-      );
-
-      setUsers(usersWithOrders);
-      console.log(`Usuarios cargados exitosamente: ${usersWithOrders.length}`);
-
+      setUsers(data || []);
     } catch (error) {
-      console.error('Error general cargando usuarios:', error);
+      console.error('Error loading users:', error);
       toast({
         title: "Error",
-        description: "Error inesperado al cargar los usuarios.",
-        variant: "destructive",
+        description: "Error inesperado al cargar usuarios",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Filtrar usuarios según término de búsqueda
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Eliminar usuario
-  const handleDeleteUser = async () => {
-    if (!userToDelete) return;
-    
+  const updateUserRole = async (userId: string, newRole: string) => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .delete()
-        .eq('id', userToDelete.id);
+        .update({ role: newRole })
+        .eq('id', userId);
 
       if (error) {
-        console.error('Error deleting user:', error);
+        console.error('Error updating user role:', error);
         toast({
           title: "Error",
-          description: "Error al eliminar el usuario",
-          variant: "destructive",
+          description: "No se pudo actualizar el rol del usuario",
+          variant: "destructive"
         });
         return;
       }
 
-      // Actualizar la lista local
-      setUsers(prev => prev.filter(user => user.id !== userToDelete.id));
-      setUserToDelete(null);
-      setDeleteDialogOpen(false);
-      
       toast({
-        title: "Usuario eliminado",
-        description: "El usuario ha sido eliminado con éxito"
+        title: "Rol actualizado",
+        description: "El rol del usuario ha sido actualizado correctamente"
       });
+
+      // Recargar usuarios
+      loadUsers();
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('Error updating user role:', error);
       toast({
         title: "Error",
-        description: "Error al eliminar el usuario",
-        variant: "destructive",
+        description: "Error inesperado al actualizar el rol",
+        variant: "destructive"
       });
     }
   };
 
-  // Formato de fecha
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'dd MMM yyyy, HH:mm', { locale: es });
-    } catch (error) {
-      return 'Fecha inválida';
-    }
-  };
+  const filteredUsers = users.filter(user =>
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalUsers = users.length;
+  const adminUsers = users.filter(u => u.role === 'admin').length;
+  const regularUsers = users.filter(u => u.role === 'user' || u.role === 'Cliente').length;
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
-          <Button variant="outline" onClick={loadUsers} disabled>
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            Cargando...
-          </Button>
-        </div>
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg">Cargando usuarios...</div>
-        </div>
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Cargando usuarios...</div>
       </div>
     );
   }
@@ -224,307 +129,119 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Gestión de Usuarios</h2>
-        <Button variant="outline" onClick={loadUsers}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Actualizar
-        </Button>
+        <Badge variant="secondary">{totalUsers} usuarios registrados</Badge>
       </div>
 
-      {/* Estadísticas rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* User Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
+            <div className="text-2xl font-bold">{totalUsers}</div>
+            <p className="text-xs text-muted-foreground">Usuarios registrados</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium">Administradores</CardTitle>
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.filter(u => u.orders && u.orders.length > 0).length}</div>
+            <div className="text-2xl font-bold">{adminUsers}</div>
+            <p className="text-xs text-muted-foreground">Con privilegios admin</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Nuevos Hoy</CardTitle>
-            <UserRound className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium">Usuarios Regulares</CardTitle>
+            <UserX className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {users.filter(u => {
-                const today = new Date();
-                const userDate = new Date(u.createdAt);
-                return userDate.toDateString() === today.toDateString();
-              }).length}
-            </div>
+            <div className="text-2xl font-bold">{regularUsers}</div>
+            <p className="text-xs text-muted-foreground">Usuarios estándar</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Información de sincronización */}
-      <Card className="bg-green-50 border-green-200">
-        <CardContent className="pt-4">
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <div>
-              <p className="font-medium text-green-800">Sincronización Automática Activada</p>
-              <p className="text-sm text-green-700">
-                Los nuevos usuarios registrados aparecerán automáticamente en esta lista. 
-                El trigger de base de datos está configurado correctamente.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Buscador */}
+      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
         <Input
           className="pl-10"
-          placeholder="Buscar usuarios por nombre o email..."
+          placeholder="Buscar usuarios por email o nombre..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      {/* Lista de usuarios */}
-      {users.length === 0 ? (
-        <Card className="text-center p-10">
-          <CardContent className="pt-10">
-            <UserRound className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-lg font-semibold">No hay usuarios registrados</h3>
-            <p className="mt-2 text-sm text-gray-500">
-              Los usuarios aparecerán aquí automáticamente después de registrarse.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <div className="text-sm text-gray-600 mb-4">
-            Mostrando {filteredUsers.length} de {users.length} usuarios registrados
-          </div>
-          
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead>Fecha de Registro</TableHead>
-                    <TableHead>Pedidos</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+      {/* Users Table */}
+      <Card>
+        <CardContent className="p-0">
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-8">
+              <Users size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600">No se encontraron usuarios</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Rol</TableHead>
+                  <TableHead>Fecha de Registro</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      {user.name || 'Sin nombre'}
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                        {user.role || 'user'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        {user.role !== 'admin' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateUserRole(user.id, 'admin')}
+                          >
+                            Hacer Admin
+                          </Button>
+                        )}
+                        {user.role === 'admin' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateUserRole(user.id, 'user')}
+                          >
+                            Quitar Admin
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatDate(user.createdAt)}</TableCell>
-                      <TableCell>{user.orders?.length || 0} pedidos</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setViewDialogOpen(true);
-                            }}
-                          >
-                            <Eye size={14} />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-500 hover:text-red-600"
-                            onClick={() => {
-                              setUserToDelete(user);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* Diálogo para ver detalles de usuario */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Detalles del Usuario</DialogTitle>
-            <DialogDescription>
-              Información completa del usuario y sus pedidos
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedUser && (
-            <Tabs defaultValue="info">
-              <TabsList>
-                <TabsTrigger value="info">Información</TabsTrigger>
-                <TabsTrigger value="orders">Pedidos ({selectedUser.orders?.length || 0})</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="info" className="space-y-4 mt-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Nombre</p>
-                    <div className="flex items-center">
-                      <UserRound size={16} className="mr-2 text-gray-400" />
-                      <p>{selectedUser.name}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Email</p>
-                    <div className="flex items-center">
-                      <Mail size={16} className="mr-2 text-gray-400" />
-                      <p>{selectedUser.email}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Teléfono</p>
-                    <p>{selectedUser.phone || 'No especificado'}</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Rol</p>
-                    <Badge variant={selectedUser.role === 'Admin' ? 'default' : 'secondary'}>
-                      {selectedUser.role}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Fecha de Registro</p>
-                    <div className="flex items-center">
-                      <Calendar size={16} className="mr-2 text-gray-400" />
-                      <p>{formatDate(selectedUser.createdAt)}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Tiempo como cliente</p>
-                    <div className="flex items-center">
-                      <Clock size={16} className="mr-2 text-gray-400" />
-                      <p>{
-                        (() => {
-                          try {
-                            const start = new Date(selectedUser.createdAt);
-                            const now = new Date();
-                            const diffTime = Math.abs(now.getTime() - start.getTime());
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            return `${diffDays} días`;
-                          } catch {
-                            return 'No disponible';
-                          }
-                        })()
-                      }</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Dirección</p>
-                  <p>{selectedUser.address || 'No especificada'}</p>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="orders" className="mt-4">
-                {selectedUser.orders && selectedUser.orders.length > 0 ? (
-                  <div className="space-y-4">
-                    {selectedUser.orders.map(order => (
-                      <Card key={order.id}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h4 className="font-semibold">Pedido #{order.id.slice(0, 8)}</h4>
-                              <p className="text-sm text-gray-500">{formatDate(order.date)}</p>
-                            </div>
-                            <Badge variant={order.status === 'Completado' ? 'default' : 'secondary'}>
-                              {order.status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">Artículos:</p>
-                            <ul className="text-sm text-gray-600 space-y-1">
-                              {order.items.map((item, idx) => (
-                                <li key={idx}>
-                                  {item.quantity}x {item.name} - ${item.price?.toFixed(2) || '0.00'}
-                                </li>
-                              ))}
-                            </ul>
-                            
-                            <div className="border-t pt-2 mt-2 text-right">
-                              <p className="font-semibold">Total: ${order.total.toFixed(2)}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <ShoppingBag size={36} className="mx-auto text-gray-400 mb-3" />
-                    <p>Este usuario no ha realizado ningún pedido</p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
+                ))}
+              </TableBody>
+            </Table>
           )}
-          
-          <DialogFooter>
-            <Button onClick={() => setViewDialogOpen(false)}>Cerrar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo de confirmación para eliminar usuario */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente el usuario
-              "{userToDelete?.name}" y todos sus datos asociados.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-500 hover:bg-red-600"
-              onClick={handleDeleteUser}
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </CardContent>
+      </Card>
     </div>
   );
 };
