@@ -37,7 +37,10 @@ const OrderManagement = () => {
 
   // Configurar realtime updates
   useRealtimeOrders({
-    onOrdersUpdate: loadOrders,
+    onOrdersUpdate: () => {
+      console.log('🔄 Recargando órdenes por cambio realtime...');
+      loadOrders();
+    },
     isAdmin: true
   });
 
@@ -50,6 +53,16 @@ const OrderManagement = () => {
       setUpdatingOrderId(orderId);
       console.log(`🔄 Actualizando orden ${orderId} a estado: ${newStatus}`);
       
+      // Actualizar localmente primero para UI responsiva
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus, updated_at: new Date().toISOString() }
+            : order
+        )
+      );
+      
+      // Actualizar en base de datos
       await orderService.updateStatus(orderId, newStatus);
       
       console.log('✅ Estado actualizado correctamente en base de datos');
@@ -58,10 +71,10 @@ const OrderManagement = () => {
         description: `El estado de la orden ha sido cambiado a ${getStatusLabel(newStatus)}`,
       });
       
-      // No actualizar estado local aquí, dejar que realtime lo maneje
-      
     } catch (error) {
       console.error('❌ Error updating order status:', error);
+      // Revertir cambio local en caso de error
+      await loadOrders();
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado de la orden",

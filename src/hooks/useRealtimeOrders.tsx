@@ -1,7 +1,6 @@
 
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Order } from '@/services/orderService';
 import { useToast } from '@/hooks/use-toast';
 
 interface UseRealtimeOrdersProps {
@@ -23,46 +22,48 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
 
     console.log(`🔔 Configurando subscripción realtime para órdenes (${isAdmin ? 'admin' : 'user'})...`);
     
-    // Create unique channel name to avoid conflicts
-    const channelName = `orders-changes-${isAdmin ? 'admin' : 'user'}-${Date.now()}`;
+    // Create unique channel name
+    const channelName = `orders-realtime-${isAdmin ? 'admin' : 'user'}-${Math.random().toString(36).substr(2, 9)}`;
     
     const channel = supabase
       .channel(channelName)
       .on(
         'postgres_changes',
         {
-          event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'orders'
         },
         (payload) => {
-          console.log(`🔄 Cambio detectado en órdenes (${isAdmin ? 'admin' : 'user'}):`, payload);
+          console.log(`🔄 Cambio detectado en órdenes:`, payload);
           
-          // Notificar al usuario sobre el cambio solo si no es admin
+          // Mostrar notificación para usuarios (no admin)
           if (payload.eventType === 'UPDATE' && !isAdmin) {
-            toast({
-              title: "Orden actualizada",
-              description: "El estado de una de tus órdenes ha sido actualizado",
-            });
+            const newRecord = payload.new as any;
+            if (newRecord?.status) {
+              toast({
+                title: "Estado de orden actualizado",
+                description: `Tu orden ha sido actualizada a: ${newRecord.status}`,
+              });
+            }
           }
           
-          // Disparar callback para actualizar datos con un pequeño delay
+          // Trigger update callback
           if (onOrdersUpdate) {
-            setTimeout(() => {
-              onOrdersUpdate();
-            }, 100);
+            console.log('📞 Llamando callback de actualización');
+            onOrdersUpdate();
           }
         }
       )
       .subscribe((status) => {
-        console.log(`📡 Estado de subscripción realtime (${isAdmin ? 'admin' : 'user'}):`, status);
+        console.log(`📡 Estado de subscripción realtime:`, status);
       });
 
     channelRef.current = channel;
 
     return () => {
       if (channelRef.current) {
-        console.log(`🔌 Desconectando subscripción realtime de órdenes (${isAdmin ? 'admin' : 'user'})`);
+        console.log(`🔌 Desconectando subscripción realtime`);
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
