@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +27,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { toast } from "@/hooks/use-toast";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,45 @@ function App() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  // Cargar carrito del localStorage al iniciar
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cartItems');
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Guardar carrito en localStorage cuando cambie
+  useEffect(() => {
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+  }, [cartItems]);
+
+  // Escuchar eventos de pago completado desde otras ventanas
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'paymentCompleted') {
+        // Vaciar el carrito cuando se complete un pago
+        setCartItems([]);
+        setIsCartOpen(false);
+        setIsCheckoutOpen(false);
+        toast({
+          title: "¡Pago completado!",
+          description: "Tu pedido ha sido procesado exitosamente. Tu carrito se ha vaciado.",
+          variant: "default",
+        });
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const handleAddToCart = (item: any) => {
     setCartItems(prev => {

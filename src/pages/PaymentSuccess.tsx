@@ -5,6 +5,7 @@ import { CheckCircle, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from '@/hooks/use-toast';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -18,8 +19,21 @@ const PaymentSuccess = () => {
       setLoading(false);
     }, 2000);
 
+    // Limpiar el carrito del localStorage cuando el pago es exitoso
+    if (sessionId) {
+      localStorage.removeItem('cartItems');
+      // Enviar evento para notificar a otras ventanas que el carrito debe vaciarse
+      window.localStorage.setItem('paymentCompleted', Date.now().toString());
+      
+      toast({
+        title: "¡Pago exitoso!",
+        description: "Tu pedido ha sido procesado correctamente.",
+        variant: "default",
+      });
+    }
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [sessionId]);
 
   if (loading) {
     return (
@@ -74,8 +88,29 @@ const PaymentSuccess = () => {
                   Recibirás un email de confirmación con los detalles de tu pedido.
                   Tu pedido será procesado y enviado pronto.
                 </p>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-blue-800 text-sm">
+                    💡 <strong>Tip:</strong> Puedes cerrar esta ventana y regresar a la página principal. 
+                    Tu carrito se ha vaciado automáticamente.
+                  </p>
+                </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      window.close();
+                      // Si no se puede cerrar la ventana, redirigir
+                      setTimeout(() => {
+                        window.location.href = '/';
+                      }, 1000);
+                    }}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Cerrar Ventana
+                  </Button>
                   <Link to="/" className="flex-1">
                     <Button variant="outline" className="w-full">
                       <ArrowLeft className="w-4 h-4 mr-2" />
