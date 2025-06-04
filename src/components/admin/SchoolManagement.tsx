@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { School, Plus, Pencil, Trash2, Search, Power, PowerOff, Users, BookOpen } from 'lucide-react';
+import { School, Plus, Pencil, Trash2, Search, Power, PowerOff, Users, BookOpen, Upload } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { schoolService, School as SchoolType } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,6 +28,9 @@ const SchoolManagement = () => {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openUploadDialog, setOpenUploadDialog] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Cargar escuelas desde Supabase - usar getAllForAdmin para ver todas las escuelas
   useEffect(() => {
@@ -73,7 +75,132 @@ const SchoolManagement = () => {
     school.grades.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Agregar nueva escuela
+  // Función para procesar archivo CSV
+  const handleCsvUpload = async () => {
+    if (!csvFile) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona un archivo CSV",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploading(true);
+    
+    try {
+      const text = await csvFile.text();
+      const rows = text.split('\n');
+      const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+      
+      // Validar headers requeridos
+      const requiredHeaders = ['name', 'address', 'phone', 'grades', 'enrollment'];
+      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+      
+      if (missingHeaders.length > 0) {
+        toast({
+          title: "Error en formato CSV",
+          description: `Faltan las columnas: ${missingHeaders.join(', ')}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const schoolsToAdd = [];
+      const errors = [];
+
+      // Procesar cada fila
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i].trim();
+        if (!row) continue;
+
+        const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
+        
+        if (values.length !== headers.length) {
+          errors.push(`Fila ${i + 1}: Número incorrecto de columnas`);
+          continue;
+        }
+
+        const schoolData: any = {};
+        headers.forEach((header, index) => {
+          schoolData[header] = values[index];
+        });
+
+        // Validar datos requeridos
+        if (!schoolData.name || !schoolData.address || !schoolData.phone || !schoolData.grades) {
+          errors.push(`Fila ${i + 1}: Campos obligatorios faltantes`);
+          continue;
+        }
+
+        // Validar matrícula
+        const enrollment = parseInt(schoolData.enrollment);
+        if (isNaN(enrollment) || enrollment <= 0) {
+          errors.push(`Fila ${i + 1}: Matrícula debe ser un número positivo`);
+          continue;
+        }
+
+        // Verificar duplicados
+        const existingSchool = schools.find(s => 
+          s.name.toLowerCase() === schoolData.name.toLowerCase()
+        );
+        if (existingSchool) {
+          errors.push(`Fila ${i + 1}: La escuela "${schoolData.name}" ya existe`);
+          continue;
+        }
+
+        schoolsToAdd.push({
+          name: schoolData.name,
+          address: schoolData.address,
+          phone: schoolData.phone,
+          grades: schoolData.grades,
+          enrollment: enrollment,
+          is_active: true
+        });
+      }
+
+      if (errors.length > 0) {
+        toast({
+          title: "Errores encontrados",
+          description: `${errors.length} errores. Revisa el formato del archivo.`,
+          variant: "destructive"
+        });
+        console.log('Errores:', errors);
+        return;
+      }
+
+      if (schoolsToAdd.length === 0) {
+        toast({
+          title: "Sin datos",
+          description: "No se encontraron escuelas válidas para agregar",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Agregar escuelas en batch
+      for (const school of schoolsToAdd) {
+        await schoolService.create(school);
+      }
+
+      toast({
+        title: "Escuelas agregadas",
+        description: `Se agregaron ${schoolsToAdd.length} escuelas exitosamente`
+      });
+
+      setCsvFile(null);
+      setOpenUploadDialog(false);
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al procesar el archivo CSV",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleAddSchool = async () => {
     // Validar duplicados
     if (schools.some(s => s.name.toLowerCase() === newSchool.name.toLowerCase())) {
@@ -120,7 +247,6 @@ const SchoolManagement = () => {
     }
   };
 
-  // Actualizar escuela existente
   const handleUpdateSchool = async () => {
     if (!editingSchool) return;
 
@@ -162,7 +288,6 @@ const SchoolManagement = () => {
     }
   };
 
-  // Eliminar escuela
   const handleDeleteSchool = async () => {
     if (!deletingSchool) return;
     
@@ -184,7 +309,6 @@ const SchoolManagement = () => {
     }
   };
 
-  // Alternar estado activo/inactivo de una escuela
   const handleToggleActive = async (school: SchoolType) => {
     try {
       await schoolService.toggleActive(school.id, !school.is_active);
@@ -216,77 +340,115 @@ const SchoolManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Gestión de Escuelas</h2>
-        <Dialog open={openAddDialog} onOpenChange={setOpenAddDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus size={16} className="mr-2" />
-              Añadir Escuela
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Añadir Nueva Escuela</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Escuela*</Label>
-                <Input 
-                  id="name" 
-                  value={newSchool.name} 
-                  onChange={(e) => setNewSchool({...newSchool, name: e.target.value})}
-                  placeholder="Ej. Escuela Primaria Roosevelt"
-                  required
-                />
+        <div className="flex space-x-2">
+          {/* Botón de subir CSV */}
+          <Dialog open={openUploadDialog} onOpenChange={setOpenUploadDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Upload size={16} className="mr-2" />
+                Subir CSV
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Subir Escuelas desde CSV</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="csv-file">Archivo CSV</Label>
+                  <Input 
+                    id="csv-file" 
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                  />
+                  <p className="text-sm text-gray-500">
+                    El archivo debe contener las columnas: name, address, phone, grades, enrollment
+                  </p>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="address">Dirección*</Label>
-                <Input 
-                  id="address" 
-                  value={newSchool.address} 
-                  onChange={(e) => setNewSchool({...newSchool, address: e.target.value})}
-                  placeholder="Dirección completa"
-                  required
-                />
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpenUploadDialog(false)}>Cancelar</Button>
+                <Button onClick={handleCsvUpload} disabled={uploading || !csvFile}>
+                  {uploading ? 'Procesando...' : 'Subir Escuelas'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Botón de añadir escuela individual */}
+          <Dialog open={openAddDialog} onOpenChange={setOpenAddDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus size={16} className="mr-2" />
+                Añadir Escuela
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Añadir Nueva Escuela</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Escuela*</Label>
+                  <Input 
+                    id="name" 
+                    value={newSchool.name} 
+                    onChange={(e) => setNewSchool({...newSchool, name: e.target.value})}
+                    placeholder="Ej. Escuela Primaria Roosevelt"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Dirección*</Label>
+                  <Input 
+                    id="address" 
+                    value={newSchool.address} 
+                    onChange={(e) => setNewSchool({...newSchool, address: e.target.value})}
+                    placeholder="Dirección completa"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Teléfono*</Label>
+                  <Input 
+                    id="phone" 
+                    value={newSchool.phone} 
+                    onChange={(e) => setNewSchool({...newSchool, phone: e.target.value})}
+                    placeholder="Ej. (305) 123-4567"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="grades">Grados*</Label>
+                  <Input 
+                    id="grades" 
+                    value={newSchool.grades} 
+                    onChange={(e) => setNewSchool({...newSchool, grades: e.target.value})}
+                    placeholder="Ej. K-5, 6-8, 9-12"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="enrollment">Matrícula*</Label>
+                  <Input 
+                    id="enrollment" 
+                    type="number"
+                    min="1"
+                    value={newSchool.enrollment || ''} 
+                    onChange={(e) => setNewSchool({...newSchool, enrollment: parseInt(e.target.value) || 0})}
+                    placeholder="Número de estudiantes"
+                    required
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Teléfono*</Label>
-                <Input 
-                  id="phone" 
-                  value={newSchool.phone} 
-                  onChange={(e) => setNewSchool({...newSchool, phone: e.target.value})}
-                  placeholder="Ej. (305) 123-4567"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="grades">Grados*</Label>
-                <Input 
-                  id="grades" 
-                  value={newSchool.grades} 
-                  onChange={(e) => setNewSchool({...newSchool, grades: e.target.value})}
-                  placeholder="Ej. K-5, 6-8, 9-12"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="enrollment">Matrícula*</Label>
-                <Input 
-                  id="enrollment" 
-                  type="number"
-                  min="1"
-                  value={newSchool.enrollment || ''} 
-                  onChange={(e) => setNewSchool({...newSchool, enrollment: parseInt(e.target.value) || 0})}
-                  placeholder="Número de estudiantes"
-                  required
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpenAddDialog(false)}>Cancelar</Button>
-              <Button onClick={handleAddSchool}>Guardar Escuela</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpenAddDialog(false)}>Cancelar</Button>
+                <Button onClick={handleAddSchool}>Guardar Escuela</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Barra de búsqueda */}
