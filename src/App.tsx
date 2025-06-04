@@ -11,6 +11,7 @@ import { AuthProvider } from "./hooks/useAuth";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ShoppingCartSidebar from "./components/ShoppingCartSidebar";
+import CheckoutModal from "./components/CheckoutModal";
 import Index from "./pages/Index";
 import Schools from "./pages/Schools";
 import SchoolDetails from "./pages/SchoolDetails";
@@ -32,6 +33,7 @@ const queryClient = new QueryClient();
 function App() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
   const handleAddToCart = (item: any) => {
     setCartItems(prev => {
@@ -73,7 +75,13 @@ function App() {
 
   const handleCheckout = () => {
     console.log('Proceeding to checkout with items:', cartItems);
-    // TODO: Implement checkout functionality
+    setIsCartOpen(false);
+    setIsCheckoutOpen(true);
+  };
+
+  const handleCheckoutComplete = () => {
+    handleClearCart();
+    setIsCheckoutOpen(false);
   };
 
   return (
@@ -131,6 +139,13 @@ function App() {
                     onUpdateQuantity={handleUpdateQuantity}
                     total={calculateTotal()}
                     onCheckout={handleCheckout}
+                  />
+                  <CheckoutModal
+                    isOpen={isCheckoutOpen}
+                    onClose={() => setIsCheckoutOpen(false)}
+                    items={cartItems}
+                    total={calculateTotal()}
+                    onCheckoutComplete={handleCheckoutComplete}
                   />
                 </div>
               </BrowserRouter>
