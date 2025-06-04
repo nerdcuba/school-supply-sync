@@ -65,7 +65,7 @@ const PaymentSuccess = () => {
               try {
                 // Asegurar que order.items es un array antes de pasarlo
                 const orderItems = Array.isArray(order.items) ? order.items : [];
-                if (typeof addPurchase === 'function') {
+                if (addPurchase && typeof addPurchase === 'function') {
                   await addPurchase(orderItems, order.total);
                   console.log('✅ Purchase added to user context');
                 }
@@ -97,7 +97,7 @@ const PaymentSuccess = () => {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [sessionId, user?.id, orderProcessed]); // Dependencias específicas para evitar ciclos
+  }, [sessionId]); // Solo sessionId como dependencia para evitar el ciclo infinito
 
   if (loading) {
     return (
