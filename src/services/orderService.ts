@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Order {
@@ -118,7 +117,7 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - COMPLETAMENTE REFACTORIZADO
+  // Actualizar estado de una orden (admin) - COMPLETAMENTE SIMPLIFICADO
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Iniciando actualización de orden ${orderId} a estado: ${status}`);
     
@@ -150,39 +149,24 @@ export const orderService = {
     console.log('✅ Usuario admin verificado, procediendo con actualización...');
     
     try {
-      // NUEVO ENFOQUE: Usar un procedimiento más directo y robusto
-      console.log(`🔄 Actualizando orden ${orderId} con estado: ${status}`);
-      
-      // Realizar la actualización directamente con RPC si es necesario, o usar update simple
-      const { error: updateError } = await supabase
+      // Actualizar directamente y obtener la orden actualizada en una sola operación
+      const { data: updatedOrder, error: updateError } = await supabase
         .from('orders')
         .update({ 
           status: status,
           updated_at: new Date().toISOString()
         })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select('*')
+        .single();
       
       if (updateError) {
         console.error('❌ Error en actualización:', updateError);
         throw new Error(`Error al actualizar la orden: ${updateError.message}`);
       }
 
-      console.log('✅ Actualización exitosa, obteniendo orden actualizada...');
-
-      // Obtener la orden actualizada por separado
-      const { data: updatedOrder, error: fetchError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
-
-      if (fetchError) {
-        console.error('❌ Error al obtener orden actualizada:', fetchError);
-        throw new Error(`Error al obtener la orden actualizada: ${fetchError.message}`);
-      }
-
       if (!updatedOrder) {
-        throw new Error('No se pudo obtener la orden actualizada');
+        throw new Error('No se encontró la orden para actualizar');
       }
       
       console.log('✅ Orden actualizada exitosamente:', updatedOrder);
@@ -194,7 +178,6 @@ export const orderService = {
       
     } catch (error) {
       console.error('❌ Error general al actualizar orden:', error);
-      // Re-lanzar el error original para que se maneje en el componente
       throw error;
     }
   }

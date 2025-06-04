@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -157,30 +156,19 @@ const OrderManagement = () => {
       setUpdatingOrderId(orderId);
       console.log(`🔄 Actualizando orden ${orderId} a estado: ${newStatus}`);
       
-      // Verificar que la orden existe localmente antes de actualizar
-      const orderExists = orders.find(order => order.id === orderId);
-      if (!orderExists) {
-        throw new Error('La orden no existe en el estado local');
-      }
-      
       // Actualizar en base de datos
       const updatedOrder = await orderService.updateStatus(orderId, newStatus);
       
       console.log('✅ Estado actualizado correctamente:', updatedOrder);
       
-      // Actualizar inmediatamente el estado local
-      setOrders(prevOrders => 
+      // Actualizar inmediatamente el estado local con la orden devuelta por el servicio
+      const updateOrderInState = (prevOrders: Order[]) => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...updatedOrder } : order
-        )
-      );
+          order.id === orderId ? updatedOrder : order
+        );
       
-      // También actualizar filteredOrders si es necesario
-      setFilteredOrders(prevFiltered => 
-        prevFiltered.map(order => 
-          order.id === orderId ? { ...updatedOrder } : order
-        )
-      );
+      setOrders(updateOrderInState);
+      setFilteredOrders(updateOrderInState);
       
       toast({
         title: "Estado actualizado",
