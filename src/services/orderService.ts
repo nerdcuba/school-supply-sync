@@ -154,7 +154,7 @@ export const orderService = {
       .from('orders')
       .select('*')
       .eq('id', orderId)
-      .maybeSingle();
+      .single();
     
     if (fetchError) {
       console.error('❌ Error fetching order:', fetchError);
@@ -177,7 +177,7 @@ export const orderService = {
       })
       .eq('id', orderId)
       .select()
-      .maybeSingle();
+      .single();
     
     if (error) {
       console.error('❌ Error updating order status:', error);
