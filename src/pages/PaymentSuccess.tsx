@@ -64,7 +64,9 @@ const PaymentSuccess = () => {
               
               // Agregar la compra al contexto (esto recargará las órdenes del usuario)
               try {
-                await addPurchase(order.items, order.total);
+                // Asegurar que order.items es un array antes de pasarlo
+                const orderItems = Array.isArray(order.items) ? order.items : [];
+                await addPurchase(orderItems, order.total);
                 console.log('✅ Purchase added to user context');
               } catch (purchaseError) {
                 console.error('❌ Error adding purchase to context:', purchaseError);
