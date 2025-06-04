@@ -175,17 +175,23 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
 
       console.log('✅ Stripe session created successfully:', data.sessionId);
 
-      // Redirigir en la misma pestaña en lugar de abrir una nueva
+      // Cerrar el modal primero
+      onClose();
+
+      // Mostrar toast
       toast({
         title: "Redirigiendo a Stripe",
         description: "Serás redirigido al checkout de Stripe.",
         variant: "default",
       });
 
-      // Pequeño delay para que el usuario vea el toast
-      setTimeout(() => {
+      // Asegurar que Stripe se abra en el top level window
+      if (window.top) {
+        window.top.location.href = data.url;
+      } else {
+        // Fallback si no hay window.top
         window.location.href = data.url;
-      }, 1500);
+      }
 
     } catch (error: any) {
       console.error('❌ Checkout error:', error);
