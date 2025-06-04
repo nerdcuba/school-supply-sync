@@ -168,7 +168,7 @@ export const orderService = {
     
     console.log('✅ Orden encontrada, procediendo con actualización...');
     
-    // Actualizar la orden
+    // Actualizar la orden usando el servicio de Supabase directamente
     const { data, error } = await supabase
       .from('orders')
       .update({ 
@@ -176,23 +176,26 @@ export const orderService = {
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
-      .select()
-      .single();
+      .select('*');
     
     if (error) {
       console.error('❌ Error updating order status:', error);
       throw new Error('Error al actualizar la orden: ' + error.message);
     }
 
-    if (!data) {
+    // Verificar que se devolvió al menos una fila
+    if (!data || data.length === 0) {
       console.error('❌ No data returned after update for order:', orderId);
-      throw new Error('No se pudo actualizar la orden - sin datos devueltos');
+      throw new Error('No se pudo actualizar la orden - orden no encontrada');
     }
+
+    // Si hay múltiples filas (no debería pasar), tomar la primera
+    const updatedOrder = data[0];
     
-    console.log('✅ Estado de orden actualizado correctamente:', data);
+    console.log('✅ Estado de orden actualizado correctamente:', updatedOrder);
     return {
-      ...data,
-      items: Array.isArray(data.items) ? data.items : []
+      ...updatedOrder,
+      items: Array.isArray(updatedOrder.items) ? updatedOrder.items : []
     };
   }
 };
