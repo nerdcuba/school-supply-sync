@@ -89,14 +89,14 @@ export const orderService = {
       throw new Error('Admin no autenticado');
     }
 
-    // Verificar que el usuario es admin
+    // Verificar que el usuario es admin - actualizar para usar 'Admin' (mayúscula)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (profileError || profile?.role !== 'admin') {
+    if (profileError || profile?.role !== 'Admin') {
       console.error('❌ Usuario no es admin:', { profileError, role: profile?.role });
       throw new Error('No tienes permisos de administrador');
     }
@@ -129,14 +129,14 @@ export const orderService = {
       throw new Error('Admin no autenticado');
     }
 
-    // Verificar que el usuario es admin
+    // Verificar que el usuario es admin - actualizar para usar 'Admin' (mayúscula)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (profileError || profile?.role !== 'admin') {
+    if (profileError || profile?.role !== 'Admin') {
       console.error('❌ Usuario no es admin:', { profileError, role: profile?.role });
       throw new Error('No tienes permisos de administrador');
     }
