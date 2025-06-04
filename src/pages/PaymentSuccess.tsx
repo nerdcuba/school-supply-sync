@@ -15,7 +15,7 @@ const PaymentSuccess = () => {
   const [orderProcessed, setOrderProcessed] = useState(false);
 
   useEffect(() => {
-    const processPaymentSuccess = async () => {
+    const processPayment = async () => {
       console.log('🎉 Processing payment success for session:', sessionId);
       
       if (!sessionId) {
@@ -93,11 +93,11 @@ const PaymentSuccess = () => {
 
     // Simular verificación del pago
     const timer = setTimeout(() => {
-      processPaymentSuccess();
+      processPayment();
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [sessionId]); // Solo sessionId como dependencia para evitar problemas de tipos
+  }, [sessionId, user, addPurchase, orderProcessed]);
 
   if (loading) {
     return (
