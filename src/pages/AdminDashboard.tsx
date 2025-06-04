@@ -12,23 +12,33 @@ import Analytics from '@/components/admin/Analytics';
 import AdminSettings from '@/components/admin/AdminSettings';
 import ElectronicsManagement from '@/components/admin/ElectronicsManagement';
 import OrderManagement from '@/components/admin/OrderManagement';
+import { Toaster } from '@/components/ui/toaster';
 
 const AdminDashboard = () => {
-  const { isAdminAuthenticated, adminLogout } = useAdmin();
+  const { isAdminAuthenticated, adminLogout, loading } = useAdmin();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('analytics');
 
   // Check authentication
   useEffect(() => {
-    if (!isAdminAuthenticated) {
+    if (!loading && !isAdminAuthenticated) {
+      console.log('🚫 Usuario no autenticado como admin, redirigiendo...');
       navigate('/admin/login');
     }
-  }, [isAdminAuthenticated, navigate]);
+  }, [isAdminAuthenticated, navigate, loading]);
 
   const handleLogout = () => {
     adminLogout();
     navigate('/admin/login');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -113,6 +123,9 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Asegurarse de que Toaster esté disponible */}
+      <Toaster />
     </div>
   );
 };

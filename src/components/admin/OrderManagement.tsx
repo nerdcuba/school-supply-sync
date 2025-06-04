@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -27,9 +28,10 @@ const OrderManagement = () => {
       console.error('❌ Error loading orders:', error);
       toast({
         title: "Error",
-        description: "No se pudieron cargar las órdenes",
+        description: "No se pudieron cargar las órdenes. Verifique que tiene permisos de administrador.",
         variant: "destructive",
       });
+      setOrders([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -179,6 +181,19 @@ const OrderManagement = () => {
           <CardDescription>
             Administra todas las órdenes del sistema ({orders.length} órdenes)
           </CardDescription>
+          <div className="mt-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={loadOrders}
+              className="flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Recargar órdenes
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -196,7 +211,7 @@ const OrderManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
+                {orders.length > 0 ? orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-mono text-sm">
                       {order.id.slice(0, 8)}...
@@ -316,16 +331,16 @@ const OrderManagement = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                      No hay órdenes registradas
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
-
-          {orders.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No hay órdenes registradas
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

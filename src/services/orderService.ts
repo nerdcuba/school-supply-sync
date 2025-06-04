@@ -78,29 +78,12 @@ export const orderService = {
     }));
   },
 
-  // Obtener todas las órdenes (admin)
+  // Obtener todas las órdenes (admin) - USA RLS bypass para admins
   async getAll(): Promise<Order[]> {
     console.log('🔍 Obteniendo todas las órdenes (admin)...');
     
-    // Verificar autenticación y rol de admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error('❌ Error de autenticación:', authError);
-      throw new Error('Usuario no autenticado');
-    }
-
-    // Verificar si es admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin') {
-      console.error('❌ Usuario no es administrador');
-      throw new Error('Acceso denegado: se requieren permisos de administrador');
-    }
-
+    // Para el contexto admin, intentamos obtener todas las órdenes
+    // Las políticas RLS permitirán esto si el usuario tiene rol admin
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -118,28 +101,9 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (solo admin)
+  // Actualizar estado de una orden (admin) - USA RLS bypass para admins
   async updateStatus(orderId: string, status: string): Promise<void> {
     console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
-    
-    // Verificar autenticación y rol de admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error('❌ Error de autenticación:', authError);
-      throw new Error('Usuario no autenticado');
-    }
-
-    // Verificar si es admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin') {
-      console.error('❌ Usuario no es administrador');
-      throw new Error('Acceso denegado: se requieren permisos de administrador');
-    }
     
     const { error } = await supabase
       .from('orders')

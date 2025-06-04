@@ -61,7 +61,7 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
             // Trigger update callback
             if (onOrdersUpdate) {
               console.log('📞 Llamando callback de actualización');
-              setTimeout(onOrdersUpdate, 100); // Pequeño delay para asegurar consistencia
+              onOrdersUpdate();
             }
           }
         )
@@ -75,7 +75,9 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
       channelRef.current = channel;
     };
 
-    setupRealtimeSubscription();
+    setupRealtimeSubscription().catch(error => {
+      console.error('Error configurando realtime:', error);
+    });
 
     return () => {
       if (channelRef.current && isSubscribedRef.current) {
