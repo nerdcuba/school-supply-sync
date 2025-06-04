@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +10,7 @@ import { AdminProvider } from "./contexts/AdminContext";
 import { AuthProvider } from "./hooks/useAuth";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import ShoppingCartSidebar from "./components/ShoppingCartSidebar";
 import Index from "./pages/Index";
 import Schools from "./pages/Schools";
 import SchoolDetails from "./pages/SchoolDetails";
@@ -28,6 +30,43 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const queryClient = new QueryClient();
 
 function App() {
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const handleAddToCart = (item: any) => {
+    setCartItems(prev => {
+      const existingItem = prev.find(cartItem => cartItem.id === item.id);
+      if (existingItem) {
+        return prev.map(cartItem =>
+          cartItem.id === item.id
+            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            : cartItem
+        );
+      }
+      return [...prev, { ...item, quantity: 1 }];
+    });
+  };
+
+  const handleRemoveFromCart = (itemId: string) => {
+    setCartItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const handleUpdateQuantity = (itemId: string, quantity: number) => {
+    if (quantity <= 0) {
+      handleRemoveFromCart(itemId);
+      return;
+    }
+    setCartItems(prev =>
+      prev.map(item =>
+        item.id === itemId ? { ...item, quantity } : item
+      )
+    );
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -38,12 +77,15 @@ function App() {
               <Sonner />
               <BrowserRouter>
                 <div className="min-h-screen flex flex-col">
-                  <Navbar />
+                  <Navbar 
+                    cartItemsCount={cartItems.length}
+                    onOpenCart={() => setIsCartOpen(true)}
+                  />
                   <main className="flex-1">
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/schools" element={<Schools />} />
-                      <Route path="/school/:id" element={<SchoolDetails />} />
+                      <Route path="/school/:id" element={<SchoolDetails onAddToCart={handleAddToCart} />} />
                       <Route path="/electronics" element={<Electronics />} />
                       <Route path="/how-it-works" element={<HowItWorks />} />
                       <Route path="/contact" element={<Contact />} />
@@ -72,6 +114,14 @@ function App() {
                     </Routes>
                   </main>
                   <Footer />
+                  <ShoppingCartSidebar
+                    isOpen={isCartOpen}
+                    onClose={() => setIsCartOpen(false)}
+                    cartItems={cartItems}
+                    onRemoveItem={handleRemoveFromCart}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onClearCart={handleClearCart}
+                  />
                 </div>
               </BrowserRouter>
             </AuthProvider>
