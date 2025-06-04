@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -65,22 +64,37 @@ const Analytics = () => {
         const item = order.items[i];
         console.log(`🔍 Item ${i}:`, JSON.stringify(item, null, 2));
         
+        // Función auxiliar para extraer el valor del school
+        const extractSchoolValue = (schoolField: any) => {
+          if (typeof schoolField === 'string') {
+            return schoolField;
+          }
+          if (schoolField && typeof schoolField === 'object') {
+            return schoolField.value || schoolField.name || schoolField.school_name || String(schoolField);
+          }
+          return null;
+        };
+
         // Buscar school_name y grade en diferentes posibles ubicaciones
-        if (item.school_name || item.grade) {
-          console.log('✅ Encontrado en item directo:', { school: item.school_name, grade: item.grade });
+        const schoolValue = extractSchoolValue(item.school_name) || extractSchoolValue(item.school);
+        const gradeValue = item.grade;
+
+        if (schoolValue || gradeValue) {
+          console.log('✅ Encontrado en item directo:', { school: schoolValue, grade: gradeValue });
           return {
-            school: item.school_name || order.school_name || 'Escuela no especificada',
-            grade: item.grade || order.grade || 'Grado no especificado'
+            school: schoolValue || order.school_name || 'Escuela no especificada',
+            grade: gradeValue || order.grade || 'Grado no especificado'
           };
         }
 
         // Si el item tiene una propiedad anidada que contenga la info
         if (item.pack) {
           console.log('🔍 Verificando pack anidado:', JSON.stringify(item.pack, null, 2));
-          if (item.pack.school_name || item.pack.grade) {
-            console.log('✅ Encontrado en pack anidado:', { school: item.pack.school_name, grade: item.pack.grade });
+          const packSchoolValue = extractSchoolValue(item.pack.school_name) || extractSchoolValue(item.pack.school);
+          if (packSchoolValue || item.pack.grade) {
+            console.log('✅ Encontrado en pack anidado:', { school: packSchoolValue, grade: item.pack.grade });
             return {
-              school: item.pack.school_name || order.school_name || 'Escuela no especificada',
+              school: packSchoolValue || order.school_name || 'Escuela no especificada',
               grade: item.pack.grade || order.grade || 'Grado no especificado'
             };
           }
@@ -90,7 +104,7 @@ const Analytics = () => {
         if (item.type === 'pack' && (item.schoolName || item.gradeName)) {
           console.log('✅ Encontrado en pack con estructura diferente:', { school: item.schoolName, grade: item.gradeName });
           return {
-            school: item.schoolName || item.school_name || order.school_name || 'Escuela no especificada',
+            school: item.schoolName || extractSchoolValue(item.school_name) || order.school_name || 'Escuela no especificada',
             grade: item.gradeName || item.grade || order.grade || 'Grado no especificado'
           };
         }
