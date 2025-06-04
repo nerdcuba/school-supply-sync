@@ -14,6 +14,24 @@ export interface Order {
   updated_at?: string;
 }
 
+// Función para mapear el estado interno al estado mostrado al usuario
+const mapOrderStatusForUser = (internalStatus: string): string => {
+  switch (internalStatus) {
+    case 'completed':
+      return 'pendiente'; // Pago confirmado, esperando procesamiento
+    case 'processing':
+      return 'en proceso';
+    case 'shipped':
+      return 'enviado';
+    case 'delivered':
+      return 'entregado';
+    case 'cancelled':
+      return 'cancelado';
+    default:
+      return internalStatus;
+  }
+};
+
 export const orderService = {
   // Crear nueva orden (usuarios autenticados)
   async create(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order> {
@@ -49,7 +67,7 @@ export const orderService = {
     };
   },
 
-  // Obtener órdenes del usuario (usuarios autenticados)
+  // Obtener órdenes del usuario (usuarios autenticados) - mapea estados para mostrar al usuario
   async getUserOrders(): Promise<Order[]> {
     console.log('🔍 Obteniendo órdenes del usuario...');
     
@@ -74,11 +92,12 @@ export const orderService = {
     console.log('📋 Órdenes del usuario obtenidas:', data?.length || 0);
     return (data || []).map(order => ({
       ...order,
-      items: Array.isArray(order.items) ? order.items : []
+      items: Array.isArray(order.items) ? order.items : [],
+      status: mapOrderStatusForUser(order.status) // Mapear estado para el usuario
     }));
   },
 
-  // Obtener todas las órdenes (admin)
+  // Obtener todas las órdenes (admin) - mantiene estados originales
   async getAll(): Promise<Order[]> {
     console.log('🔍 Obteniendo todas las órdenes (admin)...');
     
@@ -115,6 +134,7 @@ export const orderService = {
     return (data || []).map(order => ({
       ...order,
       items: Array.isArray(order.items) ? order.items : []
+      // NO mapeamos el estado para admin - mantiene estados originales
     }));
   },
 
