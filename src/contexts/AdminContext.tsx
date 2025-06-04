@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface AdminContextType {
   isAdminAuthenticated: boolean;
-  adminLogin: (email: string, password: string) => Promise<boolean>;
+  adminLogin: (username: string, password: string) => Promise<boolean>;
   adminLogout: () => Promise<void>;
   loading: boolean;
 }
@@ -20,7 +20,15 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        // Verificar si hay sesión activa
+        // Verificar si hay una autenticación hardcodeada guardada
+        const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
+        if (hardcodedAuth === 'true') {
+          setIsAdminAuthenticated(true);
+          setLoading(false);
+          return;
+        }
+
+        // Verificar si hay sesión activa en Supabase
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session) {
           setIsAdminAuthenticated(false);
@@ -39,13 +47,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
           console.error('Error checking admin status:', profileError);
           setIsAdminAuthenticated(false);
         } else {
-          // Actualizar estado según el rol
           setIsAdminAuthenticated(profile?.role === 'admin');
           console.log('Estado admin verificado:', profile?.role === 'admin');
-          
-          if (profile?.role !== 'admin') {
-            console.log('Usuario no es administrador');
-          }
         }
       } catch (error) {
         console.error('Error in admin authentication check:', error);
@@ -58,10 +61,22 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     checkAdminStatus();
   }, []);
 
-  const adminLogin = async (email: string, password: string): Promise<boolean> => {
+  const adminLogin = async (username: string, password: string): Promise<boolean> => {
     try {
+      // Primero verificar credenciales hardcodeadas
+      if (username === 'admin' && password === 'admin') {
+        localStorage.setItem('hardcoded_admin_auth', 'true');
+        setIsAdminAuthenticated(true);
+        toast({
+          title: "¡Bienvenido!",
+          description: "Has iniciado sesión como administrador",
+        });
+        return true;
+      }
+
+      // Si no son las credenciales hardcodeadas, intentar con Supabase (asumiendo que username es email)
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: username,
         password
       });
 
@@ -69,7 +84,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         console.error('Admin login error:', error);
         toast({
           title: "Error de inicio de sesión",
-          description: error.message,
+          description: "Usuario o contraseña incorrectos",
           variant: "destructive",
         });
         return false;
@@ -97,7 +112,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
           description: "No tienes permisos de administrador",
           variant: "destructive",
         });
-        // Desautenticar ya que no es admin
         await supabase.auth.signOut();
         setIsAdminAuthenticated(false);
         return false;
@@ -111,13 +125,23 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       return true;
     } catch (error) {
       console.error('Admin login error:', error);
+      toast({
+        title: "Error de inicio de sesión",
+        description: "Usuario o contraseña incorrectos",
+        variant: "destructive",
+      });
       return false;
     }
   };
 
   const adminLogout = async (): Promise<void> => {
     try {
+      // Limpiar autenticación hardcodeada
+      localStorage.removeItem('hardcoded_admin_auth');
+      
+      // Cerrar sesión en Supabase si existe
       await supabase.auth.signOut();
+      
       setIsAdminAuthenticated(false);
       toast({
         title: "Sesión finalizada",
