@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Eye, Package, Clock, CheckCircle, XCircle, Search, Filter, CalendarIcon, X } from 'lucide-react';
+import { Eye, Package, Clock, CheckCircle, XCircle, Search, Filter, CalendarIcon, X, MapPin, User, Truck } from 'lucide-react';
 import { orderService, Order } from '@/services/orderService';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
@@ -259,8 +259,8 @@ const OrderManagement = () => {
     // Try to extract customer name from order items or user_id
     if (order.items && order.items.length > 0) {
       const firstItem = order.items[0];
-      if (firstItem.customer_name) {
-        return firstItem.customer_name;
+      if (firstItem.customer_name || firstItem.fullName) {
+        return firstItem.customer_name || firstItem.fullName;
       }
     }
     return order.user_id ? order.user_id.slice(0, 8) + '...' : 'Usuario invitado';
@@ -282,6 +282,48 @@ const OrderManagement = () => {
       if (firstItem.grade) return firstItem.grade;
     }
     return 'N/A';
+  };
+
+  const getDeliveryInfo = (order: Order) => {
+    if (order.items && order.items.length > 0) {
+      const firstItem = order.items[0];
+      return {
+        deliveryName: firstItem.deliveryName || 'N/A',
+        deliveryAddress: firstItem.deliveryAddress || 'N/A',
+        deliveryCity: firstItem.deliveryCity || 'N/A',
+        deliveryZipCode: firstItem.deliveryZipCode || 'N/A',
+        sameAsDelivery: firstItem.sameAsDelivery || false
+      };
+    }
+    return {
+      deliveryName: 'N/A',
+      deliveryAddress: 'N/A',
+      deliveryCity: 'N/A',
+      deliveryZipCode: 'N/A',
+      sameAsDelivery: false
+    };
+  };
+
+  const getBillingInfo = (order: Order) => {
+    if (order.items && order.items.length > 0) {
+      const firstItem = order.items[0];
+      return {
+        fullName: firstItem.fullName || 'N/A',
+        email: firstItem.email || 'N/A',
+        phone: firstItem.phone || 'N/A',
+        address: firstItem.address || 'N/A',
+        city: firstItem.city || 'N/A',
+        zipCode: firstItem.zipCode || 'N/A'
+      };
+    }
+    return {
+      fullName: 'N/A',
+      email: 'N/A',
+      phone: 'N/A',
+      address: 'N/A',
+      city: 'N/A',
+      zipCode: 'N/A'
+    };
   };
 
   if (loading) {
@@ -474,12 +516,13 @@ const OrderManagement = () => {
                               <Eye className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>Detalles de la Orden</DialogTitle>
                             </DialogHeader>
                             {selectedOrder && (
-                              <div className="space-y-4">
+                              <div className="space-y-6">
+                                {/* Información básica de la orden */}
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <label className="font-semibold">ID de Orden:</label>
@@ -502,10 +545,6 @@ const OrderManagement = () => {
                                     </p>
                                   </div>
                                   <div>
-                                    <label className="font-semibold">Cliente:</label>
-                                    <p>{getCustomerName(selectedOrder)}</p>
-                                  </div>
-                                  <div>
                                     <label className="font-semibold">Escuela:</label>
                                     <p>{getSchoolFromOrder(selectedOrder)}</p>
                                   </div>
@@ -515,6 +554,91 @@ const OrderManagement = () => {
                                   </div>
                                 </div>
 
+                                {/* Información de Facturación */}
+                                <div>
+                                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                                    <User size={18} />
+                                    Información de Facturación
+                                  </h3>
+                                  <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-gray-50">
+                                    {(() => {
+                                      const billing = getBillingInfo(selectedOrder);
+                                      return (
+                                        <>
+                                          <div>
+                                            <label className="font-medium text-sm text-gray-600">Nombre Completo:</label>
+                                            <p>{billing.fullName}</p>
+                                          </div>
+                                          <div>
+                                            <label className="font-medium text-sm text-gray-600">Email:</label>
+                                            <p>{billing.email}</p>
+                                          </div>
+                                          <div>
+                                            <label className="font-medium text-sm text-gray-600">Teléfono:</label>
+                                            <p>{billing.phone}</p>
+                                          </div>
+                                          <div>
+                                            <label className="font-medium text-sm text-gray-600">Dirección:</label>
+                                            <p>{billing.address}</p>
+                                          </div>
+                                          <div>
+                                            <label className="font-medium text-sm text-gray-600">Ciudad:</label>
+                                            <p>{billing.city}</p>
+                                          </div>
+                                          <div>
+                                            <label className="font-medium text-sm text-gray-600">Código Postal:</label>
+                                            <p>{billing.zipCode}</p>
+                                          </div>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+
+                                {/* Información de Entrega */}
+                                <div>
+                                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                                    <Truck size={18} />
+                                    Información de Entrega
+                                  </h3>
+                                  <div className="p-4 border rounded-lg bg-blue-50">
+                                    {(() => {
+                                      const delivery = getDeliveryInfo(selectedOrder);
+                                      
+                                      if (delivery.sameAsDelivery) {
+                                        return (
+                                          <div className="flex items-center gap-2 text-blue-700">
+                                            <MapPin size={16} />
+                                            <span className="font-medium">La dirección de entrega es la misma que la de facturación</span>
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      return (
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div>
+                                            <label className="font-medium text-sm text-gray-600">Nombre del Destinatario:</label>
+                                            <p>{delivery.deliveryName}</p>
+                                          </div>
+                                          <div className="col-span-2">
+                                            <label className="font-medium text-sm text-gray-600">Dirección de Entrega:</label>
+                                            <p>{delivery.deliveryAddress}</p>
+                                          </div>
+                                          <div>
+                                            <label className="font-medium text-sm text-gray-600">Ciudad:</label>
+                                            <p>{delivery.deliveryCity}</p>
+                                          </div>
+                                          <div>
+                                            <label className="font-medium text-sm text-gray-600">Código Postal:</label>
+                                            <p>{delivery.deliveryZipCode}</p>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+
+                                {/* Artículos de la orden */}
                                 <div>
                                   <label className="font-semibold">Artículos:</label>
                                   <div className="mt-2 border rounded-lg p-4 bg-gray-50">

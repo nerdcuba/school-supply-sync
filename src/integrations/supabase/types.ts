@@ -112,6 +112,7 @@ export type Database = {
           items: Json
           school_name: string | null
           status: string | null
+          stripe_session_id: string | null
           total: number
           updated_at: string
           user_id: string | null
@@ -123,6 +124,7 @@ export type Database = {
           items?: Json
           school_name?: string | null
           status?: string | null
+          stripe_session_id?: string | null
           total: number
           updated_at?: string
           user_id?: string | null
@@ -134,6 +136,7 @@ export type Database = {
           items?: Json
           school_name?: string | null
           status?: string | null
+          stripe_session_id?: string | null
           total?: number
           updated_at?: string
           user_id?: string | null
