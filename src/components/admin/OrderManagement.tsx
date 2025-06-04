@@ -52,20 +52,14 @@ const OrderManagement = () => {
       
       await orderService.updateStatus(orderId, newStatus);
       
-      // Actualizar el estado local inmediatamente
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId 
-            ? { ...order, status: newStatus, updated_at: new Date().toISOString() }
-            : order
-        )
-      );
-      
-      console.log('✅ Estado actualizado correctamente');
+      console.log('✅ Estado actualizado correctamente en base de datos');
       toast({
         title: "Estado actualizado",
         description: `El estado de la orden ha sido cambiado a ${getStatusLabel(newStatus)}`,
       });
+      
+      // No actualizar estado local aquí, dejar que realtime lo maneje
+      
     } catch (error) {
       console.error('❌ Error updating order status:', error);
       toast({
@@ -73,8 +67,6 @@ const OrderManagement = () => {
         description: "No se pudo actualizar el estado de la orden",
         variant: "destructive",
       });
-      // Recargar las órdenes en caso de error para mantener consistencia
-      await loadOrders();
     } finally {
       setUpdatingOrderId(null);
     }

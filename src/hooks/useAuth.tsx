@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loadUserOrders = async () => {
     try {
-      console.log('📦 Cargando órdenes...');
+      console.log('📦 Cargando órdenes del usuario...');
       const orders = await orderService.getUserOrders();
       const formattedPurchases = orders.map(order => ({
         id: order.id,
@@ -50,13 +50,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         status: order.status
       }));
       setPurchases(formattedPurchases);
-      console.log('✅ Órdenes cargadas:', formattedPurchases.length);
+      console.log('✅ Órdenes del usuario cargadas:', formattedPurchases.length);
     } catch (error) {
-      console.error('❌ Error cargando órdenes:', error);
+      console.error('❌ Error cargando órdenes del usuario:', error);
     }
   };
 
-  // Configurar realtime updates para órdenes del usuario
+  // Configurar realtime updates para órdenes del usuario - solo si hay un usuario
   useRealtimeOrders({
     onOrdersUpdate: () => {
       if (user) {
@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     return () => {
-      console.log('🧹 Limpiando suscripción');
+      console.log('🧹 Limpiando suscripción auth');
       subscription.unsubscribe();
     };
   }, []);
