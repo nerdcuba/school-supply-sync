@@ -6,15 +6,54 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
+import { orderService } from "@/services/orderService";
 
 const Dashboard = () => {
-  const { user, purchases, loading } = useAuth();
+  const { user, loading } = useAuth();
   const { t } = useLanguage();
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(true);
   const [stats, setStats] = useState({
     totalPurchases: 0,
     totalItems: 0,
     lastPurchaseDate: null as string | null
   });
+
+  // Cargar órdenes del usuario directamente
+  useEffect(() => {
+    const loadUserOrders = async () => {
+      if (!user) {
+        console.log('❌ No hay usuario, no se cargan órdenes');
+        setPurchases([]);
+        setLoadingPurchases(false);
+        return;
+      }
+
+      try {
+        console.log('📦 Cargando órdenes del usuario en Dashboard...');
+        setLoadingPurchases(true);
+        const orders = await orderService.getUserOrders();
+        
+        const formattedPurchases = orders.map(order => ({
+          id: order.id,
+          date: order.created_at || new Date().toISOString(),
+          total: order.total,
+          items: order.items,
+          status: order.status
+        }));
+        
+        setPurchases(formattedPurchases);
+        console.log('✅ Órdenes del usuario cargadas en Dashboard:', formattedPurchases.length);
+      } catch (error) {
+        console.error('❌ Error cargando órdenes del usuario en Dashboard:', error);
+        setPurchases([]);
+      } finally {
+        setLoadingPurchases(false);
+      }
+    };
+
+    loadUserOrders();
+  }, [user]);
 
   // Calcular estadísticas basadas en las compras reales de Supabase
   useEffect(() => {
@@ -30,10 +69,16 @@ const Dashboard = () => {
         totalItems,
         lastPurchaseDate: lastPurchase?.date || null
       });
+    } else {
+      setStats({
+        totalPurchases: 0,
+        totalItems: 0,
+        lastPurchaseDate: null
+      });
     }
   }, [purchases]);
 
-  if (loading) {
+  if (loading || loadingPurchases) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center">
         <div className="text-lg">Cargando dashboard...</div>
