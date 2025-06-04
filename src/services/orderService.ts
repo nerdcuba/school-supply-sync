@@ -118,7 +118,7 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - VERSIÓN COMPLETAMENTE ROBUSTA
+  // Actualizar estado de una orden (admin) - VERSIÓN SIMPLIFICADA Y ROBUSTA
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando orden ${orderId} a estado: ${status}`);
     
@@ -149,36 +149,12 @@ export const orderService = {
     
     console.log('✅ Usuario admin verificado, procediendo con actualización...');
     
-    // ESTRATEGIA ROBUSTA: Verificar existencia ANTES de actualizar
-    const { data: existingOrder, error: checkError } = await supabase
-      .from('orders')
-      .select('id, status, updated_at')
-      .eq('id', orderId)
-      .maybeSingle();
-    
-    if (checkError) {
-      console.error('❌ Error verificando orden:', checkError);
-      throw new Error(`Error al verificar la orden: ${checkError.message}`);
-    }
-
-    if (!existingOrder) {
-      console.error('❌ Orden no encontrada con ID:', orderId);
-      throw new Error(`La orden con ID ${orderId} no existe en la base de datos`);
-    }
-
-    console.log('✅ Orden encontrada, procediendo a actualizar:', {
-      id: existingOrder.id,
-      currentStatus: existingOrder.status,
-      newStatus: status
-    });
-    
-    // Realizar la actualización con timestamp específico para evitar conflictos
-    const now = new Date().toISOString();
+    // Realizar la actualización DIRECTA con verificación de existencia
     const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
       .update({ 
         status: status,
-        updated_at: now
+        updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
       .select('*')
@@ -190,23 +166,8 @@ export const orderService = {
     }
     
     if (!updatedOrder) {
-      console.error('❌ La actualización no devolvió datos para la orden:', orderId);
-      // Intentar obtener la orden nuevamente para confirmar el estado
-      const { data: finalOrder } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .maybeSingle();
-      
-      if (finalOrder) {
-        console.log('⚠️ Orden encontrada después de actualización fallida:', finalOrder);
-        return {
-          ...finalOrder,
-          items: Array.isArray(finalOrder.items) ? finalOrder.items : []
-        };
-      }
-      
-      throw new Error('No se pudo confirmar la actualización de la orden');
+      console.error('❌ Orden no encontrada con ID:', orderId);
+      throw new Error(`La orden con ID ${orderId} no existe en la base de datos`);
     }
     
     console.log('✅ Orden actualizada exitosamente en BD:', {
