@@ -9,6 +9,7 @@ import { CreditCard, MapPin, User, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -26,14 +27,10 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
     phone: "",
     address: "",
     city: "",
-    zipCode: "",
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
-    nameOnCard: ""
+    zipCode: ""
   });
 
-  const { user, addPurchase } = useAuth();
+  const { user } = useAuth();
   const finalTotal = total * 1.0875; // Including taxes
 
   // Si no hay usuario autenticado, mostrar mensaje para iniciar sesión
@@ -93,30 +90,52 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
     try {
-      // Add purchase to user's history if logged in
-      if (user) {
-        addPurchase(items, finalTotal);
+      console.log('🚀 Starting Stripe checkout process');
+      
+      // Validate required fields
+      if (!formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.city || !formData.zipCode) {
+        toast({
+          title: "Error",
+          description: "Por favor completa todos los campos requeridos.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
       }
 
-      toast({
-        title: "¡Pedido confirmado!",
-        description: `Tu pedido por $${finalTotal.toFixed(2)} ha sido procesado exitosamente.`,
+      // Call the Stripe payment function
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          items: items,
+          total: finalTotal,
+          customerData: formData
+        }
       });
 
-      onCheckoutComplete();
-      onClose();
-    } catch (error) {
+      if (error) {
+        console.error('❌ Error calling create-payment function:', error);
+        throw new Error(error.message || 'Error procesando el pago');
+      }
+
+      if (!data?.url) {
+        throw new Error('No se recibió URL de pago de Stripe');
+      }
+
+      console.log('✅ Stripe session created successfully:', data.sessionId);
+
+      // Redirect to Stripe Checkout in the same tab
+      window.location.href = data.url;
+
+    } catch (error: any) {
+      console.error('❌ Checkout error:', error);
       toast({
         title: "Error",
-        description: "Hubo un problema procesando tu pedido. Inténtalo de nuevo.",
+        description: error.message || "Hubo un problema procesando tu pedido. Inténtalo de nuevo.",
         variant: "destructive",
       });
     } finally {
@@ -133,11 +152,11 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
             <span>Finalizar Compra</span>
           </DialogTitle>
           <DialogDescription>
-            Completa tu información para procesar el pedido
+            Completa tu información para proceder al pago con Stripe
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleStripeCheckout} className="space-y-6">
           {/* Personal Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center space-x-2">
@@ -216,57 +235,6 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
             </div>
           </div>
 
-          {/* Payment Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center space-x-2">
-              <CreditCard size={18} />
-              <span>Información de Pago</span>
-            </h3>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nameOnCard">Nombre en la Tarjeta *</Label>
-                <Input
-                  id="nameOnCard"
-                  value={formData.nameOnCard}
-                  onChange={(e) => handleInputChange("nameOnCard", e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cardNumber">Número de Tarjeta *</Label>
-                <Input
-                  id="cardNumber"
-                  placeholder="1234 5678 9012 3456"
-                  value={formData.cardNumber}
-                  onChange={(e) => handleInputChange("cardNumber", e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="expiryDate">Fecha de Vencimiento *</Label>
-                  <Input
-                    id="expiryDate"
-                    placeholder="MM/AA"
-                    value={formData.expiryDate}
-                    onChange={(e) => handleInputChange("expiryDate", e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cvv">CVV *</Label>
-                  <Input
-                    id="cvv"
-                    placeholder="123"
-                    value={formData.cvv}
-                    onChange={(e) => handleInputChange("cvv", e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Order Summary */}
           <div className="bg-gray-50 rounded-lg p-4 space-y-3">
             <h3 className="font-semibold">Resumen del Pedido</h3>
@@ -307,7 +275,7 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
               className="flex-1 bg-green-600 hover:bg-green-700"
               disabled={isLoading}
             >
-              {isLoading ? "Procesando..." : `Pagar $${finalTotal.toFixed(2)}`}
+              {isLoading ? "Procesando..." : `Pagar con Stripe $${finalTotal.toFixed(2)}`}
             </Button>
           </div>
         </form>
