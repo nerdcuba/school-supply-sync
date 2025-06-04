@@ -1,7 +1,7 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
-import { ShoppingBag, Package, Clock, Settings } from "lucide-react";
+import { ShoppingBag, Package, Clock, Settings, CheckCircle, XCircle } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -77,6 +77,25 @@ const Dashboard = () => {
       });
     }
   }, [purchases]);
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      pending: { label: 'Pendiente', variant: 'default' as const, icon: Clock, className: 'bg-blue-500 text-white hover:bg-blue-600' },
+      processing: { label: 'Procesando', variant: 'default' as const, icon: Package, className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
+      completed: { label: 'Completado', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-500 text-white hover:bg-green-600' },
+      cancelled: { label: 'Cancelado', variant: 'default' as const, icon: XCircle, className: 'bg-red-500 text-white hover:bg-red-600' },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const Icon = config.icon;
+
+    return (
+      <Badge variant={config.variant} className={`flex items-center gap-1 ${config.className}`}>
+        <Icon size={12} />
+        {config.label}
+      </Badge>
+    );
+  };
 
   if (loading || loadingPurchases) {
     return (
@@ -199,7 +218,7 @@ const Dashboard = () => {
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-gray-900">${purchase.total}</p>
-                          <p className="text-sm text-gray-600 capitalize">{purchase.status}</p>
+                          {getStatusBadge(purchase.status || 'pending')}
                         </div>
                       </div>
                     ))}

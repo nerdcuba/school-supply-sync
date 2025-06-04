@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, School, Package, Laptop } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, School, Package, Laptop, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { dashboardService } from '@/services/dashboardService';
 import { orderService } from '@/services/orderService';
 import { electronicsService } from '@/services/electronicsService';
@@ -117,6 +117,25 @@ const Analytics = () => {
       school: order.school_name || 'Escuela no especificada',
       grade: order.grade || 'Grado no especificado'
     };
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      pending: { label: 'Pendiente', variant: 'default' as const, icon: Clock, className: 'bg-blue-500 text-white hover:bg-blue-600' },
+      processing: { label: 'Procesando', variant: 'default' as const, icon: Package, className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
+      completed: { label: 'Completado', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-500 text-white hover:bg-green-600' },
+      cancelled: { label: 'Cancelado', variant: 'default' as const, icon: XCircle, className: 'bg-red-500 text-white hover:bg-red-600' },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const Icon = config.icon;
+
+    return (
+      <Badge variant={config.variant} className={`flex items-center gap-1 ${config.className}`}>
+        <Icon size={12} />
+        {config.label}
+      </Badge>
+    );
   };
 
   if (loading) {
@@ -235,9 +254,7 @@ const Analytics = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">${order.total}</p>
-                      <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
-                        {order.status}
-                      </Badge>
+                      {getStatusBadge(order.status || 'pending')}
                     </div>
                   </div>
                 );
