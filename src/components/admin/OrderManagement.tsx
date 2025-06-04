@@ -176,7 +176,7 @@ const OrderManagement = () => {
       
       toast({
         title: "Estado actualizado",
-        description: `El estado de la orden ha sido cambiado a ${getStatusLabel(newStatus)}`,
+        description: `El estado de la orden ha sido cambiado a ${newStatus}`,
       });
       
     } catch (error) {
@@ -209,25 +209,15 @@ const OrderManagement = () => {
     setCurrentPage(1); // Reset to first page when changing page size
   };
 
-  const getStatusLabel = (status: string) => {
-    const statusLabels = {
-      pending: 'Pendiente',
-      processing: 'Procesando',
-      completed: 'Completado',
-      cancelled: 'Cancelado',
-    };
-    return statusLabels[status as keyof typeof statusLabels] || status;
-  };
-
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'Pendiente', variant: 'default' as const, icon: Clock, className: 'bg-blue-500 text-white hover:bg-blue-600' },
-      processing: { label: 'Procesando', variant: 'default' as const, icon: Package, className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
-      completed: { label: 'Completado', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-500 text-white hover:bg-green-600' },
-      cancelled: { label: 'Cancelado', variant: 'default' as const, icon: XCircle, className: 'bg-red-500 text-white hover:bg-red-600' },
+      pendiente: { label: 'Pendiente', variant: 'default' as const, icon: Clock, className: 'bg-blue-500 text-white hover:bg-blue-600' },
+      procesando: { label: 'Procesando', variant: 'default' as const, icon: Package, className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
+      completada: { label: 'Completada', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-500 text-white hover:bg-green-600' },
+      cancelada: { label: 'Cancelada', variant: 'default' as const, icon: XCircle, className: 'bg-red-500 text-white hover:bg-red-600' },
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pendiente;
     const Icon = config.icon;
 
     return (
@@ -392,10 +382,10 @@ const OrderManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="pending">Pendiente</SelectItem>
-                  <SelectItem value="processing">Procesando</SelectItem>
-                  <SelectItem value="completed">Completado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                  <SelectItem value="procesando">Procesando</SelectItem>
+                  <SelectItem value="completada">Completada</SelectItem>
+                  <SelectItem value="cancelada">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -678,10 +668,10 @@ const OrderManagement = () => {
                           disabled={updatingOrderId === order.id}
                           className="px-2 py-1 border rounded text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <option value="pending">Pendiente</option>
-                          <option value="processing">Procesando</option>
-                          <option value="completed">Completado</option>
-                          <option value="cancelled">Cancelado</option>
+                          <option value="pendiente">Pendiente</option>
+                          <option value="procesando">Procesando</option>
+                          <option value="completada">Completada</option>
+                          <option value="cancelada">Cancelado</option>
                         </select>
                         {updatingOrderId === order.id && (
                           <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>

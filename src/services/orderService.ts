@@ -14,24 +14,6 @@ export interface Order {
   updated_at?: string;
 }
 
-// Función para mapear el estado interno al estado mostrado al usuario
-const mapOrderStatusForUser = (internalStatus: string): string => {
-  switch (internalStatus) {
-    case 'completed':
-      return 'pendiente'; // Pago confirmado, esperando procesamiento
-    case 'processing':
-      return 'en proceso';
-    case 'shipped':
-      return 'enviado';
-    case 'delivered':
-      return 'entregado';
-    case 'cancelled':
-      return 'cancelado';
-    default:
-      return internalStatus;
-  }
-};
-
 export const orderService = {
   // Crear nueva orden (usuarios autenticados)
   async create(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order> {
@@ -67,7 +49,7 @@ export const orderService = {
     };
   },
 
-  // Obtener órdenes del usuario (usuarios autenticados) - mapea estados para mostrar al usuario
+  // Obtener órdenes del usuario (usuarios autenticados)
   async getUserOrders(): Promise<Order[]> {
     console.log('🔍 Obteniendo órdenes del usuario...');
     
@@ -92,12 +74,11 @@ export const orderService = {
     console.log('📋 Órdenes del usuario obtenidas:', data?.length || 0);
     return (data || []).map(order => ({
       ...order,
-      items: Array.isArray(order.items) ? order.items : [],
-      status: mapOrderStatusForUser(order.status) // Mapear estado para el usuario
+      items: Array.isArray(order.items) ? order.items : []
     }));
   },
 
-  // Obtener todas las órdenes (admin) - ahora también mapea estados para mostrar consistencia
+  // Obtener todas las órdenes (admin) - mismos estados que usuarios
   async getAll(): Promise<Order[]> {
     console.log('🔍 Obteniendo todas las órdenes (admin)...');
     
@@ -133,12 +114,11 @@ export const orderService = {
     console.log('📋 Todas las órdenes obtenidas:', data?.length || 0);
     return (data || []).map(order => ({
       ...order,
-      items: Array.isArray(order.items) ? order.items : [],
-      status: mapOrderStatusForUser(order.status) // Ahora también mapea estados para admin
+      items: Array.isArray(order.items) ? order.items : []
     }));
   },
 
-  // Actualizar estado de una orden (admin) - debe usar estados internos
+  // Actualizar estado de una orden (admin)
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
     
@@ -163,31 +143,17 @@ export const orderService = {
     
     console.log('✅ Usuario admin verificado, actualizando orden...');
     
-    // Mapear el estado mostrado al estado interno para guardarlo en la base de datos
-    let internalStatus = status;
-    switch (status) {
-      case 'pendiente':
-        internalStatus = 'completed';
-        break;
-      case 'en proceso':
-        internalStatus = 'processing';
-        break;
-      case 'enviado':
-        internalStatus = 'shipped';
-        break;
-      case 'entregado':
-        internalStatus = 'delivered';
-        break;
-      case 'cancelado':
-        internalStatus = 'cancelled';
-        break;
+    // Validar que el estado sea uno de los permitidos
+    const validStatuses = ['pendiente', 'procesando', 'completada', 'cancelada'];
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Estado inválido: ${status}. Estados permitidos: ${validStatuses.join(', ')}`);
     }
     
-    // Actualizar la orden - las nuevas políticas RLS permiten que los admins actualicen cualquier orden
+    // Actualizar la orden - usar directamente el estado sin mapeo
     const { data, error } = await supabase
       .from('orders')
       .update({ 
-        status: internalStatus, // Guardar el estado interno en la base de datos
+        status: status, // Guardar el estado directamente
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
@@ -213,8 +179,7 @@ export const orderService = {
     console.log('✅ Estado de orden actualizado correctamente:', data);
     return {
       ...data,
-      items: Array.isArray(data.items) ? data.items : [],
-      status: mapOrderStatusForUser(data.status) // Devolver el estado mapeado
+      items: Array.isArray(data.items) ? data.items : []
     };
   }
 };
