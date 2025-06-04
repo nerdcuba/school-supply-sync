@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Search, MapPin, Users, BookOpen, Phone } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { defaultSchoolImages } from "@/utils/defaultSchoolImages";
@@ -15,7 +16,11 @@ const Schools = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showAll, setShowAll] = useState(false);
   const { t } = useLanguage();
+
+  const schoolsPerPage = 9;
 
   // Load schools from Supabase
   useEffect(() => {
@@ -43,11 +48,33 @@ const Schools = () => {
     school.address.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Limit to first 9 schools for 3x3 grid on large screens
-  const displaySchools = filteredSchools.slice(0, 9);
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredSchools.length / schoolsPerPage);
+  const startIndex = (currentPage - 1) * schoolsPerPage;
+  const endIndex = startIndex + schoolsPerPage;
+
+  // Show schools based on pagination or show all
+  const displaySchools = showAll ? filteredSchools : filteredSchools.slice(startIndex, endIndex);
 
   // Calculate total enrollment from all schools
   const totalEnrollment = schools.reduce((sum, school) => sum + (school.enrollment || 0), 0);
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setShowAll(false);
+  }, [searchTerm]);
+
+  const handleViewAllSchools = () => {
+    setShowAll(true);
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setShowAll(false);
+  };
 
   if (loading) {
     return (
@@ -112,75 +139,151 @@ const Schools = () => {
 
         {/* Schools Grid */}
         {displaySchools.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displaySchools.map((school, index) => (
-              <Card
-                key={school.id}
-                className="relative overflow-hidden group transform transition-all duration-200 ease-out hover:scale-105 hover:shadow-xl"
-              >
-                {/* School Image */}
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={defaultSchoolImages[index % defaultSchoolImages.length]}
-                    alt={school.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-                  
-                  {/* School Badge */}
-                  <Badge className="absolute top-2 left-2 bg-primary text-white">
-                    {t('schools.school')}
-                  </Badge>
-                </div>
-
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start mb-2">
-                    <Badge variant="secondary">Miami-Dade</Badge>
-                    <div className="flex items-center space-x-1">
-                      <BookOpen className="w-4 h-4 text-gray-600" />
-                      <span className="text-sm text-gray-600">
-                        {school.grades || 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                  <CardTitle className="text-lg text-blue-900 font-bold line-clamp-2">
-                    {school.name}
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent className="pt-0">
-                  <div className="flex items-start space-x-2 text-textPrimary mb-3">
-                    <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
-                    <p className="text-sm line-clamp-2">{school.address}</p>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {displaySchools.map((school, index) => (
+                <Card
+                  key={school.id}
+                  className="relative overflow-hidden group transform transition-all duration-200 ease-out hover:scale-105 hover:shadow-xl"
+                >
+                  {/* School Image */}
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={defaultSchoolImages[index % defaultSchoolImages.length]}
+                      alt={school.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+                    
+                    {/* School Badge */}
+                    <Badge className="absolute top-2 left-2 bg-primary text-white">
+                      {t('schools.school')}
+                    </Badge>
                   </div>
 
-                  {/* School Info - Updated to show real data */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-textPrimary">
-                      <Phone size={14} className="mr-2 text-gray-400" />
-                      <span>{school.phone}</span>
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start mb-2">
+                      <Badge variant="secondary">Miami-Dade</Badge>
+                      <div className="flex items-center space-x-1">
+                        <BookOpen className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm text-gray-600">
+                          {school.grades || 'N/A'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center text-sm text-textPrimary">
-                      <Users size={14} className="mr-2 text-gray-400" />
-                      <span>{school.enrollment ? school.enrollment.toLocaleString() : '0'} estudiantes</span>
-                    </div>
-                    <div className="flex items-center text-sm text-textPrimary">
-                      <BookOpen size={14} className="mr-2 text-gray-400" />
-                      <span>Grados: {school.grades || 'N/A'}</span>
-                    </div>
-                  </div>
+                    <CardTitle className="text-lg text-blue-900 font-bold line-clamp-2">
+                      {school.name}
+                    </CardTitle>
+                  </CardHeader>
 
-                  {/* View Supplies Button */}
-                  <Link to={`/school/${school.id}`}>
-                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                      <BookOpen size={16} className="mr-2" />
-                      {t('schools.viewSupplies')}
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <CardContent className="pt-0">
+                    <div className="flex items-start space-x-2 text-textPrimary mb-3">
+                      <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
+                      <p className="text-sm line-clamp-2">{school.address}</p>
+                    </div>
+
+                    {/* School Info - Updated to show real data */}
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-sm text-textPrimary">
+                        <Phone size={14} className="mr-2 text-gray-400" />
+                        <span>{school.phone}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-textPrimary">
+                        <Users size={14} className="mr-2 text-gray-400" />
+                        <span>{school.enrollment ? school.enrollment.toLocaleString() : '0'} estudiantes</span>
+                      </div>
+                      <div className="flex items-center text-sm text-textPrimary">
+                        <BookOpen size={14} className="mr-2 text-gray-400" />
+                        <span>Grados: {school.grades || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    {/* View Supplies Button */}
+                    <Link to={`/school/${school.id}`}>
+                      <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                        <BookOpen size={16} className="mr-2" />
+                        {t('schools.viewSupplies')}
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination - only show if not showing all and there are multiple pages */}
+            {!showAll && totalPages > 1 && (
+              <div className="mt-8">
+                <Pagination>
+                  <PaginationContent>
+                    {currentPage > 1 && (
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          className="cursor-pointer"
+                        />
+                      </PaginationItem>
+                    )}
+                    
+                    {[...Array(totalPages)].map((_, i) => (
+                      <PaginationItem key={i + 1}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(i + 1)}
+                          isActive={currentPage === i + 1}
+                          className="cursor-pointer"
+                        >
+                          {i + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    {currentPage < totalPages && (
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          className="cursor-pointer"
+                        />
+                      </PaginationItem>
+                    )}
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+
+            {/* Show more button - only show if not showing all and there are more than 9 schools */}
+            {!showAll && filteredSchools.length > schoolsPerPage && (
+              <div className="text-center mt-8">
+                <p className="text-textPrimary mb-4">
+                  {t('schools.showing')} {displaySchools.length} {t('schools.of')} {filteredSchools.length} {t('schools.showingSchools')}
+                </p>
+                <Button
+                  onClick={handleViewAllSchools}
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary hover:text-white"
+                >
+                  {t('schools.viewAllSchools')}
+                </Button>
+              </div>
+            )}
+
+            {/* Show fewer button - only show if showing all */}
+            {showAll && filteredSchools.length > schoolsPerPage && (
+              <div className="text-center mt-8">
+                <p className="text-textPrimary mb-4">
+                  Mostrando todas las {filteredSchools.length} escuelas
+                </p>
+                <Button
+                  onClick={() => {
+                    setShowAll(false);
+                    setCurrentPage(1);
+                  }}
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary hover:text-white"
+                >
+                  Mostrar menos escuelas
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           /* No Schools */
           <div className="text-center py-12">
@@ -209,22 +312,6 @@ const Schools = () => {
               variant="outline"
             >
               {t('schools.clearSearch')}
-            </Button>
-          </div>
-        )}
-
-        {/* Show more button if there are more than 9 schools */}
-        {filteredSchools.length > 9 && (
-          <div className="text-center mt-8">
-            <p className="text-textPrimary mb-4">
-              {t('schools.showing')} 9 {t('schools.of')} {filteredSchools.length} {t('schools.showingSchools')}
-            </p>
-            <Button
-              onClick={() => setSearchTerm("")}
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary hover:text-white"
-            >
-              {t('schools.viewAllSchools')}
             </Button>
           </div>
         )}
