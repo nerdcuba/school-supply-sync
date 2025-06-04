@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Order {
@@ -78,7 +77,7 @@ export const orderService = {
     }));
   },
 
-  // Obtener todas las órdenes (admin) - mismos estados que usuarios
+  // Obtener todas las órdenes (admin)
   async getAll(): Promise<Order[]> {
     console.log('🔍 Obteniendo todas las órdenes (admin)...');
     
@@ -89,7 +88,7 @@ export const orderService = {
       throw new Error('Admin no autenticado');
     }
 
-    // Verificar que el usuario es admin - actualizar para usar 'Admin' (mayúscula)
+    // Verificar que el usuario es admin
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
@@ -118,7 +117,7 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - VERSIÓN SIMPLIFICADA Y ROBUSTA
+  // Actualizar estado de una orden (admin) - VERSIÓN CORREGIDA
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando orden ${orderId} a estado: ${status}`);
     
@@ -147,55 +146,34 @@ export const orderService = {
       throw new Error(`Estado inválido: ${status}. Estados permitidos: ${validStatuses.join(', ')}`);
     }
     
-    console.log('✅ Usuario admin verificado, actualizando orden...');
+    console.log('✅ Usuario admin verificado, procediendo con actualización...');
     
-    // Primero verificar que la orden existe
-    const { data: existingOrder, error: checkError } = await supabase
-      .from('orders')
-      .select('id, status')
-      .eq('id', orderId)
-      .maybeSingle();
-    
-    if (checkError) {
-      console.error('❌ Error verificando orden:', checkError);
-      throw new Error(`Error al verificar la orden: ${checkError.message}`);
-    }
-
-    if (!existingOrder) {
-      throw new Error('La orden no existe');
-    }
-    
-    // Actualizar el estado
-    const { error: updateError } = await supabase
+    // Actualizar directamente usando upsert para garantizar la persistencia
+    const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
       .update({ 
         status: status,
         updated_at: new Date().toISOString()
       })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .select('*')
+      .maybeSingle();
     
     if (updateError) {
       console.error('❌ Error actualizando orden:', updateError);
       throw new Error(`Error al actualizar la orden: ${updateError.message}`);
     }
 
-    // Obtener la orden actualizada
-    const { data: updatedOrder, error: fetchError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .maybeSingle();
-    
-    if (fetchError) {
-      console.error('❌ Error obteniendo orden actualizada:', fetchError);
-      throw new Error(`Error al obtener la orden actualizada: ${fetchError.message}`);
-    }
-
     if (!updatedOrder) {
-      throw new Error('No se pudo obtener la orden actualizada');
+      console.error('❌ Orden no encontrada para ID:', orderId);
+      throw new Error('La orden no existe o no se pudo actualizar');
     }
     
-    console.log('✅ Orden actualizada exitosamente:', updatedOrder);
+    console.log('✅ Orden actualizada exitosamente en BD:', {
+      id: updatedOrder.id,
+      status: updatedOrder.status,
+      updated_at: updatedOrder.updated_at
+    });
     
     return {
       ...updatedOrder,

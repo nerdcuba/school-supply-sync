@@ -161,17 +161,10 @@ const OrderManagement = () => {
       // Actualizar en base de datos
       const updatedOrder = await orderService.updateStatus(orderId, newStatus);
       
-      console.log('✅ Estado actualizado correctamente:', updatedOrder);
+      console.log('✅ Estado actualizado correctamente en BD:', updatedOrder);
       
-      // Actualizar INMEDIATAMENTE el estado local sin esperar realtime
-      const updateOrderInState = (prevOrders: Order[]) => 
-        prevOrders.map(order => 
-          order.id === orderId ? { ...order, status: newStatus } : order
-        );
-      
-      // Actualizar ambos estados inmediatamente
-      setOrders(prev => updateOrderInState(prev));
-      setFilteredOrders(prev => updateOrderInState(prev));
+      // Recargar INMEDIATAMENTE todas las órdenes desde la base de datos
+      await loadOrders();
       
       toast({
         title: "Estado actualizado",
@@ -188,6 +181,9 @@ const OrderManagement = () => {
         description: `No se pudo actualizar el estado de la orden: ${errorMessage}`,
         variant: "destructive",
       });
+      
+      // En caso de error, también recargar para asegurar consistencia
+      await loadOrders();
       
     } finally {
       setUpdatingOrderId(null);
