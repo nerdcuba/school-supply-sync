@@ -228,6 +228,17 @@ const OrderManagement = () => {
     );
   };
 
+  const getStatusLabel = (status: string) => {
+    const statusConfig = {
+      pendiente: 'Pendiente',
+      procesando: 'Procesando', 
+      completada: 'Completada',
+      cancelada: 'Cancelada',
+    };
+    
+    return statusConfig[status as keyof typeof statusConfig] || 'Pendiente';
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
