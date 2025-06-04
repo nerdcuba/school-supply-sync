@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 
 const AdminLogin = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,19 +22,9 @@ const AdminLogin = () => {
     setIsLoading(true);
 
     try {
-      const success = adminLogin(username, password);
+      const success = await adminLogin(email, password);
       if (success) {
-        toast({
-          title: "Bienvenido Administrador",
-          description: "Has iniciado sesión correctamente.",
-        });
         navigate('/admin/dashboard');
-      } else {
-        toast({
-          title: "Error de autenticación",
-          description: "Usuario o contraseña incorrectos.",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       toast({
@@ -58,19 +48,19 @@ const AdminLogin = () => {
           </div>
           <CardTitle className="text-2xl">Panel de Administración</CardTitle>
           <CardDescription>
-            Ingresa tus credenciales de administrador
+            Ingresa tu email y contraseña de administrador
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Usuario</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Usuario de administrador"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="admin@ejemplo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -94,7 +84,7 @@ const AdminLogin = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Credenciales por defecto: usuario "admin", contraseña "admin"
+                Debes tener una cuenta con rol de administrador para acceder
               </p>
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>

@@ -1,5 +1,4 @@
 
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Order {
@@ -83,97 +82,23 @@ export const orderService = {
   async getAll(): Promise<Order[]> {
     console.log('🔍 Obteniendo todas las órdenes (admin)...');
     
-    // Verificar si es admin hardcodeado
-    const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
-    
-    if (hardcodedAuth === 'true') {
-      console.log('📋 Admin hardcodeado detectado - creando órdenes de demostración...');
-      
-      // Para el admin hardcodeado, devolver datos de demostración
-      const demoOrders: Order[] = [
-        {
-          id: 'demo-order-1',
-          user_id: 'demo-user-1',
-          items: [
-            {
-              name: 'Pack de Útiles - 1er Grado',
-              price: 850,
-              quantity: 1,
-              school: 'Escuela Primaria Demo',
-              grade: '1er Grado',
-              supplies: [
-                { name: 'Cuadernos rayados', quantity: 5 },
-                { name: 'Lápices #2', quantity: 10 },
-                { name: 'Goma de borrar', quantity: 3 }
-              ]
-            }
-          ],
-          total: 850,
-          status: 'completed',
-          school_name: 'Escuela Primaria Demo',
-          grade: '1er Grado',
-          created_at: new Date(Date.now() - 86400000).toISOString(), // Ayer
-          updated_at: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: 'demo-order-2',
-          user_id: 'demo-user-2',
-          items: [
-            {
-              name: 'Pack de Útiles - 3er Grado',
-              price: 1200,
-              quantity: 2,
-              school: 'Colegio Secundario Demo',
-              grade: '3er Grado',
-              supplies: [
-                { name: 'Cuadernos cuadriculados', quantity: 8 },
-                { name: 'Bolígrafos azules', quantity: 6 },
-                { name: 'Regla 30cm', quantity: 2 }
-              ]
-            }
-          ],
-          total: 2400,
-          status: 'processing',
-          school_name: 'Colegio Secundario Demo',
-          grade: '3er Grado',
-          created_at: new Date(Date.now() - 172800000).toISOString(), // Hace 2 días
-          updated_at: new Date(Date.now() - 172800000).toISOString()
-        },
-        {
-          id: 'demo-order-3',
-          user_id: 'demo-user-3',
-          items: [
-            {
-              name: 'Pack de Útiles - Preescolar',
-              price: 650,
-              quantity: 1,
-              school: 'Jardín de Niños Demo',
-              grade: 'Preescolar',
-              supplies: [
-                { name: 'Crayones grandes', quantity: 1 },
-                { name: 'Papel bond', quantity: 100 },
-                { name: 'Tijeras punta roma', quantity: 1 }
-              ]
-            }
-          ],
-          total: 650,
-          status: 'pending',
-          school_name: 'Jardín de Niños Demo',
-          grade: 'Preescolar',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-      
-      console.log('📋 Órdenes de demostración generadas:', demoOrders.length);
-      return demoOrders;
-    }
-    
-    // Para admin de Supabase autenticado, usar cliente normal con RLS
+    // Verificar autenticación de admin
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error('❌ Admin no autenticado:', authError);
-      return [];
+      throw new Error('Admin no autenticado');
+    }
+
+    // Verificar que el usuario es admin
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || profile?.role !== 'admin') {
+      console.error('❌ Usuario no es admin:', { profileError, role: profile?.role });
+      throw new Error('No tienes permisos de administrador');
     }
 
     const { data, error } = await supabase
@@ -183,10 +108,10 @@ export const orderService = {
     
     if (error) {
       console.error('❌ Error fetching all orders:', error);
-      return [];
+      throw error;
     }
     
-    console.log('📋 Todas las órdenes obtenidas por admin Supabase:', data?.length || 0);
+    console.log('📋 Todas las órdenes obtenidas:', data?.length || 0);
     return (data || []).map(order => ({
       ...order,
       items: Array.isArray(order.items) ? order.items : []
@@ -197,13 +122,23 @@ export const orderService = {
   async updateStatus(orderId: string, status: string): Promise<void> {
     console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
     
-    // Verificar si es admin hardcodeado
-    const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
-    
-    if (hardcodedAuth === 'true') {
-      console.log('✅ Actualización simulada para admin de demostración (orden:', orderId, 'estado:', status, ')');
-      // Para admin hardcodeado, simular la actualización
-      return;
+    // Verificar autenticación de admin
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error('❌ Admin no autenticado:', authError);
+      throw new Error('Admin no autenticado');
+    }
+
+    // Verificar que el usuario es admin
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || profile?.role !== 'admin') {
+      console.error('❌ Usuario no es admin:', { profileError, role: profile?.role });
+      throw new Error('No tienes permisos de administrador');
     }
     
     const { error } = await supabase
@@ -222,4 +157,3 @@ export const orderService = {
     console.log('✅ Estado de orden actualizado correctamente');
   }
 };
-

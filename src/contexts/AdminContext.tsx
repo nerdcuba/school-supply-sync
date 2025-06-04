@@ -5,38 +5,25 @@ import { useToast } from '@/hooks/use-toast';
 
 interface AdminContextType {
   isAdminAuthenticated: boolean;
-  adminLogin: (username: string, password: string) => Promise<boolean>;
+  adminLogin: (email: string, password: string) => Promise<boolean>;
   adminLogout: () => Promise<void>;
   loading: boolean;
-  isSupabaseAdmin: boolean; // Nuevo: para distinguir entre admin hardcodeado y admin de Supabase
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  const [isSupabaseAdmin, setIsSupabaseAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        // Verificar si hay una autenticación hardcodeada guardada
-        const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
-        if (hardcodedAuth === 'true') {
-          setIsAdminAuthenticated(true);
-          setIsSupabaseAdmin(false);
-          setLoading(false);
-          console.log('🔑 Admin hardcodeado detectado');
-          return;
-        }
-
         // Verificar si hay sesión activa en Supabase
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session) {
           setIsAdminAuthenticated(false);
-          setIsSupabaseAdmin(false);
           setLoading(false);
           return;
         }
@@ -51,17 +38,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         if (profileError) {
           console.error('Error checking admin status:', profileError);
           setIsAdminAuthenticated(false);
-          setIsSupabaseAdmin(false);
         } else {
           const isAdmin = profile?.role === 'admin';
           setIsAdminAuthenticated(isAdmin);
-          setIsSupabaseAdmin(isAdmin);
           console.log('🔍 Estado admin verificado:', { isAdmin, role: profile?.role });
         }
       } catch (error) {
         console.error('Error in admin authentication check:', error);
         setIsAdminAuthenticated(false);
-        setIsSupabaseAdmin(false);
       } finally {
         setLoading(false);
       }
@@ -75,8 +59,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         console.log('🔄 Admin auth state change:', event);
         if (event === 'SIGNED_OUT') {
           setIsAdminAuthenticated(false);
-          setIsSupabaseAdmin(false);
-          localStorage.removeItem('hardcoded_admin_auth');
         } else if (event === 'SIGNED_IN' && session) {
           // Re-verificar el rol cuando hay un nuevo login
           setTimeout(checkAdminStatus, 100);
@@ -89,25 +71,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const adminLogin = async (username: string, password: string): Promise<boolean> => {
+  const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Primero verificar credenciales hardcodeadas
-      if (username === 'admin' && password === 'admin') {
-        localStorage.setItem('hardcoded_admin_auth', 'true');
-        setIsAdminAuthenticated(true);
-        setIsSupabaseAdmin(false);
-        console.log('✅ Login admin hardcodeado exitoso');
-        toast({
-          title: "¡Bienvenido!",
-          description: "Has iniciado sesión como administrador",
-        });
-        return true;
-      }
-
-      // Si no son las credenciales hardcodeadas, intentar con Supabase
       console.log('🔐 Intentando login con Supabase...');
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: username,
+        email,
         password
       });
 
@@ -115,7 +83,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         console.error('❌ Admin login error:', error);
         toast({
           title: "Error de inicio de sesión",
-          description: "Usuario o contraseña incorrectos",
+          description: "Email o contraseña incorrectos",
           variant: "destructive",
         });
         return false;
@@ -146,13 +114,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         });
         await supabase.auth.signOut();
         setIsAdminAuthenticated(false);
-        setIsSupabaseAdmin(false);
         return false;
       }
 
       setIsAdminAuthenticated(true);
-      setIsSupabaseAdmin(true);
-      console.log('✅ Login admin Supabase exitoso');
+      console.log('✅ Login admin exitoso');
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión como administrador",
@@ -162,7 +128,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       console.error('❌ Admin login error:', error);
       toast({
         title: "Error de inicio de sesión",
-        description: "Usuario o contraseña incorrectos",
+        description: "Email o contraseña incorrectos",
         variant: "destructive",
       });
       return false;
@@ -171,14 +137,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const adminLogout = async (): Promise<void> => {
     try {
-      // Limpiar autenticación hardcodeada
-      localStorage.removeItem('hardcoded_admin_auth');
-      
-      // Cerrar sesión en Supabase si existe
       await supabase.auth.signOut();
-      
       setIsAdminAuthenticated(false);
-      setIsSupabaseAdmin(false);
       console.log('👋 Admin logout completado');
       toast({
         title: "Sesión finalizada",
@@ -194,8 +154,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       isAdminAuthenticated, 
       adminLogin, 
       adminLogout,
-      loading,
-      isSupabaseAdmin
+      loading
     }}>
       {children}
     </AdminContext.Provider>

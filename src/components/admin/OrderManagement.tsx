@@ -1,14 +1,14 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Eye, Package, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Eye, Package, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { orderService, Order } from '@/services/orderService';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
-import { useAdmin } from '@/contexts/AdminContext';
 
 const OrderManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -16,7 +16,6 @@ const OrderManagement = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const { toast } = useToast();
-  const { isSupabaseAdmin } = useAdmin();
 
   const loadOrders = async () => {
     try {
@@ -27,29 +26,18 @@ const OrderManagement = () => {
       setOrders(data);
     } catch (error) {
       console.error('❌ Error loading orders:', error);
-      
-      // Mostrar mensaje específico según el tipo de admin
-      const isHardcodedAdmin = localStorage.getItem('hardcoded_admin_auth') === 'true';
-      if (isHardcodedAdmin) {
-        toast({
-          title: "Información",
-          description: "Como administrador de prueba, es posible que no veas órdenes hasta que haya usuarios reales con órdenes en el sistema.",
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar las órdenes. Verifique que tiene permisos de administrador.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las órdenes. Verifica que tienes permisos de administrador.",
+        variant: "destructive",
+      });
       setOrders([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Configurar realtime updates solo para administradores de Supabase
+  // Configurar realtime updates
   useRealtimeOrders({
     onOrdersUpdate: () => {
       console.log('🔄 Recargando órdenes por cambio realtime...');
@@ -189,20 +177,9 @@ const OrderManagement = () => {
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
             Gestión de Órdenes
-            {!isSupabaseAdmin && (
-              <Badge variant="outline" className="ml-2">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                Modo Demo
-              </Badge>
-            )}
           </CardTitle>
           <CardDescription>
             Administra todas las órdenes del sistema ({orders.length} órdenes)
-            {!isSupabaseAdmin && (
-              <div className="mt-2 text-sm text-amber-600">
-                Estás usando credenciales de prueba. Para ver órdenes reales, inicia sesión con una cuenta de administrador de Supabase.
-              </div>
-            )}
           </CardDescription>
           <div className="mt-2">
             <Button 
@@ -357,10 +334,7 @@ const OrderManagement = () => {
                 )) : (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      {!isSupabaseAdmin ? 
-                        "No hay órdenes de demostración disponibles. Usa una cuenta real de administrador para ver órdenes del sistema." :
-                        "No hay órdenes registradas en el sistema"
-                      }
+                      No hay órdenes registradas en el sistema
                     </TableCell>
                   </TableRow>
                 )}
