@@ -141,26 +141,10 @@ export const orderService = {
       throw new Error('No tienes permisos de administrador');
     }
     
-    // Primero verificar que la orden existe
-    const { data: existingOrder, error: fetchError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .maybeSingle();
+    console.log('✅ Usuario admin verificado, procediendo a actualizar orden');
     
-    if (fetchError) {
-      console.error('❌ Error verificando orden:', fetchError);
-      throw new Error('Error al verificar la orden: ' + fetchError.message);
-    }
-    
-    if (!existingOrder) {
-      console.error('❌ Orden no encontrada:', orderId);
-      throw new Error('La orden no existe');
-    }
-    
-    console.log('✅ Orden encontrada, procediendo a actualizar:', existingOrder.id);
-    
-    // Actualizar y retornar la orden actualizada
+    // Actualizar la orden directamente sin verificación previa
+    // Ya que somos admin, deberíamos poder actualizar cualquier orden
     const { data, error } = await supabase
       .from('orders')
       .update({ 
@@ -169,16 +153,22 @@ export const orderService = {
       })
       .eq('id', orderId)
       .select()
-      .maybeSingle();
+      .single();
     
     if (error) {
       console.error('❌ Error updating order status:', error);
+      console.error('❌ Error details:', { 
+        code: error.code, 
+        message: error.message, 
+        details: error.details,
+        hint: error.hint 
+      });
       throw new Error('Error al actualizar la orden: ' + error.message);
     }
 
     if (!data) {
-      console.error('❌ No se pudo actualizar la orden:', orderId);
-      throw new Error('No se encontró la orden para actualizar');
+      console.error('❌ No data returned after update for order:', orderId);
+      throw new Error('No se pudo actualizar la orden - sin datos devueltos');
     }
     
     console.log('✅ Estado de orden actualizado correctamente:', data);
