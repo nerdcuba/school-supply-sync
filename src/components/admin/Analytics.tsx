@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, School, Package, Laptop, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingCart, School, Package, Laptop, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { dashboardService } from '@/services/dashboardService';
 import { orderService } from '@/services/orderService';
 import { electronicsService } from '@/services/electronicsService';
+import OrdersPieChart from './OrdersPieChart';
+import OrdersTable from './OrdersTable';
+import DateRangeFilter from './DateRangeFilter';
+import { isAfter, isBefore, isEqual, parseISO } from 'date-fns';
 
 const Analytics = () => {
   const [stats, setStats] = useState({
@@ -15,17 +19,25 @@ const Analytics = () => {
     totalRevenue: 0,
     avgOrderValue: 0
   });
-  const [recentOrders, setRecentOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
     loadAnalytics();
   }, []);
 
+  // Filter orders when date range changes
+  useEffect(() => {
+    filterOrdersByDate();
+  }, [allOrders, startDate, endDate]);
+
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const [adminStats, allOrders, electronicsData] = await Promise.all([
+      const [adminStats, allOrdersData, electronicsData] = await Promise.all([
         dashboardService.getAdminStats(),
         orderService.getAll(),
         electronicsService.getElectronics()
@@ -35,12 +47,42 @@ const Analytics = () => {
         ...adminStats,
         totalElectronics: electronicsData.data.length
       });
-      setRecentOrders(allOrders.slice(0, 10));
+      setAllOrders(allOrdersData);
+      setFilteredOrders(allOrdersData);
     } catch (error) {
       console.error('Error loading analytics:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterOrdersByDate = () => {
+    if (!startDate && !endDate) {
+      setFilteredOrders(allOrders);
+      return;
+    }
+
+    const filtered = allOrders.filter((order: any) => {
+      const orderDate = parseISO(order.created_at);
+      
+      if (startDate && endDate) {
+        return (isEqual(orderDate, startDate) || isAfter(orderDate, startDate)) &&
+               (isEqual(orderDate, endDate) || isBefore(orderDate, endDate));
+      } else if (startDate) {
+        return isEqual(orderDate, startDate) || isAfter(orderDate, startDate);
+      } else if (endDate) {
+        return isEqual(orderDate, endDate) || isBefore(orderDate, endDate);
+      }
+      
+      return true;
+    });
+
+    setFilteredOrders(filtered);
+  };
+
+  const handleDateRangeChange = (newStartDate: Date | null, newEndDate: Date | null) => {
+    setStartDate(newStartDate);
+    setEndDate(newEndDate);
   };
 
   // Función para obtener información de la escuela y grado desde los items de la orden
@@ -161,10 +203,10 @@ const Analytics = () => {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOrders}</div>
+            <div className="text-2xl font-bold">{filteredOrders.length}</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              Órdenes procesadas
+              {startDate || endDate ? 'Filtradas' : 'Órdenes procesadas'}
             </div>
           </CardContent>
         </Card>
@@ -217,52 +259,69 @@ const Analytics = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              ${filteredOrders.reduce((sum: number, order: any) => sum + order.total, 0).toFixed(2)}
+            </div>
             <div className="flex items-center text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              Promedio: ${stats.avgOrderValue.toFixed(2)}
+              {startDate || endDate ? 'Período filtrado' : `Promedio: $${stats.avgOrderValue.toFixed(2)}`}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Orders */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Órdenes Recientes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentOrders.length === 0 ? (
-            <div className="text-center py-8">
-              <ShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">No hay órdenes registradas</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {recentOrders.map((order: any) => {
-                const orderDetails = getOrderDetails(order);
-                return (
-                  <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-semibold">Orden #{order.id.slice(0, 8)}</p>
-                      <p className="text-sm text-gray-600">
-                        {orderDetails.school} - {orderDetails.grade}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">${order.total}</p>
-                      {getStatusBadge(order.status || 'pending')}
-                    </div>
+      {/* Date Range Filter */}
+      <DateRangeFilter 
+        onDateRangeChange={handleDateRangeChange}
+        startDate={startDate}
+        endDate={endDate}
+      />
+
+      {/* Charts and Tables Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <OrdersPieChart orders={filteredOrders} />
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumen del Período</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {filteredOrders.filter((o: any) => o.status === 'pending').length}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  <div className="text-sm text-blue-800">Pendientes</div>
+                </div>
+                <div className="p-4 bg-yellow-50 rounded-lg">
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {filteredOrders.filter((o: any) => o.status === 'processing').length}
+                  </div>
+                  <div className="text-sm text-yellow-800">Procesando</div>
+                </div>
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">
+                    {filteredOrders.filter((o: any) => o.status === 'completed').length}
+                  </div>
+                  <div className="text-sm text-green-800">Completadas</div>
+                </div>
+                <div className="p-4 bg-red-50 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600">
+                    {filteredOrders.filter((o: any) => o.status === 'cancelled').length}
+                  </div>
+                  <div className="text-sm text-red-800">Canceladas</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Orders Table */}
+      <OrdersTable 
+        orders={filteredOrders} 
+        getOrderDetails={getOrderDetails}
+      />
     </div>
   );
 };
