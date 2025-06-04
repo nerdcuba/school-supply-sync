@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Package, ArrowLeft, ShoppingCart } from 'lucide-react';
@@ -13,24 +12,52 @@ const PaymentSuccess = () => {
   const [verifying, setVerifying] = useState(true);
   const [orderDetails, setOrderDetails] = useState<any>(null);
 
-  // Función para limpiar el carrito
+  // Función mejorada para limpiar el carrito con múltiples estrategias
   const clearCart = () => {
     console.log('🧹 Limpiando carrito después de compra exitosa...');
     
-    // Limpiar localStorage
-    localStorage.removeItem('cart');
-    
-    // Disparar múltiples eventos para asegurar que todos los componentes se actualicen
-    window.dispatchEvent(new CustomEvent('cartCleared'));
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'cart',
-      oldValue: localStorage.getItem('cart'),
-      newValue: null,
-      url: window.location.href
-    }));
-    
-    console.log('✅ Carrito limpiado exitosamente');
+    try {
+      // Estrategia 1: Limpiar localStorage
+      localStorage.removeItem('cart');
+      console.log('✅ LocalStorage limpiado');
+      
+      // Estrategia 2: Setear valor vacío explícitamente
+      localStorage.setItem('cart', '[]');
+      console.log('✅ Cart seteado como array vacío');
+      
+      // Estrategia 3: Disparar eventos múltiples
+      const events = [
+        new CustomEvent('cartCleared'),
+        new CustomEvent('cartUpdated'),
+        new CustomEvent('cart-cleared'),
+        new CustomEvent('storage-updated')
+      ];
+      
+      events.forEach(event => {
+        window.dispatchEvent(event);
+        console.log(`✅ Evento ${event.type} disparado`);
+      });
+      
+      // Estrategia 4: Storage event manual
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'cart',
+        oldValue: localStorage.getItem('cart'),
+        newValue: '[]',
+        url: window.location.href
+      }));
+      console.log('✅ Storage event disparado');
+      
+      // Estrategia 5: Forzar re-render después de un delay
+      setTimeout(() => {
+        localStorage.setItem('cart', '[]');
+        window.dispatchEvent(new CustomEvent('force-cart-update'));
+        console.log('✅ Forzado re-render del carrito');
+      }, 100);
+      
+      console.log('✅ Carrito limpiado exitosamente con múltiples estrategias');
+    } catch (error) {
+      console.error('❌ Error al limpiar carrito:', error);
+    }
   };
 
   useEffect(() => {
@@ -93,10 +120,17 @@ const PaymentSuccess = () => {
 
   // Efecto adicional para asegurar que el carrito se limpia al montar el componente
   useEffect(() => {
-    // Solo limpiar si venimos de una verificación de pago exitosa
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
+      // Limpiar inmediatamente al cargar la página
       clearCart();
+      
+      // Limpiar nuevamente después de 1 segundo por si acaso
+      const timeoutId = setTimeout(() => {
+        clearCart();
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [searchParams]);
 

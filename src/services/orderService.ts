@@ -118,7 +118,7 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin)
+  // Actualizar estado de una orden (admin) - REFACTORIZADO COMPLETAMENTE
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
     
@@ -129,7 +129,7 @@ export const orderService = {
       throw new Error('Admin no autenticado');
     }
 
-    // Verificar que el usuario es admin - actualizar para usar 'Admin' (mayúscula)
+    // Verificar que el usuario es admin
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
@@ -150,51 +150,64 @@ export const orderService = {
     }
     
     try {
-      console.log('🔍 Actualizando orden con ID:', orderId);
+      console.log('🔍 Verificando que la orden existe...');
       
-      // Realizar la actualización con un solo query optimizado
-      const { data, error } = await supabase
+      // Primero verificar que la orden existe
+      const { data: existingOrder, error: checkError } = await supabase
+        .from('orders')
+        .select('id, status, user_id')
+        .eq('id', orderId)
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('❌ Error al verificar orden:', checkError);
+        throw new Error(`Error al verificar la orden: ${checkError.message}`);
+      }
+      
+      if (!existingOrder) {
+        console.error('❌ Orden no encontrada');
+        throw new Error(`La orden con ID ${orderId} no existe`);
+      }
+      
+      console.log('✅ Orden encontrada, procediendo con actualización...');
+      
+      // Ahora actualizar el estado
+      const { error: updateError } = await supabase
         .from('orders')
         .update({ 
           status: status,
           updated_at: new Date().toISOString()
         })
-        .eq('id', orderId)
-        .select('*')
-        .single();
+        .eq('id', orderId);
       
-      if (error) {
-        console.error('❌ Error en query de actualización:', error);
-        throw new Error(`Error al actualizar la orden: ${error.message}`);
+      if (updateError) {
+        console.error('❌ Error en actualización:', updateError);
+        throw new Error(`Error al actualizar la orden: ${updateError.message}`);
       }
 
-      if (!data) {
-        console.error('❌ No se devolvieron datos después de la actualización');
-        throw new Error('La orden no fue encontrada o no se pudo actualizar');
-      }
-      
-      console.log('✅ Estado de orden actualizado correctamente:', data);
-      return {
-        ...data,
-        items: Array.isArray(data.items) ? data.items : []
-      };
-      
-    } catch (dbError) {
-      console.error('❌ Error de base de datos al actualizar orden:', dbError);
-      
-      // Intentar verificar si la orden existe
-      const { data: existingOrder, error: checkError } = await supabase
+      console.log('✅ Orden actualizada, obteniendo datos actualizados...');
+
+      // Finalmente obtener la orden actualizada
+      const { data: updatedOrder, error: fetchError } = await supabase
         .from('orders')
-        .select('id, status')
+        .select('*')
         .eq('id', orderId)
         .single();
-        
-      if (checkError || !existingOrder) {
-        throw new Error(`La orden con ID ${orderId} no existe`);
+
+      if (fetchError || !updatedOrder) {
+        console.error('❌ Error al obtener orden actualizada:', fetchError);
+        throw new Error(`Error al obtener la orden actualizada: ${fetchError?.message || 'No data returned'}`);
       }
       
-      // Re-lanzar el error original si la orden sí existe
-      throw dbError;
+      console.log('✅ Estado de orden actualizado correctamente:', updatedOrder);
+      return {
+        ...updatedOrder,
+        items: Array.isArray(updatedOrder.items) ? updatedOrder.items : []
+      };
+      
+    } catch (error) {
+      console.error('❌ Error general al actualizar orden:', error);
+      throw error;
     }
   }
 };
