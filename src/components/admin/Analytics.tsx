@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,22 +27,27 @@ const Analytics = () => {
   const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
+    console.log('🔄 Cargando Analytics...');
     loadAnalytics();
   }, []);
 
   // Filter orders when date range changes
   useEffect(() => {
+    console.log('📅 Filtrando órdenes por fecha...', { startDate, endDate, totalOrders: allOrders.length });
     filterOrdersByDate();
   }, [allOrders, startDate, endDate]);
 
   const loadAnalytics = async () => {
     try {
       setLoading(true);
+      console.log('📊 Obteniendo datos para Analytics...');
       const [adminStats, allOrdersData, electronicsData] = await Promise.all([
         dashboardService.getAdminStats(),
         orderService.getAll(),
         electronicsService.getElectronics()
       ]);
+      
+      console.log('📈 Estadísticas obtenidas:', { adminStats, ordersCount: allOrdersData.length, electronicsCount: electronicsData.data.length });
       
       setStats({
         ...adminStats,
@@ -50,7 +56,7 @@ const Analytics = () => {
       setAllOrders(allOrdersData);
       setFilteredOrders(allOrdersData);
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      console.error('❌ Error loading analytics:', error);
     } finally {
       setLoading(false);
     }
@@ -77,10 +83,12 @@ const Analytics = () => {
       return true;
     });
 
+    console.log('🔍 Órdenes filtradas:', { original: allOrders.length, filtered: filtered.length });
     setFilteredOrders(filtered);
   };
 
   const handleDateRangeChange = (newStartDate: Date | null, newEndDate: Date | null) => {
+    console.log('📅 Cambio de rango de fechas:', { newStartDate, newEndDate });
     setStartDate(newStartDate);
     setEndDate(newEndDate);
   };
@@ -161,25 +169,6 @@ const Analytics = () => {
     };
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { label: 'Pendiente', variant: 'default' as const, icon: Clock, className: 'bg-blue-500 text-white hover:bg-blue-600' },
-      processing: { label: 'Procesando', variant: 'default' as const, icon: Package, className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
-      completed: { label: 'Completado', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-500 text-white hover:bg-green-600' },
-      cancelled: { label: 'Cancelado', variant: 'default' as const, icon: XCircle, className: 'bg-red-500 text-white hover:bg-red-600' },
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant} className={`flex items-center gap-1 ${config.className}`}>
-        <Icon size={12} />
-        {config.label}
-      </Badge>
-    );
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -187,6 +176,12 @@ const Analytics = () => {
       </div>
     );
   }
+
+  console.log('🎯 Renderizando Analytics con:', { 
+    allOrdersCount: allOrders.length, 
+    filteredOrdersCount: filteredOrders.length,
+    stats 
+  });
 
   return (
     <div className="space-y-6">
@@ -289,7 +284,7 @@ const Analytics = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">
-                    {filteredOrders.filter((o: any) => o.status === 'pending').length}
+                    {filteredOrders.filter((o: any) => (o.status || 'pending') === 'pending').length}
                   </div>
                   <div className="text-sm text-blue-800">Pendientes</div>
                 </div>
