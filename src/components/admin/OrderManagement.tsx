@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -55,7 +54,12 @@ const OrderManagement = () => {
       setUpdatingOrderId(orderId);
       console.log(`🔄 Actualizando orden ${orderId} a estado: ${newStatus}`);
       
-      // Actualizar localmente primero para UI responsiva
+      // Actualizar en base de datos PRIMERO
+      await orderService.updateStatus(orderId, newStatus);
+      
+      console.log('✅ Estado actualizado correctamente en base de datos');
+      
+      // Después actualizar localmente para UI responsiva
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.id === orderId 
@@ -64,10 +68,6 @@ const OrderManagement = () => {
         )
       );
       
-      // Actualizar en base de datos
-      await orderService.updateStatus(orderId, newStatus);
-      
-      console.log('✅ Estado actualizado correctamente en base de datos');
       toast({
         title: "Estado actualizado",
         description: `El estado de la orden ha sido cambiado a ${getStatusLabel(newStatus)}`,
@@ -75,13 +75,15 @@ const OrderManagement = () => {
       
     } catch (error) {
       console.error('❌ Error updating order status:', error);
-      // Revertir cambio local en caso de error
-      await loadOrders();
+      
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado de la orden",
         variant: "destructive",
       });
+      
+      // Recargar datos en caso de error para asegurar consistencia
+      await loadOrders();
     } finally {
       setUpdatingOrderId(null);
     }
