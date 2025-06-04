@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Eye, Package, Clock, CheckCircle, XCircle, Search, Filter, CalendarIcon, X } from 'lucide-react';
 import { orderService, Order } from '@/services/orderService';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,8 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<FilterState>({
     searchTerm: '',
     status: 'all',
@@ -36,6 +38,12 @@ const OrderManagement = () => {
     dateTo: undefined
   });
   const { toast } = useToast();
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredOrders.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
   const loadOrders = async () => {
     try {
@@ -76,6 +84,11 @@ const OrderManagement = () => {
   useEffect(() => {
     applyFilters();
   }, [filters, orders]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredOrders.length]);
 
   const applyFilters = () => {
     let filtered = [...orders];
@@ -185,6 +198,17 @@ const OrderManagement = () => {
     }
   };
 
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handlePageSizeChange = (newPageSize: string) => {
+    setPageSize(Number(newPageSize));
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
   const getStatusLabel = (status: string) => {
     const statusLabels = {
       pending: 'Pendiente',
@@ -272,13 +296,32 @@ const OrderManagement = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Gestión de Órdenes
-          </CardTitle>
-          <CardDescription>
-            Administra todas las órdenes del sistema ({filteredOrders.length} de {orders.length} órdenes)
-          </CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Gestión de Órdenes
+              </CardTitle>
+              <CardDescription>
+                Administra todas las órdenes del sistema ({filteredOrders.length} de {orders.length} órdenes)
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Mostrar:</span>
+              <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-gray-600">por página</span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Filtros y Búsqueda */}
@@ -402,7 +445,7 @@ const OrderManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.length > 0 ? filteredOrders.map((order) => (
+                {paginatedOrders.length > 0 ? paginatedOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-mono text-sm">
                       {order.id.slice(0, 8)}...
@@ -532,6 +575,42 @@ const OrderManagement = () => {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-gray-600">
+                Mostrando {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} de {filteredOrders.length} órdenes
+              </div>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(page)}
+                        isActive={page === currentPage}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, MapPin, User, LogIn } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CreditCard, MapPin, User, LogIn, Truck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
@@ -21,13 +22,20 @@ interface CheckoutModalProps {
 
 const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: CheckoutModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [sameAsDelivery, setSameAsDelivery] = useState(false);
   const [formData, setFormData] = useState({
+    // Información personal y de billing
     fullName: "",
     email: "",
     phone: "",
     address: "",
     city: "",
-    zipCode: ""
+    zipCode: "",
+    // Información de delivery
+    deliveryName: "",
+    deliveryAddress: "",
+    deliveryCity: "",
+    deliveryZipCode: ""
   });
 
   const { user } = useAuth();
@@ -90,6 +98,29 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleSameAsDeliveryChange = (checked: boolean) => {
+    setSameAsDelivery(checked);
+    if (checked) {
+      // Copy billing info to delivery
+      setFormData(prev => ({
+        ...prev,
+        deliveryName: prev.fullName,
+        deliveryAddress: prev.address,
+        deliveryCity: prev.city,
+        deliveryZipCode: prev.zipCode
+      }));
+    } else {
+      // Clear delivery info
+      setFormData(prev => ({
+        ...prev,
+        deliveryName: "",
+        deliveryAddress: "",
+        deliveryCity: "",
+        deliveryZipCode: ""
+      }));
+    }
+  };
+
   const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -98,7 +129,17 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
       console.log('🚀 Starting Stripe checkout process');
       
       // Validate required fields
-      if (!formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.city || !formData.zipCode) {
+      const requiredFields = [
+        'fullName', 'email', 'phone', 'address', 'city', 'zipCode'
+      ];
+      const deliveryFields = sameAsDelivery ? [] : [
+        'deliveryName', 'deliveryAddress', 'deliveryCity', 'deliveryZipCode'
+      ];
+      
+      const allRequiredFields = [...requiredFields, ...deliveryFields];
+      const missingFields = allRequiredFields.filter(field => !formData[field as keyof typeof formData]);
+      
+      if (missingFields.length > 0) {
         toast({
           title: "Error",
           description: "Por favor completa todos los campos requeridos.",
@@ -108,12 +149,18 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
         return;
       }
 
+      // Prepare customer data with delivery info
+      const customerData = {
+        ...formData,
+        sameAsDelivery
+      };
+
       // Call the Stripe payment function
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
           items: items,
           total: finalTotal,
-          customerData: formData
+          customerData: customerData
         }
       });
 
@@ -154,7 +201,7 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <CreditCard size={20} />
@@ -166,11 +213,11 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
         </DialogHeader>
 
         <form onSubmit={handleStripeCheckout} className="space-y-6">
-          {/* Personal Information */}
+          {/* Personal Information & Billing */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center space-x-2">
               <User size={18} />
-              <span>Información Personal</span>
+              <span>Información Personal y de Facturación</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -205,11 +252,11 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
             </div>
           </div>
 
-          {/* Shipping Address */}
+          {/* Billing Address */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center space-x-2">
               <MapPin size={18} />
-              <span>Dirección de Entrega</span>
+              <span>Dirección de Facturación</span>
             </h3>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -242,6 +289,69 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Delivery Address */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="sameAsDelivery"
+                checked={sameAsDelivery}
+                onCheckedChange={handleSameAsDeliveryChange}
+              />
+              <Label htmlFor="sameAsDelivery" className="text-sm font-medium">
+                La dirección de entrega es la misma que la de facturación
+              </Label>
+            </div>
+
+            {!sameAsDelivery && (
+              <>
+                <h3 className="text-lg font-semibold flex items-center space-x-2">
+                  <Truck size={18} />
+                  <span>Dirección de Entrega</span>
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryName">Nombre del Destinatario *</Label>
+                    <Input
+                      id="deliveryName"
+                      value={formData.deliveryName}
+                      onChange={(e) => handleInputChange("deliveryName", e.target.value)}
+                      required={!sameAsDelivery}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryAddress">Dirección de Entrega *</Label>
+                    <Input
+                      id="deliveryAddress"
+                      value={formData.deliveryAddress}
+                      onChange={(e) => handleInputChange("deliveryAddress", e.target.value)}
+                      required={!sameAsDelivery}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryCity">Ciudad *</Label>
+                      <Input
+                        id="deliveryCity"
+                        value={formData.deliveryCity}
+                        onChange={(e) => handleInputChange("deliveryCity", e.target.value)}
+                        required={!sameAsDelivery}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryZipCode">Código Postal *</Label>
+                      <Input
+                        id="deliveryZipCode"
+                        value={formData.deliveryZipCode}
+                        onChange={(e) => handleInputChange("deliveryZipCode", e.target.value)}
+                        required={!sameAsDelivery}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Order Summary */}
