@@ -141,10 +141,9 @@ export const orderService = {
       throw new Error('No tienes permisos de administrador');
     }
     
-    console.log('✅ Usuario admin verificado, procediendo a actualizar orden');
+    console.log('✅ Usuario admin verificado, actualizando orden...');
     
-    // Actualizar la orden directamente sin verificación previa
-    // Ya que somos admin, deberíamos poder actualizar cualquier orden
+    // Actualizar la orden - las nuevas políticas RLS permiten que los admins actualicen cualquier orden
     const { data, error } = await supabase
       .from('orders')
       .update({ 

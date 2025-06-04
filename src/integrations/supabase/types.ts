@@ -265,6 +265,10 @@ export type Database = {
         Args: { user_id_to_delete: string }
         Returns: boolean
       }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       update_user_block_status: {
         Args: { user_id_to_update: string; is_blocked: boolean }
         Returns: boolean
