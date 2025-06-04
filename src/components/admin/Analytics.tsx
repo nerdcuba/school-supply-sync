@@ -46,10 +46,11 @@ const Analytics = () => {
 
   // Función para obtener información de la escuela y grado desde los items de la orden
   const getOrderDetails = (order: any) => {
-    console.log('📋 Analizando orden:', order);
+    console.log('📋 Analizando orden completa:', JSON.stringify(order, null, 2));
     
-    // Primero verificar si ya tiene school_name y grade en la orden
+    // Primero verificar si ya tiene school_name y grade en la orden principal
     if (order.school_name && order.grade) {
+      console.log('✅ Encontrado en orden principal:', { school: order.school_name, grade: order.grade });
       return {
         school: order.school_name,
         grade: order.grade
@@ -58,26 +59,45 @@ const Analytics = () => {
 
     // Si no, extraer de los items
     if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-      const firstItem = order.items[0];
-      console.log('🔍 Primer item de la orden:', firstItem);
+      console.log('🔍 Analizando items de la orden:', JSON.stringify(order.items, null, 2));
       
-      // Verificar si es un pack de útiles
-      if (firstItem.type === 'pack' || firstItem.school_name || firstItem.grade) {
-        return {
-          school: firstItem.school_name || order.school_name || 'Escuela no especificada',
-          grade: firstItem.grade || order.grade || 'Grado no especificado'
-        };
-      }
-      
-      // Si no tiene type, podría ser un pack con estructura diferente
-      if (firstItem.school_name || firstItem.grade) {
-        return {
-          school: firstItem.school_name || 'Escuela no especificada',
-          grade: firstItem.grade || 'Grado no especificado'
-        };
+      for (let i = 0; i < order.items.length; i++) {
+        const item = order.items[i];
+        console.log(`🔍 Item ${i}:`, JSON.stringify(item, null, 2));
+        
+        // Buscar school_name y grade en diferentes posibles ubicaciones
+        if (item.school_name || item.grade) {
+          console.log('✅ Encontrado en item directo:', { school: item.school_name, grade: item.grade });
+          return {
+            school: item.school_name || order.school_name || 'Escuela no especificada',
+            grade: item.grade || order.grade || 'Grado no especificado'
+          };
+        }
+
+        // Si el item tiene una propiedad anidada que contenga la info
+        if (item.pack) {
+          console.log('🔍 Verificando pack anidado:', JSON.stringify(item.pack, null, 2));
+          if (item.pack.school_name || item.pack.grade) {
+            console.log('✅ Encontrado en pack anidado:', { school: item.pack.school_name, grade: item.pack.grade });
+            return {
+              school: item.pack.school_name || order.school_name || 'Escuela no especificada',
+              grade: item.pack.grade || order.grade || 'Grado no especificado'
+            };
+          }
+        }
+
+        // Si el item es un pack con estructura diferente
+        if (item.type === 'pack' && (item.schoolName || item.gradeName)) {
+          console.log('✅ Encontrado en pack con estructura diferente:', { school: item.schoolName, grade: item.gradeName });
+          return {
+            school: item.schoolName || item.school_name || order.school_name || 'Escuela no especificada',
+            grade: item.gradeName || item.grade || order.grade || 'Grado no especificado'
+          };
+        }
       }
     }
 
+    console.log('❌ No se encontró información de escuela/grado, usando fallback');
     // Fallback a los valores de la orden principal
     return {
       school: order.school_name || 'Escuela no especificada',
