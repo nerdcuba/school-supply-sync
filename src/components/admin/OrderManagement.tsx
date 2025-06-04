@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ const OrderManagement = () => {
   const endIndex = startIndex + pageSize;
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     try {
       setLoading(true);
       console.log('📦 Cargando órdenes desde admin...');
@@ -65,20 +65,22 @@ const OrderManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  // Configurar realtime updates
+  // Configurar realtime updates con callback estable
+  const handleRealtimeUpdate = useCallback(() => {
+    console.log('🔄 Recargando órdenes por cambio realtime...');
+    loadOrders();
+  }, [loadOrders]);
+
   useRealtimeOrders({
-    onOrdersUpdate: () => {
-      console.log('🔄 Recargando órdenes por cambio realtime...');
-      loadOrders();
-    },
+    onOrdersUpdate: handleRealtimeUpdate,
     isAdmin: true
   });
 
   useEffect(() => {
     loadOrders();
-  }, []);
+  }, [loadOrders]);
 
   // Aplicar filtros cuando cambien los criterios o las órdenes
   useEffect(() => {
@@ -161,14 +163,14 @@ const OrderManagement = () => {
       
       console.log('✅ Estado actualizado correctamente:', updatedOrder);
       
-      // Actualizar inmediatamente el estado local con la orden devuelta por el servicio
+      // Actualizar inmediatamente el estado local sin esperar realtime
       const updateOrderInState = (prevOrders: Order[]) => 
         prevOrders.map(order => 
           order.id === orderId ? updatedOrder : order
         );
       
       setOrders(updateOrderInState);
-      setFilteredOrders(updateOrderInState);
+      setFilteredOrders(prev => updateOrderInState(prev));
       
       toast({
         title: "Estado actualizado",
@@ -186,9 +188,6 @@ const OrderManagement = () => {
         variant: "destructive",
       });
       
-      // Recargar datos para asegurar consistencia en caso de error
-      console.log('🔄 Recargando datos tras error...');
-      await loadOrders();
     } finally {
       setUpdatingOrderId(null);
     }

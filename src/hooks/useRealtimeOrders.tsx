@@ -32,23 +32,23 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
 
       console.log(`🔔 Configurando subscripción realtime para órdenes (${isAdmin ? 'admin' : 'user'})...`);
       
-      // Create unique channel name
-      const channelName = `orders-realtime-${isAdmin ? 'admin' : 'user'}-${user.id}`;
+      // Create unique channel name with timestamp to avoid conflicts
+      const channelName = `orders-${isAdmin ? 'admin' : 'user'}-${user.id}-${Date.now()}`;
       
       const channel = supabase
         .channel(channelName)
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'UPDATE',
             schema: 'public',
             table: 'orders'
           },
           (payload) => {
-            console.log(`🔄 Cambio detectado en órdenes:`, payload);
+            console.log(`🔄 Cambio UPDATE detectado en órdenes:`, payload);
             
             // Mostrar notificación para usuarios (no admin)
-            if (payload.eventType === 'UPDATE' && !isAdmin) {
+            if (!isAdmin) {
               const newRecord = payload.new as any;
               if (newRecord?.status && newRecord?.user_id === user.id) {
                 toast({
@@ -58,10 +58,10 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
               }
             }
             
-            // Trigger update callback
+            // Trigger update callback with a small delay to ensure consistency
             if (onOrdersUpdate) {
               console.log('📞 Llamando callback de actualización');
-              onOrdersUpdate();
+              setTimeout(onOrdersUpdate, 100);
             }
           }
         )
@@ -69,6 +69,7 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
           console.log(`📡 Estado de subscripción realtime:`, status);
           if (status === 'SUBSCRIBED') {
             isSubscribedRef.current = true;
+            console.log('✅ Realtime subscripción establecida correctamente');
           }
         });
 
@@ -87,5 +88,5 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
         isSubscribedRef.current = false;
       }
     };
-  }, [onOrdersUpdate, isAdmin, toast]);
+  }, [isAdmin, toast]); // Removí onOrdersUpdate de las dependencias para evitar recreaciones constantes
 };
