@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, MapPin, User, LogIn } from "lucide-react";
+import { CreditCard, MapPin, User, LogIn, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
@@ -128,8 +128,28 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
 
       console.log('✅ Stripe session created successfully:', data.sessionId);
 
-      // Redirect to Stripe Checkout in the same tab
-      window.location.href = data.url;
+      // Open Stripe checkout in a new tab instead of redirecting
+      const stripeWindow = window.open(data.url, '_blank');
+      
+      if (!stripeWindow) {
+        // If popup was blocked, show a message and fallback to same tab
+        toast({
+          title: "Popup bloqueado",
+          description: "Por favor permite popups y haz clic nuevamente, o serás redirigido en la misma pestaña.",
+          variant: "default",
+        });
+        setTimeout(() => {
+          window.location.href = data.url;
+        }, 2000);
+      } else {
+        // Show success message and close modal
+        toast({
+          title: "Redirigiendo a Stripe",
+          description: "Se ha abierto una nueva pestaña con el checkout de Stripe.",
+          variant: "default",
+        });
+        onClose();
+      }
 
     } catch (error: any) {
       console.error('❌ Checkout error:', error);
@@ -275,7 +295,12 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
               className="flex-1 bg-green-600 hover:bg-green-700"
               disabled={isLoading}
             >
-              {isLoading ? "Procesando..." : `Pagar con Stripe $${finalTotal.toFixed(2)}`}
+              {isLoading ? "Procesando..." : (
+                <span className="flex items-center">
+                  <ExternalLink size={16} className="mr-2" />
+                  Pagar con Stripe ${finalTotal.toFixed(2)}
+                </span>
+              )}
             </Button>
           </div>
         </form>
