@@ -2,6 +2,7 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { orderService } from '@/services/orderService';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 
 interface Purchase {
   id: string;
@@ -35,6 +36,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user: user?.email || 'null', 
     session: !!session, 
     loading 
+  });
+
+  const loadUserOrders = async () => {
+    try {
+      console.log('📦 Cargando órdenes...');
+      const orders = await orderService.getUserOrders();
+      const formattedPurchases = orders.map(order => ({
+        id: order.id,
+        date: order.created_at || new Date().toISOString(),
+        total: order.total,
+        items: order.items,
+        status: order.status
+      }));
+      setPurchases(formattedPurchases);
+      console.log('✅ Órdenes cargadas:', formattedPurchases.length);
+    } catch (error) {
+      console.error('❌ Error cargando órdenes:', error);
+    }
+  };
+
+  // Configurar realtime updates para órdenes del usuario
+  useRealtimeOrders({
+    onOrdersUpdate: () => {
+      if (user) {
+        loadUserOrders();
+      }
+    },
+    isAdmin: false
   });
 
   useEffect(() => {
@@ -86,24 +115,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
-
-  const loadUserOrders = async () => {
-    try {
-      console.log('📦 Cargando órdenes...');
-      const orders = await orderService.getUserOrders();
-      const formattedPurchases = orders.map(order => ({
-        id: order.id,
-        date: order.created_at || new Date().toISOString(),
-        total: order.total,
-        items: order.items,
-        status: order.status
-      }));
-      setPurchases(formattedPurchases);
-      console.log('✅ Órdenes cargadas:', formattedPurchases.length);
-    } catch (error) {
-      console.error('❌ Error cargando órdenes:', error);
-    }
-  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {

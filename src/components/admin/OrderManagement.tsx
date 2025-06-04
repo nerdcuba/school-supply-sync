@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Eye, Package, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { orderService, Order } from '@/services/orderService';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 
 const OrderManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -15,10 +15,6 @@ const OrderManagement = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    loadOrders();
-  }, []);
 
   const loadOrders = async () => {
     try {
@@ -38,6 +34,16 @@ const OrderManagement = () => {
       setLoading(false);
     }
   };
+
+  // Configurar realtime updates
+  useRealtimeOrders({
+    onOrdersUpdate: loadOrders,
+    isAdmin: true
+  });
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
