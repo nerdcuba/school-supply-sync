@@ -118,7 +118,7 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - VERSIÓN SIMPLIFICADA Y ROBUSTA
+  // Actualizar estado de una orden (admin) - VERSIÓN FINAL ROBUSTA
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando orden ${orderId} a estado: ${status}`);
     
@@ -149,7 +149,7 @@ export const orderService = {
     
     console.log('✅ Usuario admin verificado, procediendo con actualización...');
     
-    // Realizar la actualización DIRECTA con verificación de existencia
+    // Actualización directa con manejo robusto de errores
     const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
       .update({ 
@@ -158,16 +158,22 @@ export const orderService = {
       })
       .eq('id', orderId)
       .select('*')
-      .maybeSingle();
+      .single();
     
     if (updateError) {
       console.error('❌ Error actualizando orden:', updateError);
+      
+      // Si es un error de permisos, dar un mensaje específico
+      if (updateError.code === 'PGRST116' || updateError.message.includes('permission')) {
+        throw new Error('No tienes permisos para actualizar esta orden. Verifica que eres administrador.');
+      }
+      
+      // Si no se encuentra la orden
+      if (updateError.code === 'PGRST116' || updateError.message.includes('no rows')) {
+        throw new Error('La orden no existe o no tienes permisos para actualizarla.');
+      }
+      
       throw new Error(`Error al actualizar la orden: ${updateError.message}`);
-    }
-    
-    if (!updatedOrder) {
-      console.error('❌ Orden no encontrada con ID:', orderId);
-      throw new Error(`La orden con ID ${orderId} no existe en la base de datos`);
     }
     
     console.log('✅ Orden actualizada exitosamente en BD:', {
