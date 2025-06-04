@@ -39,7 +39,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
           console.error('Error checking admin status:', profileError);
           setIsAdminAuthenticated(false);
         } else {
-          const isAdmin = profile?.role === 'admin';
+          // Cambiar la comparación para que funcione con 'Admin' (mayúscula)
+          const isAdmin = profile?.role === 'Admin';
           setIsAdminAuthenticated(isAdmin);
           console.log('🔍 Estado admin verificado:', { isAdmin, role: profile?.role });
         }
@@ -105,7 +106,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', data.session.user.id)
         .single();
 
-      if (profileError || profile?.role !== 'admin') {
+      // Cambiar la comparación para que funcione con 'Admin' (mayúscula)
+      if (profileError || profile?.role !== 'Admin') {
         console.error('❌ Usuario no es admin:', { profileError, role: profile?.role });
         toast({
           title: "Acceso denegado",
