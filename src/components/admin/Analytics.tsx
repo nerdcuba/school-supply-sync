@@ -44,6 +44,47 @@ const Analytics = () => {
     }
   };
 
+  // Función para obtener información de la escuela y grado desde los items de la orden
+  const getOrderDetails = (order: any) => {
+    console.log('📋 Analizando orden:', order);
+    
+    // Primero verificar si ya tiene school_name y grade en la orden
+    if (order.school_name && order.grade) {
+      return {
+        school: order.school_name,
+        grade: order.grade
+      };
+    }
+
+    // Si no, extraer de los items
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      const firstItem = order.items[0];
+      console.log('🔍 Primer item de la orden:', firstItem);
+      
+      // Verificar si es un pack de útiles
+      if (firstItem.type === 'pack' || firstItem.school_name || firstItem.grade) {
+        return {
+          school: firstItem.school_name || order.school_name || 'Escuela no especificada',
+          grade: firstItem.grade || order.grade || 'Grado no especificado'
+        };
+      }
+      
+      // Si no tiene type, podría ser un pack con estructura diferente
+      if (firstItem.school_name || firstItem.grade) {
+        return {
+          school: firstItem.school_name || 'Escuela no especificada',
+          grade: firstItem.grade || 'Grado no especificado'
+        };
+      }
+    }
+
+    // Fallback a los valores de la orden principal
+    return {
+      school: order.school_name || 'Escuela no especificada',
+      grade: order.grade || 'Grado no especificado'
+    };
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -145,25 +186,28 @@ const Analytics = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {recentOrders.map((order: any) => (
-                <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-semibold">Orden #{order.id.slice(0, 8)}</p>
-                    <p className="text-sm text-gray-600">
-                      {order.school_name || 'Escuela no especificada'} - {order.grade || 'Grado no especificado'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </p>
+              {recentOrders.map((order: any) => {
+                const orderDetails = getOrderDetails(order);
+                return (
+                  <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <p className="font-semibold">Orden #{order.id.slice(0, 8)}</p>
+                      <p className="text-sm text-gray-600">
+                        {orderDetails.school} - {orderDetails.grade}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">${order.total}</p>
+                      <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                        {order.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">${order.total}</p>
-                    <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
-                      {order.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
