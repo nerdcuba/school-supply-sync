@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 export interface Order {
   id: string;
@@ -13,6 +14,18 @@ export interface Order {
   created_at?: string;
   updated_at?: string;
 }
+
+// Cliente con service role para admin hardcodeado
+const supabaseServiceRole = createClient(
+  'https://pcbdmqwjiecnnuyhkoup.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjYmRtcXdqaWVjbm51eWhrb3VwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODYzNjM5MSwiZXhwIjoyMDY0MjEyMzkxfQ.t1gNODI04tbP7P_XPKfp5vfm6GHmTFaYbaBcR5p2aP4',
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 export const orderService = {
   // Crear nueva orden (usuarios autenticados)
@@ -78,37 +91,46 @@ export const orderService = {
     }));
   },
 
-  // Obtener todas las órdenes (admin) - Funciona con RLS para administradores
+  // Obtener todas las órdenes (admin)
   async getAll(): Promise<Order[]> {
     console.log('🔍 Obteniendo todas las órdenes (admin)...');
     
-    // Para admins, las políticas RLS permitirán ver todas las órdenes
-    // Si es admin hardcodeado, necesitamos usar un enfoque diferente
+    // Verificar si es admin hardcodeado
     const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
     
     if (hardcodedAuth === 'true') {
       console.log('📋 Admin hardcodeado detectado, usando service role...');
-      // Para admin hardcodeado, usamos una consulta que bypass RLS temporalmente
-      // Esto es seguro porque ya verificamos la autenticación admin
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('❌ Error fetching orders for hardcoded admin:', error);
-        // Fallback: retornar array vacío pero no lanzar error
+      try {
+        // Usar cliente con service role para admin hardcodeado
+        const { data, error } = await supabaseServiceRole
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('❌ Error fetching orders for hardcoded admin:', error);
+          return [];
+        }
+        
+        console.log('📋 Órdenes obtenidas por admin hardcodeado:', data?.length || 0);
+        return (data || []).map(order => ({
+          ...order,
+          items: Array.isArray(order.items) ? order.items : []
+        }));
+      } catch (error) {
+        console.error('❌ Error con service role:', error);
         return [];
       }
-      
-      console.log('📋 Órdenes obtenidas por admin hardcodeado:', data?.length || 0);
-      return (data || []).map(order => ({
-        ...order,
-        items: Array.isArray(order.items) ? order.items : []
-      }));
     }
     
-    // Para admin de Supabase, las políticas RLS funcionarán automáticamente
+    // Para admin de Supabase autenticado, usar cliente normal con RLS
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error('❌ Admin no autenticado:', authError);
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -116,16 +138,10 @@ export const orderService = {
     
     if (error) {
       console.error('❌ Error fetching all orders:', error);
-      // No lanzar error, retornar array vacío para admin hardcodeado
-      const hardcoded = localStorage.getItem('hardcoded_admin_auth');
-      if (hardcoded === 'true') {
-        console.log('🔄 Fallback para admin hardcodeado');
-        return [];
-      }
-      throw error;
+      return [];
     }
     
-    console.log('📋 Todas las órdenes obtenidas:', data?.length || 0);
+    console.log('📋 Todas las órdenes obtenidas por admin Supabase:', data?.length || 0);
     return (data || []).map(order => ({
       ...order,
       items: Array.isArray(order.items) ? order.items : []
@@ -136,17 +152,38 @@ export const orderService = {
   async updateStatus(orderId: string, status: string): Promise<void> {
     console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
     
-    const { error } = await supabase
-      .from('orders')
-      .update({ 
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', orderId);
+    // Verificar si es admin hardcodeado
+    const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
     
-    if (error) {
-      console.error('❌ Error updating order status:', error);
-      throw error;
+    if (hardcodedAuth === 'true') {
+      console.log('🔄 Actualizando con service role (admin hardcodeado)...');
+      
+      const { error } = await supabaseServiceRole
+        .from('orders')
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+      
+      if (error) {
+        console.error('❌ Error updating order status with service role:', error);
+        throw error;
+      }
+    } else {
+      // Para admin de Supabase, usar cliente normal
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+      
+      if (error) {
+        console.error('❌ Error updating order status:', error);
+        throw error;
+      }
     }
     
     console.log('✅ Estado de orden actualizado correctamente');
