@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, ShoppingBag, ArrowLeft } from 'lucide-react';
@@ -5,96 +6,31 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [orderProcessed, setOrderProcessed] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-    
-    const processPayment = async () => {
-      console.log('🎉 Processing payment success for session:', sessionId);
+    // Limpiar carrito y mostrar mensaje de éxito
+    const processSuccess = () => {
+      localStorage.removeItem('cartItems');
+      window.localStorage.setItem('paymentCompleted', Date.now().toString());
       
-      if (!sessionId || !isMounted) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Limpiar el carrito del localStorage
-        localStorage.removeItem('cartItems');
-        // Enviar evento para notificar a otras ventanas que el carrito debe vaciarse
-        window.localStorage.setItem('paymentCompleted', Date.now().toString());
-
-        // Si hay usuario autenticado, actualizar la orden en la base de datos
-        if (user && !orderProcessed && isMounted) {
-          console.log('👤 Updating order status for user:', user.email);
-          
-          // Buscar la orden con este session_id
-          const { data: orders, error: fetchError } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('stripe_session_id', sessionId)
-            .eq('user_id', user.id);
-
-          if (fetchError) {
-            console.error('❌ Error fetching order:', fetchError);
-          } else if (orders && orders.length > 0 && isMounted) {
-            const order = orders[0];
-            console.log('📋 Found order to update:', order.id);
-
-            // Actualizar el estado de la orden a 'completed'
-            const { error: updateError } = await supabase
-              .from('orders')
-              .update({ 
-                status: 'completed',
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', order.id);
-
-            if (updateError) {
-              console.error('❌ Error updating order:', updateError);
-            } else if (isMounted) {
-              console.log('✅ Order status updated to completed');
-              setOrderProcessed(true);
-            }
-          } else {
-            console.log('⚠️ No order found for this session');
-          }
-        }
-
-        if (isMounted) {
-          toast({
-            title: "¡Pago exitoso!",
-            description: "Tu pedido ha sido procesado correctamente.",
-            variant: "default",
-          });
-        }
-
-      } catch (error) {
-        console.error('❌ Error processing payment success:', error);
-      }
-
-      if (isMounted) {
-        setLoading(false);
-      }
+      toast({
+        title: "¡Pago exitoso!",
+        description: "Tu pedido ha sido procesado correctamente.",
+        variant: "default",
+      });
+      
+      setLoading(false);
     };
 
-    // Simular verificación del pago
-    const timer = setTimeout(() => {
-      processPayment();
-    }, 2000);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [sessionId, user?.id, user?.email, orderProcessed]);
+    const timer = setTimeout(processSuccess, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (loading) {
     return (
@@ -137,37 +73,19 @@ const PaymentSuccess = () => {
                     <span>Estado:</span>
                     <span className="text-green-600 font-semibold">Completado</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Método de Pago:</span>
-                    <span>Stripe</span>
-                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <p className="text-gray-600">
-                  Recibirás un email de confirmación con los detalles de tu pedido.
-                  Tu pedido será procesado y enviado pronto.
+                  Tu carrito se ha vaciado automáticamente y puedes cerrar esta ventana.
                 </p>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-blue-800 text-sm">
-                    💡 <strong>Tip:</strong> Puedes cerrar esta ventana y regresar a la página principal. 
-                    Tu carrito se ha vaciado automáticamente.
-                  </p>
-                </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button 
                     variant="outline" 
                     className="flex-1"
-                    onClick={() => {
-                      window.close();
-                      // Si no se puede cerrar la ventana, redirigir
-                      setTimeout(() => {
-                        window.location.href = '/';
-                      }, 1000);
-                    }}
+                    onClick={() => window.close()}
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Cerrar Ventana
