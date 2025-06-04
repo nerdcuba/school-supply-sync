@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, ShoppingBag, ArrowLeft } from 'lucide-react';
@@ -96,7 +95,7 @@ const PaymentSuccess = () => {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [sessionId, user, addPurchase, orderProcessed]);
+  }, [sessionId]); // Simplificadas las dependencias para evitar el error de tipo infinito
 
   if (loading) {
     return (
