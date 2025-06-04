@@ -65,8 +65,10 @@ const PaymentSuccess = () => {
               try {
                 // Asegurar que order.items es un array antes de pasarlo
                 const orderItems = Array.isArray(order.items) ? order.items : [];
-                await addPurchase(orderItems, order.total);
-                console.log('✅ Purchase added to user context');
+                if (typeof addPurchase === 'function') {
+                  await addPurchase(orderItems, order.total);
+                  console.log('✅ Purchase added to user context');
+                }
               } catch (purchaseError) {
                 console.error('❌ Error adding purchase to context:', purchaseError);
               }
@@ -95,7 +97,7 @@ const PaymentSuccess = () => {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [sessionId]); // Simplificadas las dependencias para evitar el error de tipo infinito
+  }, [sessionId, user?.id, orderProcessed]); // Dependencias específicas para evitar ciclos
 
   if (loading) {
     return (
