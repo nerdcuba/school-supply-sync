@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Order {
@@ -117,10 +118,9 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - VERSIÓN CORREGIDA CON LOGS DETALLADOS
+  // Actualizar estado de una orden (admin) - VERSIÓN SIMPLIFICADA Y ROBUSTA
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando orden ${orderId} a estado: ${status}`);
-    console.log('📋 Detalles de entrada:', { orderId: orderId, status: status, orderIdType: typeof orderId });
     
     // Verificar autenticación de admin
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -147,76 +147,55 @@ export const orderService = {
       throw new Error(`Estado inválido: ${status}. Estados permitidos: ${validStatuses.join(', ')}`);
     }
     
-    console.log('✅ Usuario admin verificado, buscando orden primero...');
+    console.log('✅ Usuario admin verificado, actualizando orden...');
     
-    // PASO 1: Verificar que la orden existe ANTES de actualizarla
-    const { data: existingOrder, error: findError } = await supabase
+    // Primero verificar que la orden existe
+    const { data: existingOrder, error: checkError } = await supabase
       .from('orders')
-      .select('*')
+      .select('id, status')
       .eq('id', orderId)
       .maybeSingle();
     
-    console.log('🔍 Resultado de búsqueda de orden:', { 
-      existingOrder: existingOrder, 
-      findError: findError,
-      orderId: orderId 
-    });
-    
-    if (findError) {
-      console.error('❌ Error buscando orden:', findError);
-      throw new Error(`Error al buscar la orden: ${findError.message}`);
+    if (checkError) {
+      console.error('❌ Error verificando orden:', checkError);
+      throw new Error(`Error al verificar la orden: ${checkError.message}`);
     }
-    
+
     if (!existingOrder) {
-      console.error('❌ Orden no encontrada con ID:', orderId);
-      // Vamos a buscar todas las órdenes para ver qué IDs existen
-      const { data: allOrders } = await supabase
-        .from('orders')
-        .select('id')
-        .limit(5);
-      console.log('📋 Primeras 5 órdenes en la BD:', allOrders);
-      throw new Error(`No se encontró la orden con ID: ${orderId}`);
+      throw new Error('La orden no existe');
     }
     
-    console.log('✅ Orden encontrada, procediendo con actualización...');
-    console.log('📋 Estado actual de la orden:', existingOrder.status);
-    
-    // PASO 2: Actualizar la orden
-    const { data: updatedOrders, error: updateError } = await supabase
+    // Actualizar el estado
+    const { error: updateError } = await supabase
       .from('orders')
       .update({ 
         status: status,
         updated_at: new Date().toISOString()
       })
-      .eq('id', orderId)
-      .select();
-    
-    console.log('🔄 Resultado de actualización:', { 
-      updatedOrders: updatedOrders, 
-      updateError: updateError,
-      affectedRows: updatedOrders?.length || 0
-    });
+      .eq('id', orderId);
     
     if (updateError) {
       console.error('❌ Error actualizando orden:', updateError);
       throw new Error(`Error al actualizar la orden: ${updateError.message}`);
     }
 
-    if (!updatedOrders || updatedOrders.length === 0) {
-      console.error('❌ No se actualizó ninguna orden - posible problema de ID');
-      throw new Error('No se pudo actualizar la orden - verificar ID');
+    // Obtener la orden actualizada
+    const { data: updatedOrder, error: fetchError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error('❌ Error obteniendo orden actualizada:', fetchError);
+      throw new Error(`Error al obtener la orden actualizada: ${fetchError.message}`);
     }
 
-    if (updatedOrders.length > 1) {
-      console.warn('⚠️ Se actualizaron múltiples órdenes, usando la primera');
+    if (!updatedOrder) {
+      throw new Error('No se pudo obtener la orden actualizada');
     }
     
-    const updatedOrder = updatedOrders[0];
-    console.log('✅ Orden actualizada exitosamente:', { 
-      id: updatedOrder.id, 
-      oldStatus: existingOrder.status, 
-      newStatus: updatedOrder.status 
-    });
+    console.log('✅ Orden actualizada exitosamente:', updatedOrder);
     
     return {
       ...updatedOrder,
