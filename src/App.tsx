@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -27,7 +26,6 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { toast } from "@/hooks/use-toast";
 
 const queryClient = new QueryClient();
 
@@ -53,7 +51,7 @@ function App() {
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Función para limpiar el carrito (mejorada)
+  // Función simple para limpiar el carrito
   const clearCart = () => {
     console.log('🧹 Limpiando carrito...');
     setCartItems([]);
@@ -62,48 +60,19 @@ function App() {
     console.log('✅ Carrito limpiado exitosamente');
   };
 
-  // Escuchar eventos de pago completado y múltiples eventos de limpieza
+  // Escuchar evento de carrito limpiado
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'paymentCompleted' || e.key === 'clearCart') {
-        console.log('🔔 Evento de limpieza detectado:', e.key);
-        clearCart();
-        setIsCartOpen(false);
-        setIsCheckoutOpen(false);
-        toast({
-          title: "¡Pago completado!",
-          description: "Tu pedido ha sido procesado exitosamente. Tu carrito se ha vaciado.",
-          variant: "default",
-        });
-      }
+    const handleCartCleared = () => {
+      console.log('🔔 Evento de carrito limpiado detectado');
+      clearCart();
+      setIsCartOpen(false);
+      setIsCheckoutOpen(false);
     };
 
-    // Escuchar eventos personalizados para limpiar carrito
-    const handleCustomEvents = (e: CustomEvent) => {
-      console.log('🔔 Evento personalizado detectado:', e.type);
-      if (e.type === 'cartCleared' || e.type === 'paymentSuccess' || e.type === 'clearCart') {
-        clearCart();
-        setIsCartOpen(false);
-        setIsCheckoutOpen(false);
-        toast({
-          title: "¡Pago completado!",
-          description: "Tu carrito ha sido vaciado exitosamente.",
-          variant: "default",
-        });
-      }
-    };
-
-    // Agregar listeners
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('cartCleared', handleCustomEvents as EventListener);
-    window.addEventListener('paymentSuccess', handleCustomEvents as EventListener);
-    window.addEventListener('clearCart', handleCustomEvents as EventListener);
+    window.addEventListener('cartCleared', handleCartCleared);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('cartCleared', handleCustomEvents as EventListener);
-      window.removeEventListener('paymentSuccess', handleCustomEvents as EventListener);
-      window.removeEventListener('clearCart', handleCustomEvents as EventListener);
+      window.removeEventListener('cartCleared', handleCartCleared);
     };
   }, []);
 

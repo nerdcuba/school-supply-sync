@@ -16,50 +16,31 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
   const navigate = useNavigate();
   const [verifying, setVerifying] = useState(true);
   const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [hasProcessed, setHasProcessed] = useState(false);
 
-  // Función robusta para limpiar el carrito
-  const clearCartCompletely = () => {
-    console.log('🧹 Iniciando limpieza completa del carrito...');
+  // Función simple para limpiar el carrito una sola vez
+  const clearCartOnce = () => {
+    if (hasProcessed) return; // Evitar múltiples ejecuciones
+    
+    console.log('🧹 Limpiando carrito después del pago exitoso...');
     
     try {
-      // Método 1: Llamar a la función del padre si está disponible
+      // Llamar a la función del padre
       if (onClearCart) {
-        console.log('✅ Llamando función clearCart del componente padre');
         onClearCart();
       }
       
-      // Método 2: Limpiar localStorage directamente
+      // Limpiar localStorage
       localStorage.removeItem('cartItems');
       localStorage.setItem('cartItems', '[]');
-      console.log('✅ LocalStorage limpiado');
       
-      // Método 3: Disparar múltiples eventos para asegurar que se escuchen
-      const events = [
-        new CustomEvent('cartCleared'),
-        new CustomEvent('paymentSuccess'),
-        new CustomEvent('clearCart'),
-        new StorageEvent('storage', {
-          key: 'clearCart',
-          newValue: 'true',
-          url: window.location.href
-        })
-      ];
+      // Disparar evento único
+      window.dispatchEvent(new CustomEvent('cartCleared'));
       
-      events.forEach(event => {
-        window.dispatchEvent(event);
-        console.log(`✅ Evento ${event.type} disparado`);
-      });
-      
-      // Método 4: Forzar actualización después de un pequeño delay
-      setTimeout(() => {
-        localStorage.setItem('cartItems', '[]');
-        window.dispatchEvent(new CustomEvent('clearCart'));
-        console.log('✅ Limpieza forzada ejecutada');
-      }, 500);
-      
-      console.log('✅ Limpieza completa del carrito finalizada');
+      setHasProcessed(true);
+      console.log('✅ Carrito limpiado exitosamente');
     } catch (error) {
-      console.error('❌ Error durante la limpieza del carrito:', error);
+      console.error('❌ Error limpiando carrito:', error);
     }
   };
 
@@ -95,12 +76,13 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
         if (data.success && data.paid) {
           setOrderDetails(data.order);
           
-          // Limpiar el carrito inmediatamente después de verificar el pago exitoso
-          clearCartCompletely();
+          // Limpiar el carrito una sola vez después de verificar el pago
+          clearCartOnce();
           
+          // Mostrar notificación una sola vez
           toast({
             title: "¡Pago Exitoso!",
-            description: "Tu orden ha sido procesada correctamente y tu carrito ha sido vaciado.",
+            description: "Tu orden ha sido procesada correctamente.",
             variant: "default",
           });
         } else {
@@ -118,26 +100,11 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
       }
     };
 
-    verifyPayment();
-  }, [searchParams, onClearCart]);
-
-  // Efecto adicional para limpiar carrito al montar el componente
-  useEffect(() => {
-    const sessionId = searchParams.get('session_id');
-    if (sessionId) {
-      // Limpiar inmediatamente al cargar la página
-      console.log('🔄 Limpieza inicial del carrito al cargar PaymentSuccess');
-      clearCartCompletely();
-      
-      // Limpiar nuevamente después de 2 segundos por seguridad
-      const timeoutId = setTimeout(() => {
-        console.log('🔄 Limpieza adicional del carrito después de 2 segundos');
-        clearCartCompletely();
-      }, 2000);
-      
-      return () => clearTimeout(timeoutId);
+    // Solo ejecutar si no se ha procesado antes
+    if (!hasProcessed) {
+      verifyPayment();
     }
-  }, [searchParams, onClearCart]);
+  }, [searchParams, onClearCart, hasProcessed]);
 
   if (verifying) {
     return (
@@ -172,7 +139,7 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
                 ¡Pago Exitoso!
               </CardTitle>
               <CardDescription className="text-lg">
-                Tu pedido ha sido procesado correctamente y tu carrito ha sido vaciado
+                Tu pedido ha sido procesado correctamente
               </CardDescription>
             </CardHeader>
             
