@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Order {
@@ -118,7 +117,7 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - VERSIÓN SIMPLIFICADA Y ROBUSTA
+  // Actualizar estado de una orden (admin) - VERSIÓN CORREGIDA
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando orden ${orderId} a estado: ${status}`);
     
@@ -149,53 +148,40 @@ export const orderService = {
     
     console.log('✅ Usuario admin verificado, actualizando orden...');
     
-    // Primero verificar que la orden existe
-    const { data: existingOrder, error: checkError } = await supabase
-      .from('orders')
-      .select('id, status')
-      .eq('id', orderId)
-      .maybeSingle();
-    
-    if (checkError) {
-      console.error('❌ Error verificando orden:', checkError);
-      throw new Error(`Error al verificar la orden: ${checkError.message}`);
-    }
-
-    if (!existingOrder) {
-      throw new Error('La orden no existe');
-    }
-    
-    // Actualizar el estado
-    const { error: updateError } = await supabase
+    // ACTUALIZACIÓN DIRECTA Y SIMPLE - sin transacciones complejas
+    const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
       .update({ 
         status: status,
         updated_at: new Date().toISOString()
       })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .select()
+      .single();
     
     if (updateError) {
       console.error('❌ Error actualizando orden:', updateError);
       throw new Error(`Error al actualizar la orden: ${updateError.message}`);
     }
 
-    // Obtener la orden actualizada
-    const { data: updatedOrder, error: fetchError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .maybeSingle();
-    
-    if (fetchError) {
-      console.error('❌ Error obteniendo orden actualizada:', fetchError);
-      throw new Error(`Error al obtener la orden actualizada: ${fetchError.message}`);
-    }
-
     if (!updatedOrder) {
       throw new Error('No se pudo obtener la orden actualizada');
     }
     
-    console.log('✅ Orden actualizada exitosamente:', updatedOrder);
+    console.log('✅ Orden actualizada exitosamente en BD:', updatedOrder);
+    
+    // Verificar que el cambio se persistió correctamente
+    const { data: verifiedOrder, error: verifyError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+    
+    if (verifyError) {
+      console.error('❌ Error verificando orden:', verifyError);
+    } else {
+      console.log('🔍 Orden verificada en BD:', verifiedOrder);
+    }
     
     return {
       ...updatedOrder,
