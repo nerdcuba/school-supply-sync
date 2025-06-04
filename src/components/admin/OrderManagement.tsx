@@ -13,6 +13,7 @@ const OrderManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -22,10 +23,12 @@ const OrderManagement = () => {
   const loadOrders = async () => {
     try {
       setLoading(true);
+      console.log('📦 Cargando órdenes desde admin...');
       const data = await orderService.getAll();
+      console.log('✅ Órdenes cargadas:', data.length);
       setOrders(data);
     } catch (error) {
-      console.error('Error loading orders:', error);
+      console.error('❌ Error loading orders:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las órdenes",
@@ -38,20 +41,47 @@ const OrderManagement = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
+      setUpdatingOrderId(orderId);
+      console.log(`🔄 Actualizando orden ${orderId} a estado: ${newStatus}`);
+      
       await orderService.updateStatus(orderId, newStatus);
-      await loadOrders();
+      
+      // Actualizar el estado local inmediatamente
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus, updated_at: new Date().toISOString() }
+            : order
+        )
+      );
+      
+      console.log('✅ Estado actualizado correctamente');
       toast({
         title: "Estado actualizado",
-        description: "El estado de la orden ha sido actualizado correctamente",
+        description: `El estado de la orden ha sido cambiado a ${getStatusLabel(newStatus)}`,
       });
     } catch (error) {
-      console.error('Error updating order status:', error);
+      console.error('❌ Error updating order status:', error);
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado de la orden",
         variant: "destructive",
       });
+      // Recargar las órdenes en caso de error para mantener consistencia
+      await loadOrders();
+    } finally {
+      setUpdatingOrderId(null);
     }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const statusLabels = {
+      pending: 'Pendiente',
+      processing: 'Procesando',
+      completed: 'Completado',
+      cancelled: 'Cancelado',
+    };
+    return statusLabels[status as keyof typeof statusLabels] || status;
   };
 
   const getStatusBadge = (status: string) => {
@@ -261,13 +291,17 @@ const OrderManagement = () => {
                         <select
                           value={order.status || 'pending'}
                           onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                          className="px-2 py-1 border rounded text-sm bg-white"
+                          disabled={updatingOrderId === order.id}
+                          className="px-2 py-1 border rounded text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="pending">Pendiente</option>
                           <option value="processing">Procesando</option>
                           <option value="completed">Completado</option>
                           <option value="cancelled">Cancelado</option>
                         </select>
+                        {updatingOrderId === order.id && (
+                          <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

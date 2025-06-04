@@ -36,6 +36,7 @@ export const orderService = {
 
   // Obtener órdenes del usuario (usuarios autenticados)
   async getUserOrders(): Promise<Order[]> {
+    console.log('🔍 Obteniendo órdenes del usuario...');
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -46,6 +47,7 @@ export const orderService = {
       throw error;
     }
     
+    console.log('📋 Órdenes del usuario obtenidas:', data?.length || 0);
     return (data || []).map(order => ({
       ...order,
       items: Array.isArray(order.items) ? order.items : []
@@ -54,6 +56,7 @@ export const orderService = {
 
   // Obtener todas las órdenes (admin)
   async getAll(): Promise<Order[]> {
+    console.log('🔍 Obteniendo todas las órdenes (admin)...');
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -64,6 +67,7 @@ export const orderService = {
       throw error;
     }
     
+    console.log('📋 Todas las órdenes obtenidas:', data?.length || 0);
     return (data || []).map(order => ({
       ...order,
       items: Array.isArray(order.items) ? order.items : []
@@ -72,6 +76,8 @@ export const orderService = {
 
   // Actualizar estado de una orden
   async updateStatus(orderId: string, status: string): Promise<void> {
+    console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
+    
     const { error } = await supabase
       .from('orders')
       .update({ 
@@ -84,5 +90,7 @@ export const orderService = {
       console.error('Error updating order status:', error);
       throw error;
     }
+    
+    console.log('✅ Estado de orden actualizado correctamente');
   }
 };
