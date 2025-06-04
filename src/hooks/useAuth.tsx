@@ -39,8 +39,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const loadUserOrders = async () => {
-    if (!user) {
-      console.log('❌ No hay usuario, no se cargan órdenes');
+    if (!user || !session) {
+      console.log('❌ No hay usuario o sesión, no se cargan órdenes');
       setPurchases([]);
       return;
     }
@@ -63,10 +63,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Configurar realtime updates para órdenes del usuario - solo si hay un usuario
+  // Configurar realtime updates para órdenes del usuario - solo si hay un usuario autenticado
   useRealtimeOrders({
     onOrdersUpdate: () => {
-      if (user) {
+      if (user && session) {
         console.log('🔄 Recargando órdenes del usuario por cambio realtime...');
         loadUserOrders();
       }
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Cargar órdenes inmediatamente para usuarios autenticados
         setTimeout(() => {
           loadUserOrders();
-        }, 100);
+        }, 200);
       }
       
       console.log('🏁 Sesión inicial procesada - loading = false');
@@ -111,13 +111,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
+        if (session?.user && event === 'SIGNED_IN') {
           console.log('✅ Usuario autenticado en cambio de estado');
           setTimeout(() => {
             loadUserOrders();
-          }, 100);
-        } else {
-          console.log('❌ No hay usuario en cambio de estado');
+          }, 200);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('❌ Usuario desautenticado');
           setPurchases([]);
         }
       }
@@ -127,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('🧹 Limpiando suscripción auth');
       subscription.unsubscribe();
     };
-  }, [user?.id]); // Agregado user?.id como dependencia
+  }, []); // Remover user?.id de dependencias para evitar loops
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
