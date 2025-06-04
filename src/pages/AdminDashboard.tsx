@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useAdmin } from '@/contexts/AdminContext';
-import { LogOut, LayoutDashboard, School, Package, Users, Settings, Shield, Laptop } from 'lucide-react';
+import { LogOut, LayoutDashboard, School, Package, Users, Settings, Shield, Laptop, ShoppingCart } from 'lucide-react';
 import SchoolManagement from '@/components/admin/SchoolManagement';
 import PackManagement from '@/components/admin/PackManagement';
 import UserManagement from '@/components/admin/UserManagement';
 import Analytics from '@/components/admin/Analytics';
 import AdminSettings from '@/components/admin/AdminSettings';
 import ElectronicsManagement from '@/components/admin/ElectronicsManagement';
+import OrderManagement from '@/components/admin/OrderManagement';
 
 const AdminDashboard = () => {
   const { isAdminAuthenticated, adminLogout } = useAdmin();
@@ -52,10 +53,14 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className="container mx-auto py-6 px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-6 gap-2">
+          <TabsList className="grid grid-cols-7 gap-2">
             <TabsTrigger value="analytics" className="flex items-center">
               <LayoutDashboard size={16} className="mr-2" />
               Analítica
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center">
+              <ShoppingCart size={16} className="mr-2" />
+              Órdenes
             </TabsTrigger>
             <TabsTrigger value="schools" className="flex items-center">
               <School size={16} className="mr-2" />
@@ -81,6 +86,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="analytics">
             <Analytics />
+          </TabsContent>
+          
+          <TabsContent value="orders">
+            <OrderManagement />
           </TabsContent>
           
           <TabsContent value="schools">
