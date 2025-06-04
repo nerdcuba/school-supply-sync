@@ -149,53 +149,52 @@ export const orderService = {
       throw new Error(`Estado inválido: ${status}. Estados permitidos: ${validStatuses.join(', ')}`);
     }
     
-    // Primero verificar que la orden existe
-    const { data: existingOrder, error: fetchError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .single();
-    
-    if (fetchError) {
-      console.error('❌ Error fetching order:', fetchError);
-      throw new Error('Error al verificar la orden: ' + fetchError.message);
-    }
-    
-    if (!existingOrder) {
-      console.error('❌ Order not found:', orderId);
-      throw new Error('Orden no encontrada');
-    }
-    
-    console.log('✅ Orden encontrada, procediendo con actualización...');
-    
-    // Actualizar la orden usando el servicio de Supabase directamente
-    const { data, error } = await supabase
-      .from('orders')
-      .update({ 
-        status: status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', orderId)
-      .select('*');
-    
-    if (error) {
-      console.error('❌ Error updating order status:', error);
-      throw new Error('Error al actualizar la orden: ' + error.message);
-    }
+    try {
+      console.log('🔍 Actualizando orden con ID:', orderId);
+      
+      // Realizar la actualización con un solo query optimizado
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ 
+          status: status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('❌ Error en query de actualización:', error);
+        throw new Error(`Error al actualizar la orden: ${error.message}`);
+      }
 
-    // Verificar que se devolvió al menos una fila
-    if (!data || data.length === 0) {
-      console.error('❌ No data returned after update for order:', orderId);
-      throw new Error('No se pudo actualizar la orden - orden no encontrada');
+      if (!data) {
+        console.error('❌ No se devolvieron datos después de la actualización');
+        throw new Error('La orden no fue encontrada o no se pudo actualizar');
+      }
+      
+      console.log('✅ Estado de orden actualizado correctamente:', data);
+      return {
+        ...data,
+        items: Array.isArray(data.items) ? data.items : []
+      };
+      
+    } catch (dbError) {
+      console.error('❌ Error de base de datos al actualizar orden:', dbError);
+      
+      // Intentar verificar si la orden existe
+      const { data: existingOrder, error: checkError } = await supabase
+        .from('orders')
+        .select('id, status')
+        .eq('id', orderId)
+        .single();
+        
+      if (checkError || !existingOrder) {
+        throw new Error(`La orden con ID ${orderId} no existe`);
+      }
+      
+      // Re-lanzar el error original si la orden sí existe
+      throw dbError;
     }
-
-    // Si hay múltiples filas (no debería pasar), tomar la primera
-    const updatedOrder = data[0];
-    
-    console.log('✅ Estado de orden actualizado correctamente:', updatedOrder);
-    return {
-      ...updatedOrder,
-      items: Array.isArray(updatedOrder.items) ? updatedOrder.items : []
-    };
   }
 };

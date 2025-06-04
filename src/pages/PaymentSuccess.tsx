@@ -13,6 +13,26 @@ const PaymentSuccess = () => {
   const [verifying, setVerifying] = useState(true);
   const [orderDetails, setOrderDetails] = useState<any>(null);
 
+  // Función para limpiar el carrito
+  const clearCart = () => {
+    console.log('🧹 Limpiando carrito después de compra exitosa...');
+    
+    // Limpiar localStorage
+    localStorage.removeItem('cart');
+    
+    // Disparar múltiples eventos para asegurar que todos los componentes se actualicen
+    window.dispatchEvent(new CustomEvent('cartCleared'));
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'cart',
+      oldValue: localStorage.getItem('cart'),
+      newValue: null,
+      url: window.location.href
+    }));
+    
+    console.log('✅ Carrito limpiado exitosamente');
+  };
+
   useEffect(() => {
     const verifyPayment = async () => {
       const sessionId = searchParams.get('session_id');
@@ -45,12 +65,8 @@ const PaymentSuccess = () => {
         if (data.success && data.paid) {
           setOrderDetails(data.order);
           
-          // Limpiar el carrito del localStorage después de una compra exitosa
-          console.log('🧹 Limpiando carrito después de compra exitosa...');
-          localStorage.removeItem('cart');
-          
-          // Disparar evento personalizado para notificar a otros componentes que el carrito ha sido limpiado
-          window.dispatchEvent(new CustomEvent('cartCleared'));
+          // Limpiar el carrito inmediatamente después de verificar el pago exitoso
+          clearCart();
           
           toast({
             title: "¡Pago Exitoso!",
@@ -73,6 +89,15 @@ const PaymentSuccess = () => {
     };
 
     verifyPayment();
+  }, [searchParams]);
+
+  // Efecto adicional para asegurar que el carrito se limpia al montar el componente
+  useEffect(() => {
+    // Solo limpiar si venimos de una verificación de pago exitosa
+    const sessionId = searchParams.get('session_id');
+    if (sessionId) {
+      clearCart();
+    }
   }, [searchParams]);
 
   if (verifying) {
