@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
-  const { user, addPurchase } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [orderProcessed, setOrderProcessed] = useState(false);
 
@@ -62,18 +62,6 @@ const PaymentSuccess = () => {
             } else if (isMounted) {
               console.log('✅ Order status updated to completed');
               setOrderProcessed(true);
-              
-              // Agregar la compra al contexto (esto recargará las órdenes del usuario)
-              try {
-                // Asegurar que order.items es un array antes de pasarlo
-                const orderItems = Array.isArray(order.items) ? order.items : [];
-                if (addPurchase && typeof addPurchase === 'function') {
-                  await addPurchase(orderItems, order.total);
-                  console.log('✅ Purchase added to user context');
-                }
-              } catch (purchaseError) {
-                console.error('❌ Error adding purchase to context:', purchaseError);
-              }
             }
           } else {
             console.log('⚠️ No order found for this session');
@@ -106,7 +94,7 @@ const PaymentSuccess = () => {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, []); // Dependencias vacías para evitar problemas de tipos
+  }, [sessionId, user?.id, user?.email, orderProcessed]);
 
   if (loading) {
     return (
