@@ -1,4 +1,3 @@
-
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -13,7 +12,7 @@ interface SchoolDetailsProps {
 }
 
 const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
-  const { schoolId } = useParams();
+  const { id } = useParams(); // Cambiado de schoolId a id
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
   const [school, setSchool] = useState<School | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,14 +21,14 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
   // Cargar datos de la escuela desde Supabase
   useEffect(() => {
     const loadSchool = async () => {
-      if (!schoolId) {
+      if (!id) { // Cambiado de schoolId a id
         setLoading(false);
         return;
       }
 
       try {
         const schools = await schoolService.getAll();
-        const foundSchool = schools.find(s => s.id === schoolId);
+        const foundSchool = schools.find(s => s.id === id); // Cambiado de schoolId a id
         setSchool(foundSchool || null);
       } catch (error) {
         console.error('Error loading school:', error);
@@ -44,7 +43,7 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
     };
 
     loadSchool();
-  }, [schoolId]);
+  }, [id]); // Cambiado de schoolId a id
 
   if (loading) {
     return (
@@ -79,7 +78,7 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
             {t('common.back')} {t('nav.schools')}
           </Link>
           <span className="text-gray-500">/</span>
-          <span className="text-gray-900 font-medium">{school.name}</span>
+          <span className="text-gray-900 font-medium">{school?.name}</span>
           {selectedGrade && (
             <>
               <span className="text-gray-500">/</span>
@@ -91,23 +90,23 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
         {/* School Header */}
         {!selectedGrade && (
           <div className="bg-white rounded-lg p-6 shadow-lg mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">{school.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">{school?.name}</h1>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <p className="text-gray-600">
-                  <strong>Dirección:</strong> {school.address}
+                  <strong>Dirección:</strong> {school?.address}
                 </p>
                 <p className="text-gray-600">
-                  <strong>Teléfono:</strong> {school.phone}
+                  <strong>Teléfono:</strong> {school?.phone}
                 </p>
-                {school.principal && (
+                {school?.principal && (
                   <p className="text-gray-600">
                     <strong>Director(a):</strong> {school.principal}
                   </p>
                 )}
               </div>
               <div className="flex items-center justify-end">
-                {school.website && (
+                {school?.website && (
                   <Button
                     onClick={() => window.open(school.website, '_blank')}
                     variant="outline"
@@ -123,7 +122,7 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
 
         {/* Supply List Component */}
         <SupplyList
-          school={school.name}
+          school={school?.name || ''}
           grade={selectedGrade}
           onSelectGrade={setSelectedGrade}
           onAddToCart={onAddToCart}
