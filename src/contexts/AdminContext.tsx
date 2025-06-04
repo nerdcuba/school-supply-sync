@@ -8,12 +8,14 @@ interface AdminContextType {
   adminLogin: (username: string, password: string) => Promise<boolean>;
   adminLogout: () => Promise<void>;
   loading: boolean;
+  isSupabaseAdmin: boolean; // Nuevo: para distinguir entre admin hardcodeado y admin de Supabase
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [isSupabaseAdmin, setIsSupabaseAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -24,7 +26,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
         if (hardcodedAuth === 'true') {
           setIsAdminAuthenticated(true);
+          setIsSupabaseAdmin(false);
           setLoading(false);
+          console.log('🔑 Admin hardcodeado detectado');
           return;
         }
 
@@ -32,6 +36,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session) {
           setIsAdminAuthenticated(false);
+          setIsSupabaseAdmin(false);
           setLoading(false);
           return;
         }
@@ -46,19 +51,42 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         if (profileError) {
           console.error('Error checking admin status:', profileError);
           setIsAdminAuthenticated(false);
+          setIsSupabaseAdmin(false);
         } else {
-          setIsAdminAuthenticated(profile?.role === 'admin');
-          console.log('Estado admin verificado:', profile?.role === 'admin');
+          const isAdmin = profile?.role === 'admin';
+          setIsAdminAuthenticated(isAdmin);
+          setIsSupabaseAdmin(isAdmin);
+          console.log('🔍 Estado admin verificado:', { isAdmin, role: profile?.role });
         }
       } catch (error) {
         console.error('Error in admin authentication check:', error);
         setIsAdminAuthenticated(false);
+        setIsSupabaseAdmin(false);
       } finally {
         setLoading(false);
       }
     };
 
     checkAdminStatus();
+
+    // Escuchar cambios en la autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔄 Admin auth state change:', event);
+        if (event === 'SIGNED_OUT') {
+          setIsAdminAuthenticated(false);
+          setIsSupabaseAdmin(false);
+          localStorage.removeItem('hardcoded_admin_auth');
+        } else if (event === 'SIGNED_IN' && session) {
+          // Re-verificar el rol cuando hay un nuevo login
+          setTimeout(checkAdminStatus, 100);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const adminLogin = async (username: string, password: string): Promise<boolean> => {
@@ -67,6 +95,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       if (username === 'admin' && password === 'admin') {
         localStorage.setItem('hardcoded_admin_auth', 'true');
         setIsAdminAuthenticated(true);
+        setIsSupabaseAdmin(false);
+        console.log('✅ Login admin hardcodeado exitoso');
         toast({
           title: "¡Bienvenido!",
           description: "Has iniciado sesión como administrador",
@@ -74,14 +104,15 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         return true;
       }
 
-      // Si no son las credenciales hardcodeadas, intentar con Supabase (asumiendo que username es email)
+      // Si no son las credenciales hardcodeadas, intentar con Supabase
+      console.log('🔐 Intentando login con Supabase...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email: username,
         password
       });
 
       if (error) {
-        console.error('Admin login error:', error);
+        console.error('❌ Admin login error:', error);
         toast({
           title: "Error de inicio de sesión",
           description: "Usuario o contraseña incorrectos",
@@ -107,6 +138,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (profileError || profile?.role !== 'admin') {
+        console.error('❌ Usuario no es admin:', { profileError, role: profile?.role });
         toast({
           title: "Acceso denegado",
           description: "No tienes permisos de administrador",
@@ -114,17 +146,20 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         });
         await supabase.auth.signOut();
         setIsAdminAuthenticated(false);
+        setIsSupabaseAdmin(false);
         return false;
       }
 
       setIsAdminAuthenticated(true);
+      setIsSupabaseAdmin(true);
+      console.log('✅ Login admin Supabase exitoso');
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión como administrador",
       });
       return true;
     } catch (error) {
-      console.error('Admin login error:', error);
+      console.error('❌ Admin login error:', error);
       toast({
         title: "Error de inicio de sesión",
         description: "Usuario o contraseña incorrectos",
@@ -143,12 +178,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       await supabase.auth.signOut();
       
       setIsAdminAuthenticated(false);
+      setIsSupabaseAdmin(false);
+      console.log('👋 Admin logout completado');
       toast({
         title: "Sesión finalizada",
         description: "Has cerrado sesión correctamente",
       });
     } catch (error) {
-      console.error('Admin logout error:', error);
+      console.error('❌ Admin logout error:', error);
     }
   };
 
@@ -157,7 +194,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       isAdminAuthenticated, 
       adminLogin, 
       adminLogout,
-      loading
+      loading,
+      isSupabaseAdmin
     }}>
       {children}
     </AdminContext.Provider>
