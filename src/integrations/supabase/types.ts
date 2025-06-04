@@ -183,6 +183,8 @@ export type Database = {
         Row: {
           address: string
           created_at: string
+          enrollment: number | null
+          grades: string | null
           id: string
           is_active: boolean
           name: string
@@ -194,6 +196,8 @@ export type Database = {
         Insert: {
           address: string
           created_at?: string
+          enrollment?: number | null
+          grades?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -205,6 +209,8 @@ export type Database = {
         Update: {
           address?: string
           created_at?: string
+          enrollment?: number | null
+          grades?: string | null
           id?: string
           is_active?: boolean
           name?: string

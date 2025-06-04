@@ -1,77 +1,53 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { School, MapPin, Users } from "lucide-react";
+import { School, MapPin, Users, BookOpen } from "lucide-react";
+import { schoolService, School as SchoolType } from "@/services/schoolService";
+import { toast } from "@/hooks/use-toast";
 
 interface SchoolSelectorProps {
   onSelectSchool: (school: string) => void;
   searchTerm: string;
 }
 
-const schools = [
-  {
-    name: "Redland Elementary School",
-    district: "Miami-Dade County",
-    grades: "K-5",
-    students: 650,
-    address: "24205 SW 162nd Ave, Homestead, FL"
-  },
-  {
-    name: "Sunset Elementary School",
-    district: "Miami-Dade County",
-    grades: "K-5",
-    students: 580,
-    address: "5120 SW 72nd St, Miami, FL"
-  },
-  {
-    name: "Pinecrest Elementary School",
-    district: "Miami-Dade County",
-    grades: "K-5",
-    students: 720,
-    address: "5855 SW 111th St, Pinecrest, FL"
-  },
-  {
-    name: "Coral Gables Elementary",
-    district: "Miami-Dade County",
-    grades: "K-5",
-    students: 490,
-    address: "105 Minorca Ave, Coral Gables, FL"
-  },
-  {
-    name: "Aventura Waterways K-8",
-    district: "Miami-Dade County",
-    grades: "K-8",
-    students: 1200,
-    address: "3500 NE 207th St, Aventura, FL"
-  },
-  {
-    name: "Palmetto Middle School",
-    district: "Miami-Dade County",
-    grades: "6-8",
-    students: 890,
-    address: "7460 SW 118th St, Pinecrest, FL"
-  },
-  {
-    name: "Miami Senior High School",
-    district: "Miami-Dade County",
-    grades: "9-12",
-    students: 2100,
-    address: "2450 SW 1st St, Miami, FL"
-  },
-  {
-    name: "Coral Reef Senior High",
-    district: "Miami-Dade County",
-    grades: "9-12",
-    students: 1800,
-    address: "10101 SW 152nd St, Miami, FL"
-  }
-];
-
 const SchoolSelector = ({ onSelectSchool, searchTerm }: SchoolSelectorProps) => {
+  const [schools, setSchools] = useState<SchoolType[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSchools = async () => {
+      try {
+        const data = await schoolService.getAll();
+        setSchools(data);
+      } catch (error) {
+        console.error('Error loading schools:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las escuelas",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSchools();
+  }, []);
+
   const filteredSchools = schools.filter(school =>
     school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    school.district.toLowerCase().includes(searchTerm.toLowerCase())
+    school.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    school.grades.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Cargando escuelas...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -85,7 +61,7 @@ const SchoolSelector = ({ onSelectSchool, searchTerm }: SchoolSelectorProps) => 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredSchools.map((school) => (
           <Card
-            key={school.name}
+            key={school.id}
             className="card-vibrant cursor-pointer group"
           >
             <CardHeader className="pb-4">
@@ -101,7 +77,7 @@ const SchoolSelector = ({ onSelectSchool, searchTerm }: SchoolSelectorProps) => 
                 {school.name}
               </CardTitle>
               <CardDescription className="text-sm">
-                {school.district}
+                {school.address}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -110,8 +86,12 @@ const SchoolSelector = ({ onSelectSchool, searchTerm }: SchoolSelectorProps) => 
                 <span className="truncate">{school.address}</span>
               </div>
               <div className="flex items-center text-sm text-textPrimary">
+                <BookOpen size={14} className="mr-2 text-gray-400" />
+                <span>Grados {school.grades}</span>
+              </div>
+              <div className="flex items-center text-sm text-textPrimary">
                 <Users size={14} className="mr-2 text-gray-400" />
-                <span>{school.students} estudiantes</span>
+                <span>{school.enrollment.toLocaleString()} estudiantes</span>
               </div>
               <Button
                 onClick={() => onSelectSchool(school.name)}

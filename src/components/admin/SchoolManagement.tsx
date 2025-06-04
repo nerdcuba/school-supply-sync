@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { School, Plus, Pencil, Trash2, Search, Power, PowerOff } from 'lucide-react';
+import { School, Plus, Pencil, Trash2, Search, Power, PowerOff, Users, BookOpen } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { schoolService, School as SchoolType } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,8 +20,8 @@ const SchoolManagement = () => {
     name: '',
     address: '',
     phone: '',
-    principal: '',
-    website: '',
+    grades: '',
+    enrollment: 0,
     is_active: true
   });
   const [editingSchool, setEditingSchool] = useState<SchoolType | null>(null);
@@ -69,7 +70,7 @@ const SchoolManagement = () => {
   const filteredSchools = schools.filter(school => 
     school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     school.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (school.principal && school.principal.toLowerCase().includes(searchTerm.toLowerCase()))
+    school.grades.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Agregar nueva escuela
@@ -85,10 +86,10 @@ const SchoolManagement = () => {
     }
 
     // Validación básica
-    if (!newSchool.name || !newSchool.address || !newSchool.phone) {
+    if (!newSchool.name || !newSchool.address || !newSchool.phone || !newSchool.grades || newSchool.enrollment <= 0) {
       toast({
         title: "Error",
-        description: "Por favor completa los campos obligatorios",
+        description: "Por favor completa todos los campos obligatorios",
         variant: "destructive"
       });
       return;
@@ -100,8 +101,8 @@ const SchoolManagement = () => {
         name: '',
         address: '',
         phone: '',
-        principal: '',
-        website: '',
+        grades: '',
+        enrollment: 0,
         is_active: true
       });
       setOpenAddDialog(false);
@@ -134,10 +135,10 @@ const SchoolManagement = () => {
     }
 
     // Validación básica
-    if (!editingSchool.name || !editingSchool.address || !editingSchool.phone) {
+    if (!editingSchool.name || !editingSchool.address || !editingSchool.phone || !editingSchool.grades || editingSchool.enrollment <= 0) {
       toast({
         title: "Error",
-        description: "Por favor completa los campos obligatorios",
+        description: "Por favor completa todos los campos obligatorios",
         variant: "destructive"
       });
       return;
@@ -228,7 +229,7 @@ const SchoolManagement = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Nombre de la Escuela*</Label>
+                <Label htmlFor="name">Escuela*</Label>
                 <Input 
                   id="name" 
                   value={newSchool.name} 
@@ -258,21 +259,25 @@ const SchoolManagement = () => {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="principal">Director/a</Label>
+                <Label htmlFor="grades">Grados*</Label>
                 <Input 
-                  id="principal" 
-                  value={newSchool.principal || ''} 
-                  onChange={(e) => setNewSchool({...newSchool, principal: e.target.value})}
-                  placeholder="Nombre del director/a"
+                  id="grades" 
+                  value={newSchool.grades} 
+                  onChange={(e) => setNewSchool({...newSchool, grades: e.target.value})}
+                  placeholder="Ej. K-5, 6-8, 9-12"
+                  required
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="website">Sitio Web</Label>
+                <Label htmlFor="enrollment">Matrícula*</Label>
                 <Input 
-                  id="website" 
-                  value={newSchool.website || ''} 
-                  onChange={(e) => setNewSchool({...newSchool, website: e.target.value})}
-                  placeholder="Ej. https://escuela.edu"
+                  id="enrollment" 
+                  type="number"
+                  min="1"
+                  value={newSchool.enrollment || ''} 
+                  onChange={(e) => setNewSchool({...newSchool, enrollment: parseInt(e.target.value) || 0})}
+                  placeholder="Número de estudiantes"
+                  required
                 />
               </div>
             </div>
@@ -284,13 +289,13 @@ const SchoolManagement = () => {
         </Dialog>
       </div>
 
-      {/* Barra de búsqueda mejorada */}
+      {/* Barra de búsqueda */}
       <div className="flex items-center space-x-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            placeholder="Buscar escuelas por nombre, dirección o director..."
+            placeholder="Buscar escuelas por nombre, dirección o grados..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -333,10 +338,11 @@ const SchoolManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Nombre</TableHead>
+                  <TableHead>Escuela</TableHead>
                   <TableHead>Dirección</TableHead>
                   <TableHead>Teléfono</TableHead>
-                  <TableHead>Director/a</TableHead>
+                  <TableHead>Grados</TableHead>
+                  <TableHead>Matrícula</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -361,7 +367,18 @@ const SchoolManagement = () => {
                     <TableCell className="font-medium">{school.name}</TableCell>
                     <TableCell>{school.address}</TableCell>
                     <TableCell>{school.phone}</TableCell>
-                    <TableCell>{school.principal || '-'}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <BookOpen size={14} className="mr-1 text-gray-400" />
+                        {school.grades}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Users size={14} className="mr-1 text-gray-400" />
+                        {school.enrollment.toLocaleString()}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
@@ -412,7 +429,7 @@ const SchoolManagement = () => {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-name">Nombre de la Escuela*</Label>
+              <Label htmlFor="edit-name">Escuela*</Label>
               <Input 
                 id="edit-name" 
                 value={editingSchool?.name || ''} 
@@ -439,19 +456,23 @@ const SchoolManagement = () => {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-principal">Director/a</Label>
+              <Label htmlFor="edit-grades">Grados*</Label>
               <Input 
-                id="edit-principal" 
-                value={editingSchool?.principal || ''} 
-                onChange={(e) => setEditingSchool(prev => prev ? {...prev, principal: e.target.value} : null)}
+                id="edit-grades" 
+                value={editingSchool?.grades || ''} 
+                onChange={(e) => setEditingSchool(prev => prev ? {...prev, grades: e.target.value} : null)}
+                required
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-website">Sitio Web</Label>
+              <Label htmlFor="edit-enrollment">Matrícula*</Label>
               <Input 
-                id="edit-website" 
-                value={editingSchool?.website || ''} 
-                onChange={(e) => setEditingSchool(prev => prev ? {...prev, website: e.target.value} : null)}
+                id="edit-enrollment" 
+                type="number"
+                min="1"
+                value={editingSchool?.enrollment || ''} 
+                onChange={(e) => setEditingSchool(prev => prev ? {...prev, enrollment: parseInt(e.target.value) || 0} : null)}
+                required
               />
             </div>
           </div>

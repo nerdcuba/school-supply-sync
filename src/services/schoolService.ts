@@ -6,11 +6,14 @@ export interface School {
   name: string;
   address: string;
   phone: string;
-  principal?: string;
-  website?: string;
+  grades: string;
+  enrollment: number;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
+  // Campos opcionales mantenidos por compatibilidad pero no mostrados en UI
+  principal?: string;
+  website?: string;
 }
 
 export const schoolService = {

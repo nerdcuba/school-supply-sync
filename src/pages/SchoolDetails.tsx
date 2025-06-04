@@ -1,6 +1,7 @@
+
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, BookOpen, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SupplyList from "@/components/SupplyList";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -12,7 +13,7 @@ interface SchoolDetailsProps {
 }
 
 const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
-  const { id } = useParams(); // Cambiado de schoolId a id
+  const { id } = useParams();
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
   const [school, setSchool] = useState<School | null>(null);
   const [loading, setLoading] = useState(true);
@@ -21,14 +22,14 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
   // Cargar datos de la escuela desde Supabase
   useEffect(() => {
     const loadSchool = async () => {
-      if (!id) { // Cambiado de schoolId a id
+      if (!id) {
         setLoading(false);
         return;
       }
 
       try {
         const schools = await schoolService.getAll();
-        const foundSchool = schools.find(s => s.id === id); // Cambiado de schoolId a id
+        const foundSchool = schools.find(s => s.id === id);
         setSchool(foundSchool || null);
       } catch (error) {
         console.error('Error loading school:', error);
@@ -43,7 +44,7 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
     };
 
     loadSchool();
-  }, [id]); // Cambiado de schoolId a id
+  }, [id]);
 
   if (loading) {
     return (
@@ -92,29 +93,34 @@ const SchoolDetails = ({ onAddToCart }: SchoolDetailsProps) => {
           <div className="bg-white rounded-lg p-6 shadow-lg mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">{school?.name}</h1>
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <p className="text-gray-600">
-                  <strong>Dirección:</strong> {school?.address}
-                </p>
-                <p className="text-gray-600">
-                  <strong>Teléfono:</strong> {school?.phone}
-                </p>
-                {school?.principal && (
-                  <p className="text-gray-600">
-                    <strong>Director(a):</strong> {school.principal}
-                  </p>
-                )}
+              <div className="space-y-3">
+                <div className="flex items-start text-gray-600">
+                  <MapPin className="mr-3 mt-1 text-gray-400" size={16} />
+                  <div>
+                    <strong>Dirección:</strong>
+                    <p className="mt-1">{school?.address}</p>
+                  </div>
+                </div>
+                <div className="flex items-center text-gray-600">
+                  <Phone className="mr-3 text-gray-400" size={16} />
+                  <div>
+                    <strong>Teléfono:</strong> {school?.phone}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-end">
-                {school?.website && (
-                  <Button
-                    onClick={() => window.open(school.website, '_blank')}
-                    variant="outline"
-                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
-                  >
-                    Visitar Sitio Web
-                  </Button>
-                )}
+              <div className="space-y-3">
+                <div className="flex items-center text-gray-600">
+                  <BookOpen className="mr-3 text-gray-400" size={16} />
+                  <div>
+                    <strong>Grados:</strong> {school?.grades}
+                  </div>
+                </div>
+                <div className="flex items-center text-gray-600">
+                  <Users className="mr-3 text-gray-400" size={16} />
+                  <div>
+                    <strong>Matrícula:</strong> {school?.enrollment.toLocaleString()} estudiantes
+                  </div>
+                </div>
               </div>
             </div>
           </div>
