@@ -118,7 +118,7 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - SIMPLIFICADO Y CORREGIDO
+  // Actualizar estado de una orden (admin) - VERSIÓN SIMPLIFICADA Y ROBUSTA
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando orden ${orderId} a estado: ${status}`);
     
@@ -134,7 +134,7 @@ export const orderService = {
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (profileError || profile?.role !== 'Admin') {
       console.error('❌ Usuario no es admin:', { profileError, role: profile?.role });
@@ -149,20 +149,46 @@ export const orderService = {
     
     console.log('✅ Usuario admin verificado, actualizando orden...');
     
-    // Actualizar y obtener la orden actualizada en una sola operación atómica
-    const { data: updatedOrder, error } = await supabase
+    // Primero verificar que la orden existe
+    const { data: existingOrder, error: checkError } = await supabase
+      .from('orders')
+      .select('id, status')
+      .eq('id', orderId)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('❌ Error verificando orden:', checkError);
+      throw new Error(`Error al verificar la orden: ${checkError.message}`);
+    }
+
+    if (!existingOrder) {
+      throw new Error('La orden no existe');
+    }
+    
+    // Actualizar el estado
+    const { error: updateError } = await supabase
       .from('orders')
       .update({ 
         status: status,
         updated_at: new Date().toISOString()
       })
-      .eq('id', orderId)
-      .select('*')
-      .single();
+      .eq('id', orderId);
     
-    if (error) {
-      console.error('❌ Error actualizando orden:', error);
-      throw new Error(`Error al actualizar la orden: ${error.message}`);
+    if (updateError) {
+      console.error('❌ Error actualizando orden:', updateError);
+      throw new Error(`Error al actualizar la orden: ${updateError.message}`);
+    }
+
+    // Obtener la orden actualizada
+    const { data: updatedOrder, error: fetchError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error('❌ Error obteniendo orden actualizada:', fetchError);
+      throw new Error(`Error al obtener la orden actualizada: ${fetchError.message}`);
     }
 
     if (!updatedOrder) {
