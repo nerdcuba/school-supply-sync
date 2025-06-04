@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -52,12 +53,21 @@ function App() {
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Escuchar eventos de pago completado desde otras ventanas
+  // Función para limpiar el carrito (mejorada)
+  const clearCart = () => {
+    console.log('🧹 Limpiando carrito...');
+    setCartItems([]);
+    localStorage.removeItem('cartItems');
+    localStorage.setItem('cartItems', '[]');
+    console.log('✅ Carrito limpiado exitosamente');
+  };
+
+  // Escuchar eventos de pago completado y múltiples eventos de limpieza
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'paymentCompleted') {
-        // Vaciar el carrito cuando se complete un pago
-        setCartItems([]);
+      if (e.key === 'paymentCompleted' || e.key === 'clearCart') {
+        console.log('🔔 Evento de limpieza detectado:', e.key);
+        clearCart();
         setIsCartOpen(false);
         setIsCheckoutOpen(false);
         toast({
@@ -68,9 +78,32 @@ function App() {
       }
     };
 
+    // Escuchar eventos personalizados para limpiar carrito
+    const handleCustomEvents = (e: CustomEvent) => {
+      console.log('🔔 Evento personalizado detectado:', e.type);
+      if (e.type === 'cartCleared' || e.type === 'paymentSuccess' || e.type === 'clearCart') {
+        clearCart();
+        setIsCartOpen(false);
+        setIsCheckoutOpen(false);
+        toast({
+          title: "¡Pago completado!",
+          description: "Tu carrito ha sido vaciado exitosamente.",
+          variant: "default",
+        });
+      }
+    };
+
+    // Agregar listeners
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('cartCleared', handleCustomEvents as EventListener);
+    window.addEventListener('paymentSuccess', handleCustomEvents as EventListener);
+    window.addEventListener('clearCart', handleCustomEvents as EventListener);
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('cartCleared', handleCustomEvents as EventListener);
+      window.removeEventListener('paymentSuccess', handleCustomEvents as EventListener);
+      window.removeEventListener('clearCart', handleCustomEvents as EventListener);
     };
   }, []);
 
@@ -105,7 +138,7 @@ function App() {
   };
 
   const handleClearCart = () => {
-    setCartItems([]);
+    clearCart();
   };
 
   const calculateTotal = () => {
@@ -119,7 +152,7 @@ function App() {
   };
 
   const handleCheckoutComplete = () => {
-    handleClearCart();
+    clearCart();
     setIsCheckoutOpen(false);
   };
 
@@ -147,7 +180,7 @@ function App() {
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
-                      <Route path="/payment-success" element={<PaymentSuccess />} />
+                      <Route path="/payment-success" element={<PaymentSuccess onClearCart={clearCart} />} />
                       <Route path="/payment-canceled" element={<PaymentCanceled />} />
                       <Route 
                         path="/dashboard" 

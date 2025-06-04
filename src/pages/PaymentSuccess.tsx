@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Package, ArrowLeft, ShoppingCart } from 'lucide-react';
@@ -6,31 +7,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-const PaymentSuccess = () => {
+interface PaymentSuccessProps {
+  onClearCart?: () => void;
+}
+
+const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [verifying, setVerifying] = useState(true);
   const [orderDetails, setOrderDetails] = useState<any>(null);
 
-  // Función mejorada para limpiar el carrito con múltiples estrategias
-  const clearCart = () => {
-    console.log('🧹 Limpiando carrito después de compra exitosa...');
+  // Función robusta para limpiar el carrito
+  const clearCartCompletely = () => {
+    console.log('🧹 Iniciando limpieza completa del carrito...');
     
     try {
-      // Estrategia 1: Limpiar localStorage
-      localStorage.removeItem('cart');
+      // Método 1: Llamar a la función del padre si está disponible
+      if (onClearCart) {
+        console.log('✅ Llamando función clearCart del componente padre');
+        onClearCart();
+      }
+      
+      // Método 2: Limpiar localStorage directamente
+      localStorage.removeItem('cartItems');
+      localStorage.setItem('cartItems', '[]');
       console.log('✅ LocalStorage limpiado');
       
-      // Estrategia 2: Setear valor vacío explícitamente
-      localStorage.setItem('cart', '[]');
-      console.log('✅ Cart seteado como array vacío');
-      
-      // Estrategia 3: Disparar eventos múltiples
+      // Método 3: Disparar múltiples eventos para asegurar que se escuchen
       const events = [
         new CustomEvent('cartCleared'),
-        new CustomEvent('cartUpdated'),
-        new CustomEvent('cart-cleared'),
-        new CustomEvent('storage-updated')
+        new CustomEvent('paymentSuccess'),
+        new CustomEvent('clearCart'),
+        new StorageEvent('storage', {
+          key: 'clearCart',
+          newValue: 'true',
+          url: window.location.href
+        })
       ];
       
       events.forEach(event => {
@@ -38,25 +50,16 @@ const PaymentSuccess = () => {
         console.log(`✅ Evento ${event.type} disparado`);
       });
       
-      // Estrategia 4: Storage event manual
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'cart',
-        oldValue: localStorage.getItem('cart'),
-        newValue: '[]',
-        url: window.location.href
-      }));
-      console.log('✅ Storage event disparado');
-      
-      // Estrategia 5: Forzar re-render después de un delay
+      // Método 4: Forzar actualización después de un pequeño delay
       setTimeout(() => {
-        localStorage.setItem('cart', '[]');
-        window.dispatchEvent(new CustomEvent('force-cart-update'));
-        console.log('✅ Forzado re-render del carrito');
-      }, 100);
+        localStorage.setItem('cartItems', '[]');
+        window.dispatchEvent(new CustomEvent('clearCart'));
+        console.log('✅ Limpieza forzada ejecutada');
+      }, 500);
       
-      console.log('✅ Carrito limpiado exitosamente con múltiples estrategias');
+      console.log('✅ Limpieza completa del carrito finalizada');
     } catch (error) {
-      console.error('❌ Error al limpiar carrito:', error);
+      console.error('❌ Error durante la limpieza del carrito:', error);
     }
   };
 
@@ -93,11 +96,11 @@ const PaymentSuccess = () => {
           setOrderDetails(data.order);
           
           // Limpiar el carrito inmediatamente después de verificar el pago exitoso
-          clearCart();
+          clearCartCompletely();
           
           toast({
             title: "¡Pago Exitoso!",
-            description: "Tu orden ha sido procesada correctamente.",
+            description: "Tu orden ha sido procesada correctamente y tu carrito ha sido vaciado.",
             variant: "default",
           });
         } else {
@@ -116,23 +119,25 @@ const PaymentSuccess = () => {
     };
 
     verifyPayment();
-  }, [searchParams]);
+  }, [searchParams, onClearCart]);
 
-  // Efecto adicional para asegurar que el carrito se limpia al montar el componente
+  // Efecto adicional para limpiar carrito al montar el componente
   useEffect(() => {
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
       // Limpiar inmediatamente al cargar la página
-      clearCart();
+      console.log('🔄 Limpieza inicial del carrito al cargar PaymentSuccess');
+      clearCartCompletely();
       
-      // Limpiar nuevamente después de 1 segundo por si acaso
+      // Limpiar nuevamente después de 2 segundos por seguridad
       const timeoutId = setTimeout(() => {
-        clearCart();
-      }, 1000);
+        console.log('🔄 Limpieza adicional del carrito después de 2 segundos');
+        clearCartCompletely();
+      }, 2000);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [searchParams]);
+  }, [searchParams, onClearCart]);
 
   if (verifying) {
     return (
@@ -167,7 +172,7 @@ const PaymentSuccess = () => {
                 ¡Pago Exitoso!
               </CardTitle>
               <CardDescription className="text-lg">
-                Tu pedido ha sido procesado correctamente
+                Tu pedido ha sido procesado correctamente y tu carrito ha sido vaciado
               </CardDescription>
             </CardHeader>
             
