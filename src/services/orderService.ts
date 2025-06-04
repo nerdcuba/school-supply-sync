@@ -97,7 +97,7 @@ export const orderService = {
     }));
   },
 
-  // Obtener todas las órdenes (admin) - mantiene estados originales
+  // Obtener todas las órdenes (admin) - ahora también mapea estados para mostrar consistencia
   async getAll(): Promise<Order[]> {
     console.log('🔍 Obteniendo todas las órdenes (admin)...');
     
@@ -133,12 +133,12 @@ export const orderService = {
     console.log('📋 Todas las órdenes obtenidas:', data?.length || 0);
     return (data || []).map(order => ({
       ...order,
-      items: Array.isArray(order.items) ? order.items : []
-      // NO mapeamos el estado para admin - mantiene estados originales
+      items: Array.isArray(order.items) ? order.items : [],
+      status: mapOrderStatusForUser(order.status) // Ahora también mapea estados para admin
     }));
   },
 
-  // Actualizar estado de una orden (admin)
+  // Actualizar estado de una orden (admin) - debe usar estados internos
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
     
@@ -163,11 +163,31 @@ export const orderService = {
     
     console.log('✅ Usuario admin verificado, actualizando orden...');
     
+    // Mapear el estado mostrado al estado interno para guardarlo en la base de datos
+    let internalStatus = status;
+    switch (status) {
+      case 'pendiente':
+        internalStatus = 'completed';
+        break;
+      case 'en proceso':
+        internalStatus = 'processing';
+        break;
+      case 'enviado':
+        internalStatus = 'shipped';
+        break;
+      case 'entregado':
+        internalStatus = 'delivered';
+        break;
+      case 'cancelado':
+        internalStatus = 'cancelled';
+        break;
+    }
+    
     // Actualizar la orden - las nuevas políticas RLS permiten que los admins actualicen cualquier orden
     const { data, error } = await supabase
       .from('orders')
       .update({ 
-        status,
+        status: internalStatus, // Guardar el estado interno en la base de datos
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
@@ -193,7 +213,8 @@ export const orderService = {
     console.log('✅ Estado de orden actualizado correctamente:', data);
     return {
       ...data,
-      items: Array.isArray(data.items) ? data.items : []
+      items: Array.isArray(data.items) ? data.items : [],
+      status: mapOrderStatusForUser(data.status) // Devolver el estado mapeado
     };
   }
 };
