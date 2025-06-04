@@ -1,4 +1,5 @@
 
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Order {
@@ -86,25 +87,86 @@ export const orderService = {
     const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
     
     if (hardcodedAuth === 'true') {
-      console.log('📋 Admin hardcodeado detectado, pero usando cliente normal con permisos admin...');
+      console.log('📋 Admin hardcodeado detectado - creando órdenes de demostración...');
       
-      // Para admin hardcodeado, simplemente usar el cliente normal
-      // Las políticas RLS permitirán acceso si el usuario tiene rol admin
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Para el admin hardcodeado, devolver datos de demostración
+      const demoOrders: Order[] = [
+        {
+          id: 'demo-order-1',
+          user_id: 'demo-user-1',
+          items: [
+            {
+              name: 'Pack de Útiles - 1er Grado',
+              price: 850,
+              quantity: 1,
+              school: 'Escuela Primaria Demo',
+              grade: '1er Grado',
+              supplies: [
+                { name: 'Cuadernos rayados', quantity: 5 },
+                { name: 'Lápices #2', quantity: 10 },
+                { name: 'Goma de borrar', quantity: 3 }
+              ]
+            }
+          ],
+          total: 850,
+          status: 'completed',
+          school_name: 'Escuela Primaria Demo',
+          grade: '1er Grado',
+          created_at: new Date(Date.now() - 86400000).toISOString(), // Ayer
+          updated_at: new Date(Date.now() - 86400000).toISOString()
+        },
+        {
+          id: 'demo-order-2',
+          user_id: 'demo-user-2',
+          items: [
+            {
+              name: 'Pack de Útiles - 3er Grado',
+              price: 1200,
+              quantity: 2,
+              school: 'Colegio Secundario Demo',
+              grade: '3er Grado',
+              supplies: [
+                { name: 'Cuadernos cuadriculados', quantity: 8 },
+                { name: 'Bolígrafos azules', quantity: 6 },
+                { name: 'Regla 30cm', quantity: 2 }
+              ]
+            }
+          ],
+          total: 2400,
+          status: 'processing',
+          school_name: 'Colegio Secundario Demo',
+          grade: '3er Grado',
+          created_at: new Date(Date.now() - 172800000).toISOString(), // Hace 2 días
+          updated_at: new Date(Date.now() - 172800000).toISOString()
+        },
+        {
+          id: 'demo-order-3',
+          user_id: 'demo-user-3',
+          items: [
+            {
+              name: 'Pack de Útiles - Preescolar',
+              price: 650,
+              quantity: 1,
+              school: 'Jardín de Niños Demo',
+              grade: 'Preescolar',
+              supplies: [
+                { name: 'Crayones grandes', quantity: 1 },
+                { name: 'Papel bond', quantity: 100 },
+                { name: 'Tijeras punta roma', quantity: 1 }
+              ]
+            }
+          ],
+          total: 650,
+          status: 'pending',
+          school_name: 'Jardín de Niños Demo',
+          grade: 'Preescolar',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
       
-      if (error) {
-        console.error('❌ Error fetching orders:', error);
-        return [];
-      }
-      
-      console.log('📋 Órdenes obtenidas:', data?.length || 0);
-      return (data || []).map(order => ({
-        ...order,
-        items: Array.isArray(order.items) ? order.items : []
-      }));
+      console.log('📋 Órdenes de demostración generadas:', demoOrders.length);
+      return demoOrders;
     }
     
     // Para admin de Supabase autenticado, usar cliente normal con RLS
@@ -135,6 +197,15 @@ export const orderService = {
   async updateStatus(orderId: string, status: string): Promise<void> {
     console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
     
+    // Verificar si es admin hardcodeado
+    const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
+    
+    if (hardcodedAuth === 'true') {
+      console.log('✅ Actualización simulada para admin de demostración (orden:', orderId, 'estado:', status, ')');
+      // Para admin hardcodeado, simular la actualización
+      return;
+    }
+    
     const { error } = await supabase
       .from('orders')
       .update({ 
@@ -151,3 +222,4 @@ export const orderService = {
     console.log('✅ Estado de orden actualizado correctamente');
   }
 };
+
