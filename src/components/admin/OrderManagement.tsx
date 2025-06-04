@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Eye, Package, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { orderService, Order } from '@/services/orderService';
 import { useToast } from '@/hooks/use-toast';
@@ -89,6 +90,35 @@ const OrderManagement = () => {
     });
   };
 
+  const getCustomerName = (order: Order) => {
+    // Try to extract customer name from order items or user_id
+    if (order.items && order.items.length > 0) {
+      const firstItem = order.items[0];
+      if (firstItem.customer_name) {
+        return firstItem.customer_name;
+      }
+    }
+    return order.user_id ? order.user_id.slice(0, 8) + '...' : 'Usuario invitado';
+  };
+
+  const getSchoolFromOrder = (order: Order) => {
+    if (order.school_name) return order.school_name;
+    if (order.items && order.items.length > 0) {
+      const firstItem = order.items[0];
+      if (firstItem.school) return firstItem.school;
+    }
+    return 'N/A';
+  };
+
+  const getGradeFromOrder = (order: Order) => {
+    if (order.grade) return order.grade;
+    if (order.items && order.items.length > 0) {
+      const firstItem = order.items[0];
+      if (firstItem.grade) return firstItem.grade;
+    }
+    return 'N/A';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -119,7 +149,7 @@ const OrderManagement = () => {
                   <TableHead>Cliente</TableHead>
                   <TableHead>Escuela</TableHead>
                   <TableHead>Grado</TableHead>
-                  <TableHead>Total</TableHead>
+                  <TableHead>Total Pagado</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
@@ -133,9 +163,9 @@ const OrderManagement = () => {
                     <TableCell>
                       {order.created_at ? formatDate(order.created_at) : 'N/A'}
                     </TableCell>
-                    <TableCell>{order.user_id ? order.user_id.slice(0, 8) + '...' : 'Usuario invitado'}</TableCell>
-                    <TableCell>{order.school_name || 'N/A'}</TableCell>
-                    <TableCell>{order.grade || 'N/A'}</TableCell>
+                    <TableCell>{getCustomerName(order)}</TableCell>
+                    <TableCell>{getSchoolFromOrder(order)}</TableCell>
+                    <TableCell>{getGradeFromOrder(order)}</TableCell>
                     <TableCell className="font-semibold">
                       {formatCurrency(order.total)}
                     </TableCell>
@@ -144,17 +174,94 @@ const OrderManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Detalles de la Orden</DialogTitle>
+                            </DialogHeader>
+                            {selectedOrder && (
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="font-semibold">ID de Orden:</label>
+                                    <p className="font-mono text-sm">{selectedOrder.id}</p>
+                                  </div>
+                                  <div>
+                                    <label className="font-semibold">Estado:</label>
+                                    <div className="mt-1">
+                                      {getStatusBadge(selectedOrder.status || 'pending')}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="font-semibold">Fecha:</label>
+                                    <p>{selectedOrder.created_at ? formatDate(selectedOrder.created_at) : 'N/A'}</p>
+                                  </div>
+                                  <div>
+                                    <label className="font-semibold">Total:</label>
+                                    <p className="text-lg font-bold text-green-600">
+                                      {formatCurrency(selectedOrder.total)}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <label className="font-semibold">Cliente:</label>
+                                    <p>{getCustomerName(selectedOrder)}</p>
+                                  </div>
+                                  <div>
+                                    <label className="font-semibold">Escuela:</label>
+                                    <p>{getSchoolFromOrder(selectedOrder)}</p>
+                                  </div>
+                                  <div>
+                                    <label className="font-semibold">Grado:</label>
+                                    <p>{getGradeFromOrder(selectedOrder)}</p>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="font-semibold">Artículos:</label>
+                                  <div className="mt-2 border rounded-lg p-4 bg-gray-50">
+                                    {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {selectedOrder.items.map((item: any, index: number) => (
+                                          <div key={index} className="flex justify-between items-center p-2 bg-white rounded border">
+                                            <div>
+                                              <p className="font-medium">{item.name || 'Artículo sin nombre'}</p>
+                                              <p className="text-sm text-gray-600">
+                                                Cantidad: {item.quantity || 1}
+                                              </p>
+                                              {item.supplies && (
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                  Incluye: {item.supplies.map((supply: any) => supply.name).join(', ')}
+                                                </div>
+                                              )}
+                                            </div>
+                                            <p className="font-semibold">
+                                              {formatCurrency(item.price || 0)}
+                                            </p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-gray-500">No hay artículos disponibles</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
                         <select
                           value={order.status || 'pending'}
                           onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                          className="px-2 py-1 border rounded text-sm"
+                          className="px-2 py-1 border rounded text-sm bg-white"
                         >
                           <option value="pending">Pendiente</option>
                           <option value="processing">Procesando</option>
@@ -176,78 +283,6 @@ const OrderManagement = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Modal de detalles de orden */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Detalles de la Orden</h2>
-              <Button variant="outline" onClick={() => setSelectedOrder(null)}>
-                Cerrar
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="font-semibold">ID de Orden:</label>
-                  <p className="font-mono text-sm">{selectedOrder.id}</p>
-                </div>
-                <div>
-                  <label className="font-semibold">Estado:</label>
-                  <div className="mt-1">
-                    {getStatusBadge(selectedOrder.status || 'pending')}
-                  </div>
-                </div>
-                <div>
-                  <label className="font-semibold">Fecha:</label>
-                  <p>{selectedOrder.created_at ? formatDate(selectedOrder.created_at) : 'N/A'}</p>
-                </div>
-                <div>
-                  <label className="font-semibold">Total:</label>
-                  <p className="text-lg font-bold text-green-600">
-                    {formatCurrency(selectedOrder.total)}
-                  </p>
-                </div>
-                <div>
-                  <label className="font-semibold">Escuela:</label>
-                  <p>{selectedOrder.school_name || 'N/A'}</p>
-                </div>
-                <div>
-                  <label className="font-semibold">Grado:</label>
-                  <p>{selectedOrder.grade || 'N/A'}</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-semibold">Artículos:</label>
-                <div className="mt-2 border rounded-lg p-4 bg-gray-50">
-                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                    <div className="space-y-2">
-                      {selectedOrder.items.map((item: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center p-2 bg-white rounded border">
-                          <div>
-                            <p className="font-medium">{item.name || 'Artículo sin nombre'}</p>
-                            <p className="text-sm text-gray-600">
-                              Cantidad: {item.quantity || 1}
-                            </p>
-                          </div>
-                          <p className="font-semibold">
-                            {formatCurrency(item.price || 0)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">No hay artículos disponibles</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
