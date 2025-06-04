@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -54,6 +55,12 @@ const OrderManagement = () => {
       setUpdatingOrderId(orderId);
       console.log(`🔄 Actualizando orden ${orderId} a estado: ${newStatus}`);
       
+      // Verificar que la orden existe localmente antes de actualizar
+      const orderExists = orders.find(order => order.id === orderId);
+      if (!orderExists) {
+        throw new Error('La orden no existe en el estado local');
+      }
+      
       // Actualizar en base de datos y obtener la orden actualizada
       const updatedOrder = await orderService.updateStatus(orderId, newStatus);
       
@@ -74,13 +81,16 @@ const OrderManagement = () => {
     } catch (error) {
       console.error('❌ Error updating order status:', error);
       
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
       toast({
         title: "Error",
-        description: "No se pudo actualizar el estado de la orden",
+        description: `No se pudo actualizar el estado de la orden: ${errorMessage}`,
         variant: "destructive",
       });
       
       // Recargar datos en caso de error para asegurar consistencia
+      console.log('🔄 Recargando datos tras error...');
       await loadOrders();
     } finally {
       setUpdatingOrderId(null);

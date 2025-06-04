@@ -141,6 +141,25 @@ export const orderService = {
       throw new Error('No tienes permisos de administrador');
     }
     
+    // Primero verificar que la orden existe
+    const { data: existingOrder, error: fetchError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error('❌ Error verificando orden:', fetchError);
+      throw new Error('Error al verificar la orden: ' + fetchError.message);
+    }
+    
+    if (!existingOrder) {
+      console.error('❌ Orden no encontrada:', orderId);
+      throw new Error('La orden no existe');
+    }
+    
+    console.log('✅ Orden encontrada, procediendo a actualizar:', existingOrder.id);
+    
     // Actualizar y retornar la orden actualizada
     const { data, error } = await supabase
       .from('orders')
@@ -150,18 +169,19 @@ export const orderService = {
       })
       .eq('id', orderId)
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('❌ Error updating order status:', error);
-      throw error;
+      throw new Error('Error al actualizar la orden: ' + error.message);
     }
 
     if (!data) {
+      console.error('❌ No se pudo actualizar la orden:', orderId);
       throw new Error('No se encontró la orden para actualizar');
     }
     
-    console.log('✅ Estado de orden actualizado correctamente');
+    console.log('✅ Estado de orden actualizado correctamente:', data);
     return {
       ...data,
       items: Array.isArray(data.items) ? data.items : []
