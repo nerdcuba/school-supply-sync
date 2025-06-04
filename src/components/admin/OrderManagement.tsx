@@ -162,7 +162,6 @@ const OrderManagement = () => {
       const localOrder = orders.find(order => order.id === orderId);
       if (!localOrder) {
         console.error('❌ Orden no encontrada en datos locales:', orderId);
-        // Recargar órdenes para sincronizar
         await loadOrders();
         toast({
           title: "Error",
@@ -176,11 +175,22 @@ const OrderManagement = () => {
       
       // Actualizar en base de datos
       const updatedOrder = await orderService.updateStatus(orderId, newStatus);
-      
       console.log('✅ Estado actualizado correctamente en BD:', updatedOrder);
       
-      // Recargar INMEDIATAMENTE todas las órdenes desde la base de datos
-      await loadOrders();
+      // ACTUALIZAR INMEDIATAMENTE EL ESTADO LOCAL para feedback visual instantáneo
+      const updateLocalState = (ordersList: Order[]) => {
+        return ordersList.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus, updated_at: updatedOrder.updated_at }
+            : order
+        );
+      };
+      
+      // Actualizar ambos estados locales inmediatamente
+      setOrders(prevOrders => updateLocalState(prevOrders));
+      setFilteredOrders(prevFiltered => updateLocalState(prevFiltered));
+      
+      console.log('✅ Estado local actualizado inmediatamente');
       
       toast({
         title: "Estado actualizado",
@@ -198,7 +208,7 @@ const OrderManagement = () => {
         variant: "destructive",
       });
       
-      // En caso de error, también recargar para asegurar consistencia
+      // En caso de error, recargar para asegurar consistencia
       await loadOrders();
       
     } finally {
