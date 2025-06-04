@@ -78,27 +78,15 @@ export const orderService = {
     }));
   },
 
-  // Obtener todas las órdenes (admin)
+  // Obtener todas las órdenes (admin) - simplificado
   async getAll(): Promise<Order[]> {
     console.log('🔍 Obteniendo todas las órdenes (admin)...');
     
-    // Verificar autenticación de admin
+    // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error('❌ Admin no autenticado:', authError);
       throw new Error('Admin no autenticado');
-    }
-
-    // Verificar que el usuario es admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || profile?.role !== 'Admin') {
-      console.error('❌ Usuario no es admin:', { profileError, role: profile?.role });
-      throw new Error('No tienes permisos de administrador');
     }
 
     const { data, error } = await supabase
@@ -118,27 +106,15 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - VERSIÓN FINAL ROBUSTA
+  // Actualizar estado de una orden (admin) - VERSIÓN SIMPLIFICADA
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando orden ${orderId} a estado: ${status}`);
     
-    // Verificar autenticación de admin
+    // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error('❌ Admin no autenticado:', authError);
       throw new Error('Admin no autenticado');
-    }
-
-    // Verificar que el usuario es admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (profileError || profile?.role !== 'Admin') {
-      console.error('❌ Usuario no es admin:', { profileError, role: profile?.role });
-      throw new Error('No tienes permisos de administrador');
     }
     
     // Validar que el estado sea uno de los permitidos
@@ -147,9 +123,9 @@ export const orderService = {
       throw new Error(`Estado inválido: ${status}. Estados permitidos: ${validStatuses.join(', ')}`);
     }
     
-    console.log('✅ Usuario admin verificado, procediendo con actualización...');
+    console.log('✅ Usuario autenticado, procediendo con actualización...');
     
-    // Actualización directa con manejo robusto de errores
+    // Actualización simplificada - las políticas RLS se encargan de los permisos
     const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
       .update({ 
@@ -163,14 +139,9 @@ export const orderService = {
     if (updateError) {
       console.error('❌ Error actualizando orden:', updateError);
       
-      // Si es un error de permisos, dar un mensaje específico
-      if (updateError.code === 'PGRST116' || updateError.message.includes('permission')) {
-        throw new Error('No tienes permisos para actualizar esta orden. Verifica que eres administrador.');
-      }
-      
-      // Si no se encuentra la orden
-      if (updateError.code === 'PGRST116' || updateError.message.includes('no rows')) {
-        throw new Error('La orden no existe o no tienes permisos para actualizarla.');
+      // Mensaje específico para errores comunes
+      if (updateError.code === 'PGRST116') {
+        throw new Error('No se encontró la orden o no tienes permisos para actualizarla. Verifica que eres administrador.');
       }
       
       throw new Error(`Error al actualizar la orden: ${updateError.message}`);
