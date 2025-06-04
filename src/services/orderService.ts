@@ -118,7 +118,7 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - VERSIÓN FINAL CORREGIDA
+  // Actualizar estado de una orden (admin) - VERSIÓN SIMPLIFICADA Y ROBUSTA
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando orden ${orderId} a estado: ${status}`);
     
@@ -149,26 +149,7 @@ export const orderService = {
     
     console.log('✅ Usuario admin verificado, procediendo con actualización...');
     
-    // PRIMERO verificar que la orden existe
-    const { data: existingOrder, error: checkError } = await supabase
-      .from('orders')
-      .select('id, status')
-      .eq('id', orderId)
-      .maybeSingle();
-    
-    if (checkError) {
-      console.error('❌ Error verificando orden:', checkError);
-      throw new Error(`Error al verificar la orden: ${checkError.message}`);
-    }
-
-    if (!existingOrder) {
-      console.error('❌ Orden no encontrada con ID:', orderId);
-      throw new Error('La orden no existe');
-    }
-
-    console.log('✅ Orden encontrada, actualizando estado...');
-    
-    // AHORA actualizar el estado
+    // Actualizar el estado - usando approach más simple y robusto
     const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
       .update({ 
@@ -177,11 +158,16 @@ export const orderService = {
       })
       .eq('id', orderId)
       .select('*')
-      .single();
+      .maybeSingle();
     
     if (updateError) {
       console.error('❌ Error actualizando orden:', updateError);
       throw new Error(`Error al actualizar la orden: ${updateError.message}`);
+    }
+    
+    if (!updatedOrder) {
+      console.error('❌ Orden no encontrada con ID:', orderId);
+      throw new Error('La orden no existe');
     }
     
     console.log('✅ Orden actualizada exitosamente en BD:', {
