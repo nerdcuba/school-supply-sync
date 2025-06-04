@@ -67,7 +67,7 @@ const OrderManagement = () => {
     }
   }, [toast]);
 
-  // Configurar realtime updates con callback estable
+  // Configurar realtime updates - función estable que no cause re-renders
   const handleRealtimeUpdate = useCallback(() => {
     console.log('🔄 Recargando órdenes por cambio realtime...');
     loadOrders();
@@ -163,13 +163,14 @@ const OrderManagement = () => {
       
       console.log('✅ Estado actualizado correctamente:', updatedOrder);
       
-      // Actualizar inmediatamente el estado local sin esperar realtime
+      // Actualizar INMEDIATAMENTE el estado local sin esperar realtime
       const updateOrderInState = (prevOrders: Order[]) => 
         prevOrders.map(order => 
-          order.id === orderId ? updatedOrder : order
+          order.id === orderId ? { ...order, status: newStatus } : order
         );
       
-      setOrders(updateOrderInState);
+      // Actualizar ambos estados inmediatamente
+      setOrders(prev => updateOrderInState(prev));
       setFilteredOrders(prev => updateOrderInState(prev));
       
       toast({

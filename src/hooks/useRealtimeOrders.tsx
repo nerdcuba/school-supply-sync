@@ -12,6 +12,12 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
   const isSubscribedRef = useRef(false);
+  const onOrdersUpdateRef = useRef(onOrdersUpdate);
+
+  // Mantener la referencia actualizada del callback
+  useEffect(() => {
+    onOrdersUpdateRef.current = onOrdersUpdate;
+  }, [onOrdersUpdate]);
 
   useEffect(() => {
     const setupRealtimeSubscription = async () => {
@@ -32,8 +38,8 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
 
       console.log(`🔔 Configurando subscripción realtime para órdenes (${isAdmin ? 'admin' : 'user'})...`);
       
-      // Create unique channel name with timestamp to avoid conflicts
-      const channelName = `orders-${isAdmin ? 'admin' : 'user'}-${user.id}-${Date.now()}`;
+      // Create unique channel name
+      const channelName = `orders-updates-${isAdmin ? 'admin' : 'user'}-${user.id}`;
       
       const channel = supabase
         .channel(channelName)
@@ -58,10 +64,10 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
               }
             }
             
-            // Trigger update callback with a small delay to ensure consistency
-            if (onOrdersUpdate) {
-              console.log('📞 Llamando callback de actualización');
-              setTimeout(onOrdersUpdate, 100);
+            // Trigger update callback immediately
+            if (onOrdersUpdateRef.current) {
+              console.log('📞 Ejecutando callback de actualización inmediatamente');
+              onOrdersUpdateRef.current();
             }
           }
         )
@@ -88,5 +94,5 @@ export const useRealtimeOrders = ({ onOrdersUpdate, isAdmin = false }: UseRealti
         isSubscribedRef.current = false;
       }
     };
-  }, [isAdmin, toast]); // Removí onOrdersUpdate de las dependencias para evitar recreaciones constantes
+  }, [isAdmin, toast]);
 };
