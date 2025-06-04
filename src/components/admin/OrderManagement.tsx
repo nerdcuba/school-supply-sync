@@ -50,7 +50,7 @@ const OrderManagement = () => {
       setLoading(true);
       console.log('📦 Cargando órdenes desde admin...');
       const data = await orderService.getAll();
-      console.log('✅ Órdenes cargadas:', data.length);
+      console.log('✅ Órdenes cargadas exitosamente:', data.length);
       setOrders(data);
       setFilteredOrders(data);
     } catch (error) {
@@ -156,7 +156,23 @@ const OrderManagement = () => {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       setUpdatingOrderId(orderId);
-      console.log(`🔄 Actualizando orden ${orderId} a estado: ${newStatus}`);
+      console.log(`🔄 Iniciando actualización de orden ${orderId} a estado: ${newStatus}`);
+      
+      // Verificar que la orden existe en nuestros datos locales primero
+      const localOrder = orders.find(order => order.id === orderId);
+      if (!localOrder) {
+        console.error('❌ Orden no encontrada en datos locales:', orderId);
+        // Recargar órdenes para sincronizar
+        await loadOrders();
+        toast({
+          title: "Error",
+          description: "La orden no se encuentra. Se han recargado los datos.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Orden encontrada localmente, procediendo con actualización...');
       
       // Actualizar en base de datos
       const updatedOrder = await orderService.updateStatus(orderId, newStatus);
@@ -515,7 +531,6 @@ const OrderManagement = () => {
                             </DialogHeader>
                             {selectedOrder && (
                               <div className="space-y-6">
-                                {/* Información básica de la orden */}
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <label className="font-semibold">ID de Orden:</label>
