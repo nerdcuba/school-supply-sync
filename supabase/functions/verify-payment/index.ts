@@ -49,12 +49,12 @@ serve(async (req) => {
 
       console.log('💾 Creating order for user:', userId);
 
-      // Create the order now that payment is confirmed
+      // Create the order with "pendiente" status (initial state after payment)
       const orderData = {
         user_id: userId !== 'guest' ? userId : null,
         items: itemsData,
         total: total,
-        status: "completed", // Payment is confirmed
+        status: "pendiente", // Estado inicial después del pago confirmado
         stripe_session_id: sessionId,
         created_at: new Date().toISOString()
       };

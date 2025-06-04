@@ -149,25 +149,38 @@ export const orderService = {
       throw new Error(`Estado inválido: ${status}. Estados permitidos: ${validStatuses.join(', ')}`);
     }
     
-    // Actualizar la orden - usar directamente el estado sin mapeo
+    // Primero verificar que la orden existe
+    const { data: existingOrder, error: fetchError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error('❌ Error fetching order:', fetchError);
+      throw new Error('Error al verificar la orden: ' + fetchError.message);
+    }
+    
+    if (!existingOrder) {
+      console.error('❌ Order not found:', orderId);
+      throw new Error('Orden no encontrada');
+    }
+    
+    console.log('✅ Orden encontrada, procediendo con actualización...');
+    
+    // Actualizar la orden
     const { data, error } = await supabase
       .from('orders')
       .update({ 
-        status: status, // Guardar el estado directamente
+        status: status,
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('❌ Error updating order status:', error);
-      console.error('❌ Error details:', { 
-        code: error.code, 
-        message: error.message, 
-        details: error.details,
-        hint: error.hint 
-      });
       throw new Error('Error al actualizar la orden: ' + error.message);
     }
 
