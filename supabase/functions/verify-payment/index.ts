@@ -28,18 +28,51 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
+    // Initialize Supabase with service role for writing
+    const supabaseService = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // PRIMERO: Verificar si ya existe una orden con este stripe_session_id
+    console.log('🔍 Checking for existing order with session ID:', sessionId);
+    const { data: existingOrder, error: checkError } = await supabaseService
+      .from("orders")
+      .select("id, total, created_at")
+      .eq("stripe_session_id", sessionId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 significa "no rows found", cualquier otro error es problemático
+      console.error('❌ Error checking for existing order:', checkError);
+      throw new Error('Error checking for existing order: ' + checkError.message);
+    }
+
+    if (existingOrder) {
+      console.log('✅ Order already exists for this session:', existingOrder.id);
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          paid: true,
+          order: existingOrder,
+          note: "Order already exists for this session"
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
+
+    // Si no existe la orden, proceder con la verificación de Stripe
+    console.log('📋 No existing order found, proceeding with Stripe verification');
+
     // Retrieve the session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     console.log('📋 Session status:', session.payment_status);
 
     if (session.payment_status === 'paid') {
       console.log('✅ Payment confirmed as paid');
-
-      // Initialize Supabase with service role for writing
-      const supabaseService = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-      );
 
       // Parse metadata
       const userId = session.metadata?.user_id;
@@ -59,6 +92,7 @@ serve(async (req) => {
         created_at: new Date().toISOString()
       };
 
+      // Usar INSERT con verificación adicional para evitar duplicados
       const { data: orderResult, error: orderError } = await supabaseService
         .from("orders")
         .insert(orderData)
@@ -66,6 +100,31 @@ serve(async (req) => {
         .single();
 
       if (orderError) {
+        // Si el error es por clave duplicada (aunque no deberíamos llegar aquí), verificar nuevamente
+        if (orderError.code === '23505') {
+          console.log('🔄 Duplicate key error, checking for existing order again');
+          const { data: duplicateOrder } = await supabaseService
+            .from("orders")
+            .select("*")
+            .eq("stripe_session_id", sessionId)
+            .single();
+          
+          if (duplicateOrder) {
+            console.log('✅ Found existing order after duplicate error:', duplicateOrder.id);
+            return new Response(
+              JSON.stringify({ 
+                success: true,
+                paid: true,
+                order: duplicateOrder 
+              }),
+              {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                status: 200,
+              }
+            );
+          }
+        }
+        
         console.error('❌ Error creating order:', orderError);
         throw new Error('Failed to create order: ' + orderError.message);
       }
@@ -105,7 +164,7 @@ serve(async (req) => {
         error: error.message || "Error verifying payment" 
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
       }
     );
