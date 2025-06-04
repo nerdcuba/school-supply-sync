@@ -19,7 +19,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('analytics');
 
-  // Check authentication
+  // Check authentication and redirect if not authenticated
   useEffect(() => {
     if (!loading && !isAdminAuthenticated) {
       console.log('🚫 Usuario no autenticado como admin, redirigiendo...');
@@ -27,15 +27,26 @@ const AdminDashboard = () => {
     }
   }, [isAdminAuthenticated, navigate, loading]);
 
-  const handleLogout = () => {
-    adminLogout();
+  const handleLogout = async () => {
+    await adminLogout();
     navigate('/admin/login');
   };
 
+  // Show loading while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-900"></div>
+      </div>
+    );
+  }
+
+  // If not authenticated, don't render the dashboard content
+  // (the useEffect will handle the redirect)
+  if (!isAdminAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-lg">Redirigiendo al login de administrador...</div>
       </div>
     );
   }
@@ -124,7 +135,6 @@ const AdminDashboard = () => {
         </Tabs>
       </div>
       
-      {/* Asegurarse de que Toaster esté disponible */}
       <Toaster />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -159,14 +158,7 @@ function App() {
                         } 
                       />
                       <Route path="/admin/login" element={<AdminLogin />} />
-                      <Route 
-                        path="/admin/dashboard" 
-                        element={
-                          <ProtectedRoute>
-                            <AdminDashboard />
-                          </ProtectedRoute>
-                        } 
-                      />
+                      <Route path="/admin/dashboard" element={<AdminDashboard />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </main>
