@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,90 +14,90 @@ const PaymentSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [orderProcessed, setOrderProcessed] = useState(false);
 
-  useEffect(() => {
-    const processPaymentSuccess = async () => {
-      console.log('🎉 Processing payment success for session:', sessionId);
-      
-      if (!sessionId) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Limpiar el carrito del localStorage
-        localStorage.removeItem('cartItems');
-        // Enviar evento para notificar a otras ventanas que el carrito debe vaciarse
-        window.localStorage.setItem('paymentCompleted', Date.now().toString());
-
-        // Si hay usuario autenticado, actualizar la orden en la base de datos
-        if (user && !orderProcessed) {
-          console.log('👤 Updating order status for user:', user.email);
-          
-          // Buscar la orden con este session_id
-          const { data: orders, error: fetchError } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('stripe_session_id', sessionId)
-            .eq('user_id', user.id);
-
-          if (fetchError) {
-            console.error('❌ Error fetching order:', fetchError);
-          } else if (orders && orders.length > 0) {
-            const order = orders[0];
-            console.log('📋 Found order to update:', order.id);
-
-            // Actualizar el estado de la orden a 'completed'
-            const { error: updateError } = await supabase
-              .from('orders')
-              .update({ 
-                status: 'completed',
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', order.id);
-
-            if (updateError) {
-              console.error('❌ Error updating order:', updateError);
-            } else {
-              console.log('✅ Order status updated to completed');
-              setOrderProcessed(true);
-              
-              // Agregar la compra al contexto (esto recargará las órdenes del usuario)
-              try {
-                // Asegurar que order.items es un array antes de pasarlo
-                const orderItems = Array.isArray(order.items) ? order.items : [];
-                if (addPurchase && typeof addPurchase === 'function') {
-                  await addPurchase(orderItems, order.total);
-                  console.log('✅ Purchase added to user context');
-                }
-              } catch (purchaseError) {
-                console.error('❌ Error adding purchase to context:', purchaseError);
-              }
-            }
-          } else {
-            console.log('⚠️ No order found for this session');
-          }
-        }
-
-        toast({
-          title: "¡Pago exitoso!",
-          description: "Tu pedido ha sido procesado correctamente.",
-          variant: "default",
-        });
-
-      } catch (error) {
-        console.error('❌ Error processing payment success:', error);
-      }
-
+  const processPaymentSuccess = useCallback(async () => {
+    console.log('🎉 Processing payment success for session:', sessionId);
+    
+    if (!sessionId) {
       setLoading(false);
-    };
+      return;
+    }
 
+    try {
+      // Limpiar el carrito del localStorage
+      localStorage.removeItem('cartItems');
+      // Enviar evento para notificar a otras ventanas que el carrito debe vaciarse
+      window.localStorage.setItem('paymentCompleted', Date.now().toString());
+
+      // Si hay usuario autenticado, actualizar la orden en la base de datos
+      if (user && !orderProcessed) {
+        console.log('👤 Updating order status for user:', user.email);
+        
+        // Buscar la orden con este session_id
+        const { data: orders, error: fetchError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('stripe_session_id', sessionId)
+          .eq('user_id', user.id);
+
+        if (fetchError) {
+          console.error('❌ Error fetching order:', fetchError);
+        } else if (orders && orders.length > 0) {
+          const order = orders[0];
+          console.log('📋 Found order to update:', order.id);
+
+          // Actualizar el estado de la orden a 'completed'
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({ 
+              status: 'completed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', order.id);
+
+          if (updateError) {
+            console.error('❌ Error updating order:', updateError);
+          } else {
+            console.log('✅ Order status updated to completed');
+            setOrderProcessed(true);
+            
+            // Agregar la compra al contexto (esto recargará las órdenes del usuario)
+            try {
+              // Asegurar que order.items es un array antes de pasarlo
+              const orderItems = Array.isArray(order.items) ? order.items : [];
+              if (addPurchase && typeof addPurchase === 'function') {
+                await addPurchase(orderItems, order.total);
+                console.log('✅ Purchase added to user context');
+              }
+            } catch (purchaseError) {
+              console.error('❌ Error adding purchase to context:', purchaseError);
+            }
+          }
+        } else {
+          console.log('⚠️ No order found for this session');
+        }
+      }
+
+      toast({
+        title: "¡Pago exitoso!",
+        description: "Tu pedido ha sido procesado correctamente.",
+        variant: "default",
+      });
+
+    } catch (error) {
+      console.error('❌ Error processing payment success:', error);
+    }
+
+    setLoading(false);
+  }, [sessionId, user, addPurchase, orderProcessed]);
+
+  useEffect(() => {
     // Simular verificación del pago
     const timer = setTimeout(() => {
       processPaymentSuccess();
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [sessionId]); // Solo sessionId como dependencia para evitar el ciclo infinito
+  }, [processPaymentSuccess]);
 
   if (loading) {
     return (
