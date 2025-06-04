@@ -12,6 +12,7 @@ import { schoolService, School as SchoolType } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
 
 const SchoolManagement = () => {
+  // ... keep existing code (state variables and useEffect)
   const [schools, setSchools] = useState<SchoolType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +76,29 @@ const SchoolManagement = () => {
     school.grades.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Función mejorada para parsear CSV con comillas y comas
+  const parseCSVLine = (line: string): string[] => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.trim());
+    return result;
+  };
+
   // Función para procesar archivo CSV
   const handleCsvUpload = async () => {
     if (!csvFile) {
@@ -90,17 +114,42 @@ const SchoolManagement = () => {
     
     try {
       const text = await csvFile.text();
-      const rows = text.split('\n');
-      const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+      const rows = text.split('\n').filter(row => row.trim() !== '');
+      
+      if (rows.length < 2) {
+        toast({
+          title: "Error en formato CSV",
+          description: "El archivo debe tener al menos una fila de encabezados y una fila de datos",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Parsear la primera fila para obtener los headers
+      const headers = parseCSVLine(rows[0]).map(h => h.toLowerCase().replace(/['"]/g, '').trim());
       
       // Validar headers requeridos
       const requiredHeaders = ['name', 'address', 'phone', 'grades', 'enrollment'];
-      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+      const headerMapping: { [key: string]: string } = {};
+      
+      // Mapear headers con flexibilidad en los nombres
+      requiredHeaders.forEach(required => {
+        const found = headers.find(h => 
+          h === required || 
+          h.includes(required) || 
+          (required === 'enrollment' && (h.includes('matricula') || h.includes('estudiantes')))
+        );
+        if (found) {
+          headerMapping[required] = found;
+        }
+      });
+      
+      const missingHeaders = requiredHeaders.filter(h => !headerMapping[h]);
       
       if (missingHeaders.length > 0) {
         toast({
           title: "Error en formato CSV",
-          description: `Faltan las columnas: ${missingHeaders.join(', ')}`,
+          description: `Faltan las columnas: ${missingHeaders.join(', ')}. Headers encontrados: ${headers.join(', ')}`,
           variant: "destructive"
         });
         return;
@@ -109,63 +158,81 @@ const SchoolManagement = () => {
       const schoolsToAdd = [];
       const errors = [];
 
-      // Procesar cada fila
+      // Procesar cada fila de datos
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i].trim();
         if (!row) continue;
 
-        const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
-        
-        if (values.length !== headers.length) {
-          errors.push(`Fila ${i + 1}: Número incorrecto de columnas`);
+        try {
+          const values = parseCSVLine(row);
+          
+          if (values.length !== headers.length) {
+            errors.push(`Fila ${i + 1}: Número incorrecto de columnas (esperadas: ${headers.length}, encontradas: ${values.length})`);
+            continue;
+          }
+
+          const schoolData: any = {};
+          headers.forEach((header, index) => {
+            schoolData[header] = values[index].replace(/['"]/g, '').trim();
+          });
+
+          // Extraer datos usando el mapeo de headers
+          const name = schoolData[headerMapping['name']];
+          const address = schoolData[headerMapping['address']];
+          const phone = schoolData[headerMapping['phone']];
+          const grades = schoolData[headerMapping['grades']];
+          const enrollmentValue = schoolData[headerMapping['enrollment']];
+
+          // Validar datos requeridos
+          if (!name || !address || !phone || !grades) {
+            errors.push(`Fila ${i + 1}: Campos obligatorios faltantes (nombre: ${name}, dirección: ${address}, teléfono: ${phone}, grados: ${grades})`);
+            continue;
+          }
+
+          // Validar y convertir matrícula
+          const enrollment = parseInt(enrollmentValue.replace(/[^\d]/g, ''));
+          if (isNaN(enrollment) || enrollment <= 0) {
+            errors.push(`Fila ${i + 1}: Matrícula debe ser un número positivo (valor: ${enrollmentValue})`);
+            continue;
+          }
+
+          // Verificar duplicados
+          const existingSchool = schools.find(s => 
+            s.name.toLowerCase() === name.toLowerCase()
+          );
+          if (existingSchool) {
+            errors.push(`Fila ${i + 1}: La escuela "${name}" ya existe`);
+            continue;
+          }
+
+          schoolsToAdd.push({
+            name: name,
+            address: address,
+            phone: phone,
+            grades: grades,
+            enrollment: enrollment,
+            is_active: true
+          });
+
+        } catch (parseError) {
+          errors.push(`Fila ${i + 1}: Error al procesar la fila - ${parseError}`);
           continue;
         }
-
-        const schoolData: any = {};
-        headers.forEach((header, index) => {
-          schoolData[header] = values[index];
-        });
-
-        // Validar datos requeridos
-        if (!schoolData.name || !schoolData.address || !schoolData.phone || !schoolData.grades) {
-          errors.push(`Fila ${i + 1}: Campos obligatorios faltantes`);
-          continue;
-        }
-
-        // Validar matrícula
-        const enrollment = parseInt(schoolData.enrollment);
-        if (isNaN(enrollment) || enrollment <= 0) {
-          errors.push(`Fila ${i + 1}: Matrícula debe ser un número positivo`);
-          continue;
-        }
-
-        // Verificar duplicados
-        const existingSchool = schools.find(s => 
-          s.name.toLowerCase() === schoolData.name.toLowerCase()
-        );
-        if (existingSchool) {
-          errors.push(`Fila ${i + 1}: La escuela "${schoolData.name}" ya existe`);
-          continue;
-        }
-
-        schoolsToAdd.push({
-          name: schoolData.name,
-          address: schoolData.address,
-          phone: schoolData.phone,
-          grades: schoolData.grades,
-          enrollment: enrollment,
-          is_active: true
-        });
       }
 
+      // Mostrar errores si los hay, pero continuar si hay escuelas válidas
       if (errors.length > 0) {
+        console.log('Errores encontrados:', errors);
         toast({
-          title: "Errores encontrados",
-          description: `${errors.length} errores. Revisa el formato del archivo.`,
+          title: "Algunos errores encontrados",
+          description: `${errors.length} filas con errores. ${schoolsToAdd.length} escuelas válidas para agregar.`,
           variant: "destructive"
         });
-        console.log('Errores:', errors);
-        return;
+        
+        // Si no hay escuelas válidas, no continuar
+        if (schoolsToAdd.length === 0) {
+          return;
+        }
       }
 
       if (schoolsToAdd.length === 0) {
@@ -178,19 +245,29 @@ const SchoolManagement = () => {
       }
 
       // Agregar escuelas en batch
+      let successCount = 0;
+      let failCount = 0;
+
       for (const school of schoolsToAdd) {
-        await schoolService.create(school);
+        try {
+          await schoolService.create(school);
+          successCount++;
+        } catch (error) {
+          failCount++;
+          console.error(`Error al crear escuela ${school.name}:`, error);
+        }
       }
 
       toast({
-        title: "Escuelas agregadas",
-        description: `Se agregaron ${schoolsToAdd.length} escuelas exitosamente`
+        title: "Proceso completado",
+        description: `${successCount} escuelas agregadas exitosamente${failCount > 0 ? `, ${failCount} fallaron` : ''}`
       });
 
       setCsvFile(null);
       setOpenUploadDialog(false);
       
     } catch (error) {
+      console.error('Error al procesar CSV:', error);
       toast({
         title: "Error",
         description: "Error al procesar el archivo CSV",
@@ -201,6 +278,7 @@ const SchoolManagement = () => {
     }
   };
 
+  // ... keep existing code (all other functions: handleAddSchool, handleUpdateSchool, handleDeleteSchool, handleToggleActive)
   const handleAddSchool = async () => {
     // Validar duplicados
     if (schools.some(s => s.name.toLowerCase() === newSchool.name.toLowerCase())) {
@@ -363,7 +441,10 @@ const SchoolManagement = () => {
                     onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
                   />
                   <p className="text-sm text-gray-500">
-                    El archivo debe contener las columnas: name, address, phone, grades, enrollment
+                    El archivo debe contener las columnas: Name, Address, Phone, Grades, Enrollment
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Formato soportado: CSV con comillas y comas dentro de campos
                   </p>
                 </div>
               </div>
@@ -376,7 +457,7 @@ const SchoolManagement = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Botón de añadir escuela individual */}
+          {/* ... keep existing code (añadir escuela individual dialog) */}
           <Dialog open={openAddDialog} onOpenChange={setOpenAddDialog}>
             <DialogTrigger asChild>
               <Button>
@@ -451,6 +532,7 @@ const SchoolManagement = () => {
         </div>
       </div>
 
+      {/* ... keep existing code (search bar, results display, school listing, edit dialog, delete dialog) */}
       {/* Barra de búsqueda */}
       <div className="flex items-center space-x-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
         <div className="relative flex-1">
