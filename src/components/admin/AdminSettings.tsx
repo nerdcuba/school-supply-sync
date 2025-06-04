@@ -6,14 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { useAdmin } from '@/contexts/AdminContext';
+import { supabase } from '@/integrations/supabase/client';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const AdminSettings = () => {
-  const { currentAdmin, updateAdminCredentials } = useAdmin();
+  const { isAdminAuthenticated } = useAdmin();
   
   const [formData, setFormData] = useState({
-    username: currentAdmin?.username || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -22,6 +22,7 @@ const AdminSettings = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -30,56 +31,80 @@ const AdminSettings = () => {
     });
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    // Validación básica
-    if (currentAdmin?.password !== formData.currentPassword) {
+    try {
+      // Validación básica
+      if (formData.newPassword !== formData.confirmPassword) {
+        toast({
+          title: "Error",
+          description: "Las nuevas contraseñas no coinciden",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (formData.newPassword && formData.newPassword.length < 6) {
+        toast({
+          title: "Error",
+          description: "La nueva contraseña debe tener al menos 6 caracteres",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Actualizar contraseña usando Supabase
+      const { error } = await supabase.auth.updateUser({
+        password: formData.newPassword
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Reiniciar campos de contraseña
+      setFormData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      
+      toast({
+        title: "Actualización exitosa",
+        description: "La contraseña de administrador ha sido actualizada"
+      });
+    } catch (error) {
+      console.error('Error updating password:', error);
       toast({
         title: "Error",
-        description: "La contraseña actual es incorrecta",
+        description: "Ha ocurrido un error inesperado",
         variant: "destructive"
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
-    
-    if (formData.newPassword !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Las nuevas contraseñas no coinciden",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (formData.newPassword && formData.newPassword.length < 4) {
-      toast({
-        title: "Error",
-        description: "La nueva contraseña debe tener al menos 4 caracteres",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Si todo está bien, actualizar credenciales
-    updateAdminCredentials(
-      formData.username,
-      formData.newPassword || currentAdmin?.password || ''
-    );
-    
-    // Reiniciar campos de contraseña
-    setFormData({
-      ...formData,
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    });
-    
-    toast({
-      title: "Actualización exitosa",
-      description: "Las credenciales de administrador han sido actualizadas"
-    });
   };
+
+  if (!isAdminAuthenticated) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-3xl font-bold">Configuración</h2>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Debes estar autenticado como administrador para acceder a esta página.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -87,33 +112,13 @@ const AdminSettings = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>Credenciales de Administrador</CardTitle>
+          <CardTitle>Cambiar Contraseña</CardTitle>
           <CardDescription>
-            Actualiza tu nombre de usuario y contraseña de administrador
+            Actualiza tu contraseña de administrador
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {currentAdmin?.username === 'admin' && currentAdmin?.password === 'admin' && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Estás usando las credenciales predeterminadas. Por seguridad, deberías cambiarlas.
-              </AlertDescription>
-            </Alert>
-          )}
-          
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Nombre de Usuario</Label>
-              <Input
-                id="username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            
             <div className="space-y-2">
               <Label htmlFor="currentPassword">Contraseña Actual</Label>
               <div className="relative">
@@ -177,8 +182,8 @@ const AdminSettings = () => {
               </div>
             </div>
             
-            <Button type="submit" className="w-full">
-              Actualizar Credenciales
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Actualizando..." : "Actualizar Contraseña"}
             </Button>
           </form>
         </CardContent>
