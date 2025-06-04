@@ -67,6 +67,15 @@ function App() {
     setCartItems([]);
   };
 
+  const calculateTotal = () => {
+    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const handleCheckout = () => {
+    console.log('Proceeding to checkout with items:', cartItems);
+    // TODO: Implement checkout functionality
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -117,10 +126,11 @@ function App() {
                   <ShoppingCartSidebar
                     isOpen={isCartOpen}
                     onClose={() => setIsCartOpen(false)}
-                    cartItems={cartItems}
+                    items={cartItems}
                     onRemoveItem={handleRemoveFromCart}
                     onUpdateQuantity={handleUpdateQuantity}
-                    onClearCart={handleClearCart}
+                    total={calculateTotal()}
+                    onCheckout={handleCheckout}
                   />
                 </div>
               </BrowserRouter>
