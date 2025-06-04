@@ -198,16 +198,16 @@ const OrderManagement = () => {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { label: 'Pendiente', variant: 'secondary' as const, icon: Clock },
-      processing: { label: 'Procesando', variant: 'default' as const, icon: Package },
-      completed: { label: 'Completado', variant: 'default' as const, icon: CheckCircle },
-      cancelled: { label: 'Cancelado', variant: 'destructive' as const, icon: XCircle },
+      processing: { label: 'Procesando', variant: 'default' as const, icon: Package, className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
+      completed: { label: 'Completado', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-500 text-white hover:bg-green-600' },
+      cancelled: { label: 'Cancelado', variant: 'default' as const, icon: XCircle, className: 'bg-red-500 text-white hover:bg-red-600' },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     const Icon = config.icon;
 
     return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
+      <Badge variant={config.variant} className={`flex items-center gap-1 ${config.className || ''}`}>
         <Icon size={12} />
         {config.label}
       </Badge>
