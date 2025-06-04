@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, MapPin, Users, BookOpen } from "lucide-react";
+import { Search, MapPin, Users, BookOpen, Phone } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { defaultSchoolImages } from "@/utils/defaultSchoolImages";
 import { schoolService, School } from "@/services/schoolService";
@@ -46,6 +46,9 @@ const Schools = () => {
   // Limit to first 9 schools for 3x3 grid on large screens
   const displaySchools = filteredSchools.slice(0, 9);
 
+  // Calculate total enrollment from all schools
+  const totalEnrollment = schools.reduce((sum, school) => sum + (school.enrollment || 0), 0);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -80,7 +83,7 @@ const Schools = () => {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats - Now using real data */}
         <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
           <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
             <div className="text-primary mb-2">
@@ -94,8 +97,7 @@ const Schools = () => {
               <Users size={32} className="mx-auto" />
             </div>
             <h3 className="text-2xl font-bold text-textPrimary mb-2">
-              {/* Since we don't have student count in DB, show number of schools */}
-              {schools.length > 0 ? `${schools.length * 800}+` : '0'}
+              {totalEnrollment > 0 ? totalEnrollment.toLocaleString() : '0'}
             </h3>
             <p className="text-textPrimary">{t('schools.students')}</p>
           </div>
@@ -135,9 +137,9 @@ const Schools = () => {
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant="secondary">Miami-Dade</Badge>
                     <div className="flex items-center space-x-1">
-                      <Users className="w-4 h-4 text-gray-600" />
+                      <BookOpen className="w-4 h-4 text-gray-600" />
                       <span className="text-sm text-gray-600">
-                        {school.principal || t('schools.principal')}
+                        {school.grades || 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -147,24 +149,25 @@ const Schools = () => {
                 </CardHeader>
 
                 <CardContent className="pt-0">
-                  <div className="flex items-start space-x-2 text-textPrimary mb-4">
+                  <div className="flex items-start space-x-2 text-textPrimary mb-3">
                     <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
                     <p className="text-sm line-clamp-2">{school.address}</p>
                   </div>
 
-                  {/* School Info */}
-                  <div className="flex justify-between text-sm text-textPrimary mb-4">
-                    <span className="font-medium">{t('schools.phone')}: {school.phone}</span>
-                    {school.website && (
-                      <a 
-                        href={school.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {t('schools.website')}
-                      </a>
-                    )}
+                  {/* School Info - Updated to show real data */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-textPrimary">
+                      <Phone size={14} className="mr-2 text-gray-400" />
+                      <span>{school.phone}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-textPrimary">
+                      <Users size={14} className="mr-2 text-gray-400" />
+                      <span>{school.enrollment ? school.enrollment.toLocaleString() : '0'} estudiantes</span>
+                    </div>
+                    <div className="flex items-center text-sm text-textPrimary">
+                      <BookOpen size={14} className="mr-2 text-gray-400" />
+                      <span>Grados: {school.grades || 'N/A'}</span>
+                    </div>
                   </div>
 
                   {/* View Supplies Button */}
