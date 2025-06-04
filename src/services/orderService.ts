@@ -9,6 +9,7 @@ export interface Order {
   status: string;
   school_name?: string;
   grade?: string;
+  stripe_session_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -67,5 +68,21 @@ export const orderService = {
       ...order,
       items: Array.isArray(order.items) ? order.items : []
     }));
+  },
+
+  // Actualizar estado de una orden
+  async updateStatus(orderId: string, status: string): Promise<void> {
+    const { error } = await supabase
+      .from('orders')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId);
+    
+    if (error) {
+      console.error('Error updating order status:', error);
+      throw error;
+    }
   }
 };

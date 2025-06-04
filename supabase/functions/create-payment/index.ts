@@ -8,55 +8,56 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CREATE-PAYMENT] ${step}${detailsStr}`);
-};
-
 serve(async (req) => {
-  // Handle CORS preflight requests
+  console.log('🚀 create-payment function called');
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    logStep("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
-
-    // Create Supabase client using the anon key for user authentication
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-
-    // Get the request body
     const { items, total, customerData } = await req.json();
-    logStep("Request data received", { itemsCount: items?.length, total, hasCustomerData: !!customerData });
+    console.log('📦 Received payment request:', { 
+      itemsCount: items?.length, 
+      total, 
+      customerEmail: customerData?.email 
+    });
 
-    // Retrieve authenticated user (optional for one-time payments)
-    let user = null;
+    // Get authenticated user
     const authHeader = req.headers.get("Authorization");
+    console.log('🔐 Auth header present:', !!authHeader);
+    
+    let user = null;
     if (authHeader) {
+      const supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      );
+      
       const token = authHeader.replace("Bearer ", "");
       const { data } = await supabaseClient.auth.getUser(token);
       user = data.user;
-      logStep("User authenticated", { userId: user?.id, email: user?.email });
+      console.log('👤 User authenticated:', user?.email || 'No user');
     }
 
     // Initialize Stripe
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2023-10-16",
+    });
 
-    // Check if a Stripe customer record exists for this user
-    let customerId;
+    // Check for existing Stripe customer
     const customerEmail = user?.email || customerData?.email || "guest@example.com";
+    const customers = await stripe.customers.list({ 
+      email: customerEmail, 
+      limit: 1 
+    });
     
-    const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
+    let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      logStep("Found existing Stripe customer", { customerId });
+      console.log('✅ Found existing Stripe customer:', customerId);
+    } else {
+      console.log('📝 Will create new Stripe customer for:', customerEmail);
     }
 
     // Create line items for Stripe
@@ -64,17 +65,17 @@ serve(async (req) => {
       price_data: {
         currency: "usd",
         product_data: {
-          name: item.name,
-          description: `${item.brand} - ${item.category}`,
+          name: item.name || "Product",
+          description: item.description || undefined,
         },
-        unit_amount: Math.round(item.price * 100), // Convert to cents
+        unit_amount: Math.round((item.price || 0) * 100), // Convert to cents
       },
-      quantity: item.quantity,
+      quantity: item.quantity || 1,
     }));
 
-    logStep("Line items created", { lineItemsCount: lineItems.length });
+    console.log('💳 Creating Stripe session with', lineItems.length, 'items');
 
-    // Create a one-time payment session
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : customerEmail,
@@ -83,42 +84,64 @@ serve(async (req) => {
       success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/payment-canceled`,
       metadata: {
-        user_id: user?.id || "guest",
-        order_data: JSON.stringify({ items, total }),
-      },
+        user_id: user?.id || 'guest',
+        total: total.toString(),
+        items_count: items.length.toString()
+      }
     });
 
-    logStep("Stripe session created", { sessionId: session.id, url: session.url });
+    console.log('🎉 Stripe session created:', session.id);
 
-    // Optional: Create pending order in Supabase
+    // Save order to database if user is authenticated
     if (user) {
+      console.log('💾 Saving order to database for user:', user.email);
+      
       const supabaseService = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-        { auth: { persistSession: false } }
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
       );
 
-      await supabaseService.from("orders").insert({
-        user_id: user.id,
-        items: items,
-        total: total,
-        status: "pending",
-        created_at: new Date().toISOString()
-      });
+      const { data: orderData, error: orderError } = await supabaseService
+        .from("orders")
+        .insert({
+          user_id: user.id,
+          items: items,
+          total: total,
+          status: "pending",
+          stripe_session_id: session.id,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
 
-      logStep("Pending order created in database");
+      if (orderError) {
+        console.error('❌ Error saving order:', orderError);
+      } else {
+        console.log('✅ Order saved with ID:', orderData.id);
+      }
     }
 
-    return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error: any) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in create-payment", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ 
+        url: session.url,
+        sessionId: session.id 
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
+
+  } catch (error) {
+    console.error('❌ Payment creation error:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || "Error processing payment" 
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
   }
 });
