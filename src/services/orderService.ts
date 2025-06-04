@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { createClient } from '@supabase/supabase-js';
 
 export interface Order {
   id: string;
@@ -14,18 +13,6 @@ export interface Order {
   created_at?: string;
   updated_at?: string;
 }
-
-// Cliente con service role para admin hardcodeado
-const supabaseServiceRole = createClient(
-  'https://pcbdmqwjiecnnuyhkoup.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjYmRtcXdqaWVjbm51eWhrb3VwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODYzNjM5MSwiZXhwIjoyMDY0MjEyMzkxfQ.t1gNODI04tbP7P_XPKfp5vfm6GHmTFaYbaBcR5p2aP4',
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
 
 export const orderService = {
   // Crear nueva orden (usuarios autenticados)
@@ -99,29 +86,25 @@ export const orderService = {
     const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
     
     if (hardcodedAuth === 'true') {
-      console.log('📋 Admin hardcodeado detectado, usando service role...');
+      console.log('📋 Admin hardcodeado detectado, pero usando cliente normal con permisos admin...');
       
-      try {
-        // Usar cliente con service role para admin hardcodeado
-        const { data, error } = await supabaseServiceRole
-          .from('orders')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('❌ Error fetching orders for hardcoded admin:', error);
-          return [];
-        }
-        
-        console.log('📋 Órdenes obtenidas por admin hardcodeado:', data?.length || 0);
-        return (data || []).map(order => ({
-          ...order,
-          items: Array.isArray(order.items) ? order.items : []
-        }));
-      } catch (error) {
-        console.error('❌ Error con service role:', error);
+      // Para admin hardcodeado, simplemente usar el cliente normal
+      // Las políticas RLS permitirán acceso si el usuario tiene rol admin
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error fetching orders:', error);
         return [];
       }
+      
+      console.log('📋 Órdenes obtenidas:', data?.length || 0);
+      return (data || []).map(order => ({
+        ...order,
+        items: Array.isArray(order.items) ? order.items : []
+      }));
     }
     
     // Para admin de Supabase autenticado, usar cliente normal con RLS
@@ -152,38 +135,17 @@ export const orderService = {
   async updateStatus(orderId: string, status: string): Promise<void> {
     console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
     
-    // Verificar si es admin hardcodeado
-    const hardcodedAuth = localStorage.getItem('hardcoded_admin_auth');
+    const { error } = await supabase
+      .from('orders')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId);
     
-    if (hardcodedAuth === 'true') {
-      console.log('🔄 Actualizando con service role (admin hardcodeado)...');
-      
-      const { error } = await supabaseServiceRole
-        .from('orders')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
-      
-      if (error) {
-        console.error('❌ Error updating order status with service role:', error);
-        throw error;
-      }
-    } else {
-      // Para admin de Supabase, usar cliente normal
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
-      
-      if (error) {
-        console.error('❌ Error updating order status:', error);
-        throw error;
-      }
+    if (error) {
+      console.error('❌ Error updating order status:', error);
+      throw error;
     }
     
     console.log('✅ Estado de orden actualizado correctamente');
