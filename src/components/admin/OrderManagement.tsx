@@ -5,16 +5,36 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Eye, Package, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Eye, Package, Clock, CheckCircle, XCircle, Search, Filter, CalendarIcon, X } from 'lucide-react';
 import { orderService, Order } from '@/services/orderService';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+
+interface FilterState {
+  searchTerm: string;
+  status: string;
+  dateFrom: Date | undefined;
+  dateTo: Date | undefined;
+}
 
 const OrderManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FilterState>({
+    searchTerm: '',
+    status: 'all',
+    dateFrom: undefined,
+    dateTo: undefined
+  });
   const { toast } = useToast();
 
   const loadOrders = async () => {
@@ -24,6 +44,7 @@ const OrderManagement = () => {
       const data = await orderService.getAll();
       console.log('✅ Órdenes cargadas:', data.length);
       setOrders(data);
+      setFilteredOrders(data);
     } catch (error) {
       console.error('❌ Error loading orders:', error);
       toast({
@@ -32,6 +53,7 @@ const OrderManagement = () => {
         variant: "destructive",
       });
       setOrders([]);
+      setFilteredOrders([]);
     } finally {
       setLoading(false);
     }
@@ -49,6 +71,72 @@ const OrderManagement = () => {
   useEffect(() => {
     loadOrders();
   }, []);
+
+  // Aplicar filtros cuando cambien los criterios o las órdenes
+  useEffect(() => {
+    applyFilters();
+  }, [filters, orders]);
+
+  const applyFilters = () => {
+    let filtered = [...orders];
+
+    // Filtro por término de búsqueda (cliente, ID de orden, escuela)
+    if (filters.searchTerm.trim()) {
+      const searchLower = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(order => {
+        const customerName = getCustomerName(order).toLowerCase();
+        const schoolName = getSchoolFromOrder(order).toLowerCase();
+        const orderId = order.id.toLowerCase();
+        
+        return customerName.includes(searchLower) ||
+               schoolName.includes(searchLower) ||
+               orderId.includes(searchLower);
+      });
+    }
+
+    // Filtro por estado
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(order => order.status === filters.status);
+    }
+
+    // Filtro por rango de fechas
+    if (filters.dateFrom) {
+      filtered = filtered.filter(order => {
+        if (!order.created_at) return false;
+        const orderDate = new Date(order.created_at);
+        return orderDate >= filters.dateFrom!;
+      });
+    }
+
+    if (filters.dateTo) {
+      filtered = filtered.filter(order => {
+        if (!order.created_at) return false;
+        const orderDate = new Date(order.created_at);
+        // Agregar 23:59:59 al final del día seleccionado
+        const endOfDay = new Date(filters.dateTo!);
+        endOfDay.setHours(23, 59, 59, 999);
+        return orderDate <= endOfDay;
+      });
+    }
+
+    setFilteredOrders(filtered);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      searchTerm: '',
+      status: 'all',
+      dateFrom: undefined,
+      dateTo: undefined
+    });
+  };
+
+  const hasActiveFilters = () => {
+    return filters.searchTerm.trim() !== '' ||
+           filters.status !== 'all' ||
+           filters.dateFrom !== undefined ||
+           filters.dateTo !== undefined;
+  };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
@@ -189,23 +277,116 @@ const OrderManagement = () => {
             Gestión de Órdenes
           </CardTitle>
           <CardDescription>
-            Administra todas las órdenes del sistema ({orders.length} órdenes)
+            Administra todas las órdenes del sistema ({filteredOrders.length} de {orders.length} órdenes)
           </CardDescription>
-          <div className="mt-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={loadOrders}
-              className="flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Recargar órdenes
-            </Button>
-          </div>
         </CardHeader>
         <CardContent>
+          {/* Filtros y Búsqueda */}
+          <div className="space-y-4 mb-6">
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Búsqueda */}
+              <div className="flex-1 min-w-64">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Buscar por cliente, escuela o ID de orden..."
+                    value={filters.searchTerm}
+                    onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              {/* Filtro por Estado */}
+              <Select 
+                value={filters.status} 
+                onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="processing">Procesando</SelectItem>
+                  <SelectItem value="completed">Completado</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Filtro por Fecha Desde */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-48 justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {filters.dateFrom ? format(filters.dateFrom, "dd/MM/yyyy") : "Fecha desde"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={filters.dateFrom}
+                    onSelect={(date) => setFilters(prev => ({ ...prev, dateFrom: date }))}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Filtro por Fecha Hasta */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-48 justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {filters.dateTo ? format(filters.dateTo, "dd/MM/yyyy") : "Fecha hasta"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={filters.dateTo}
+                    onSelect={(date) => setFilters(prev => ({ ...prev, dateTo: date }))}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Botón para limpiar filtros */}
+              {hasActiveFilters() && (
+                <Button variant="outline" onClick={clearFilters} className="flex items-center gap-2">
+                  <X className="h-4 w-4" />
+                  Limpiar filtros
+                </Button>
+              )}
+
+              {/* Botón recargar */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={loadOrders}
+                className="flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Recargar
+              </Button>
+            </div>
+
+            {/* Indicadores de filtros activos */}
+            {hasActiveFilters() && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Filter className="h-4 w-4" />
+                <span>Filtros activos:</span>
+                {filters.searchTerm && <Badge variant="secondary">Búsqueda: "{filters.searchTerm}"</Badge>}
+                {filters.status !== 'all' && <Badge variant="secondary">Estado: {getStatusLabel(filters.status)}</Badge>}
+                {filters.dateFrom && <Badge variant="secondary">Desde: {format(filters.dateFrom, "dd/MM/yyyy")}</Badge>}
+                {filters.dateTo && <Badge variant="secondary">Hasta: {format(filters.dateTo, "dd/MM/yyyy")}</Badge>}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -221,7 +402,7 @@ const OrderManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.length > 0 ? orders.map((order) => (
+                {filteredOrders.length > 0 ? filteredOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-mono text-sm">
                       {order.id.slice(0, 8)}...
@@ -344,7 +525,7 @@ const OrderManagement = () => {
                 )) : (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      No hay órdenes registradas en el sistema
+                      {hasActiveFilters() ? 'No se encontraron órdenes que coincidan con los filtros aplicados' : 'No hay órdenes registradas en el sistema'}
                     </TableCell>
                   </TableRow>
                 )}
