@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Order {
@@ -117,7 +118,7 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - VERSIÓN CORREGIDA
+  // Actualizar estado de una orden (admin) - VERSIÓN DEFINITIVA SIN .single()
   async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando orden ${orderId} a estado: ${status}`);
     
@@ -148,40 +149,31 @@ export const orderService = {
     
     console.log('✅ Usuario admin verificado, actualizando orden...');
     
-    // ACTUALIZACIÓN DIRECTA Y SIMPLE - sin transacciones complejas
-    const { data: updatedOrder, error: updateError } = await supabase
+    // ACTUALIZACIÓN SIMPLE SIN .single() - usar array en lugar de objeto único
+    const { data: updatedOrders, error: updateError } = await supabase
       .from('orders')
       .update({ 
         status: status,
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
-      .select()
-      .single();
+      .select();
     
     if (updateError) {
       console.error('❌ Error actualizando orden:', updateError);
       throw new Error(`Error al actualizar la orden: ${updateError.message}`);
     }
 
-    if (!updatedOrder) {
-      throw new Error('No se pudo obtener la orden actualizada');
+    if (!updatedOrders || updatedOrders.length === 0) {
+      throw new Error('No se encontró la orden para actualizar');
+    }
+
+    if (updatedOrders.length > 1) {
+      console.warn('⚠️ Se actualizaron múltiples órdenes, usando la primera');
     }
     
+    const updatedOrder = updatedOrders[0];
     console.log('✅ Orden actualizada exitosamente en BD:', updatedOrder);
-    
-    // Verificar que el cambio se persistió correctamente
-    const { data: verifiedOrder, error: verifyError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .single();
-    
-    if (verifyError) {
-      console.error('❌ Error verificando orden:', verifyError);
-    } else {
-      console.log('🔍 Orden verificada en BD:', verifiedOrder);
-    }
     
     return {
       ...updatedOrder,
