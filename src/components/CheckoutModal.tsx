@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, MapPin, User } from "lucide-react";
+import { CreditCard, MapPin, User, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -34,6 +35,59 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
 
   const { user, addPurchase } = useAuth();
   const finalTotal = total * 1.0875; // Including taxes
+
+  // Si no hay usuario autenticado, mostrar mensaje para iniciar sesión
+  if (!user) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <LogIn size={20} />
+              <span>Iniciar Sesión Requerido</span>
+            </DialogTitle>
+            <DialogDescription>
+              Debes iniciar sesión para proceder con el checkout
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="text-center py-6">
+            <LogIn size={48} className="mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Autenticación Requerida
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Para completar tu compra, necesitas tener una cuenta e iniciar sesión. 
+              Esto nos permite procesar tu pedido de manera segura y mantener un historial de tus compras.
+            </p>
+            
+            <div className="space-y-3">
+              <Link to="/login" onClick={onClose}>
+                <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                  Iniciar Sesión
+                </Button>
+              </Link>
+              <Link to="/register" onClick={onClose}>
+                <Button variant="outline" className="w-full">
+                  Crear Cuenta Nueva
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              className="w-full"
+            >
+              Volver al Carrito
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
