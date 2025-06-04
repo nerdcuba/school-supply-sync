@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -97,7 +97,7 @@ const PaymentSuccess = () => {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [sessionId, user?.id, user?.email, addPurchase, orderProcessed]);
+  }, [sessionId]); // Solo sessionId como dependencia para evitar problemas de tipos
 
   if (loading) {
     return (
