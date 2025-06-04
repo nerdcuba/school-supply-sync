@@ -118,9 +118,9 @@ export const orderService = {
     }));
   },
 
-  // Actualizar estado de una orden (admin) - REFACTORIZADO COMPLETAMENTE
+  // Actualizar estado de una orden (admin) - COMPLETAMENTE REFACTORIZADO
   async updateStatus(orderId: string, status: string): Promise<Order> {
-    console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
+    console.log(`🔄 Iniciando actualización de orden ${orderId} a estado: ${status}`);
     
     // Verificar autenticación de admin
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -141,37 +141,19 @@ export const orderService = {
       throw new Error('No tienes permisos de administrador');
     }
     
-    console.log('✅ Usuario admin verificado, actualizando orden...');
-    
     // Validar que el estado sea uno de los permitidos
     const validStatuses = ['pendiente', 'procesando', 'completada', 'cancelada'];
     if (!validStatuses.includes(status)) {
       throw new Error(`Estado inválido: ${status}. Estados permitidos: ${validStatuses.join(', ')}`);
     }
     
+    console.log('✅ Usuario admin verificado, procediendo con actualización...');
+    
     try {
-      console.log('🔍 Verificando que la orden existe...');
+      // NUEVO ENFOQUE: Usar un procedimiento más directo y robusto
+      console.log(`🔄 Actualizando orden ${orderId} con estado: ${status}`);
       
-      // Primero verificar que la orden existe
-      const { data: existingOrder, error: checkError } = await supabase
-        .from('orders')
-        .select('id, status, user_id')
-        .eq('id', orderId)
-        .maybeSingle();
-        
-      if (checkError) {
-        console.error('❌ Error al verificar orden:', checkError);
-        throw new Error(`Error al verificar la orden: ${checkError.message}`);
-      }
-      
-      if (!existingOrder) {
-        console.error('❌ Orden no encontrada');
-        throw new Error(`La orden con ID ${orderId} no existe`);
-      }
-      
-      console.log('✅ Orden encontrada, procediendo con actualización...');
-      
-      // Ahora actualizar el estado
+      // Realizar la actualización directamente con RPC si es necesario, o usar update simple
       const { error: updateError } = await supabase
         .from('orders')
         .update({ 
@@ -185,21 +167,26 @@ export const orderService = {
         throw new Error(`Error al actualizar la orden: ${updateError.message}`);
       }
 
-      console.log('✅ Orden actualizada, obteniendo datos actualizados...');
+      console.log('✅ Actualización exitosa, obteniendo orden actualizada...');
 
-      // Finalmente obtener la orden actualizada
+      // Obtener la orden actualizada por separado
       const { data: updatedOrder, error: fetchError } = await supabase
         .from('orders')
         .select('*')
         .eq('id', orderId)
         .single();
 
-      if (fetchError || !updatedOrder) {
+      if (fetchError) {
         console.error('❌ Error al obtener orden actualizada:', fetchError);
-        throw new Error(`Error al obtener la orden actualizada: ${fetchError?.message || 'No data returned'}`);
+        throw new Error(`Error al obtener la orden actualizada: ${fetchError.message}`);
+      }
+
+      if (!updatedOrder) {
+        throw new Error('No se pudo obtener la orden actualizada');
       }
       
-      console.log('✅ Estado de orden actualizado correctamente:', updatedOrder);
+      console.log('✅ Orden actualizada exitosamente:', updatedOrder);
+      
       return {
         ...updatedOrder,
         items: Array.isArray(updatedOrder.items) ? updatedOrder.items : []
@@ -207,6 +194,7 @@ export const orderService = {
       
     } catch (error) {
       console.error('❌ Error general al actualizar orden:', error);
+      // Re-lanzar el error original para que se maneje en el componente
       throw error;
     }
   }

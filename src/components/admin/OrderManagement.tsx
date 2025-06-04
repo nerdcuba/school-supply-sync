@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -162,15 +163,22 @@ const OrderManagement = () => {
         throw new Error('La orden no existe en el estado local');
       }
       
-      // Actualizar en base de datos y obtener la orden actualizada
+      // Actualizar en base de datos
       const updatedOrder = await orderService.updateStatus(orderId, newStatus);
       
-      console.log('✅ Estado actualizado correctamente en base de datos:', updatedOrder);
+      console.log('✅ Estado actualizado correctamente:', updatedOrder);
       
-      // Actualizar el estado local con la orden completa desde la base de datos
+      // Actualizar inmediatamente el estado local
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? updatedOrder : order
+          order.id === orderId ? { ...updatedOrder } : order
+        )
+      );
+      
+      // También actualizar filteredOrders si es necesario
+      setFilteredOrders(prevFiltered => 
+        prevFiltered.map(order => 
+          order.id === orderId ? { ...updatedOrder } : order
         )
       );
       
@@ -190,7 +198,7 @@ const OrderManagement = () => {
         variant: "destructive",
       });
       
-      // Recargar datos en caso de error para asegurar consistencia
+      // Recargar datos para asegurar consistencia en caso de error
       console.log('🔄 Recargando datos tras error...');
       await loadOrders();
     } finally {
@@ -674,7 +682,7 @@ const OrderManagement = () => {
                           </DialogContent>
                         </Dialog>
                         <select
-                          value={order.status || 'pending'}
+                          value={order.status || 'pendiente'}
                           onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                           disabled={updatingOrderId === order.id}
                           className="px-2 py-1 border rounded text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
