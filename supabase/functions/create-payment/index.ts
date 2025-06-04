@@ -86,40 +86,16 @@ serve(async (req) => {
       metadata: {
         user_id: user?.id || 'guest',
         total: total.toString(),
-        items_count: items.length.toString()
+        items_count: items.length.toString(),
+        items_data: JSON.stringify(items),
+        customer_data: JSON.stringify(customerData)
       }
     });
 
     console.log('🎉 Stripe session created:', session.id);
 
-    // Save order to database if user is authenticated
-    if (user) {
-      console.log('💾 Saving order to database for user:', user.email);
-      
-      const supabaseService = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-      );
-
-      const { data: orderData, error: orderError } = await supabaseService
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          items: items,
-          total: total,
-          status: "pending",
-          stripe_session_id: session.id,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (orderError) {
-        console.error('❌ Error saving order:', orderError);
-      } else {
-        console.log('✅ Order saved with ID:', orderData.id);
-      }
-    }
+    // NO CREAR LA ORDEN AQUÍ - Solo crear después del pago exitoso
+    console.log('⏳ Orden se creará después del pago exitoso en Stripe');
 
     return new Response(
       JSON.stringify({ 
