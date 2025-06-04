@@ -54,17 +54,15 @@ const OrderManagement = () => {
       setUpdatingOrderId(orderId);
       console.log(`🔄 Actualizando orden ${orderId} a estado: ${newStatus}`);
       
-      // Actualizar en base de datos PRIMERO
-      await orderService.updateStatus(orderId, newStatus);
+      // Actualizar en base de datos y obtener la orden actualizada
+      const updatedOrder = await orderService.updateStatus(orderId, newStatus);
       
-      console.log('✅ Estado actualizado correctamente en base de datos');
+      console.log('✅ Estado actualizado correctamente en base de datos:', updatedOrder);
       
-      // Después actualizar localmente para UI responsiva
+      // Actualizar el estado local con la orden completa desde la base de datos
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId 
-            ? { ...order, status: newStatus, updated_at: new Date().toISOString() }
-            : order
+          order.id === orderId ? updatedOrder : order
         )
       );
       

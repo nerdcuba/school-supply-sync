@@ -119,7 +119,7 @@ export const orderService = {
   },
 
   // Actualizar estado de una orden (admin)
-  async updateStatus(orderId: string, status: string): Promise<void> {
+  async updateStatus(orderId: string, status: string): Promise<Order> {
     console.log(`🔄 Actualizando estado de orden ${orderId} a: ${status}`);
     
     // Verificar autenticación de admin
@@ -141,19 +141,30 @@ export const orderService = {
       throw new Error('No tienes permisos de administrador');
     }
     
-    const { error } = await supabase
+    // Actualizar y retornar la orden actualizada
+    const { data, error } = await supabase
       .from('orders')
       .update({ 
         status,
         updated_at: new Date().toISOString()
       })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .select()
+      .single();
     
     if (error) {
       console.error('❌ Error updating order status:', error);
       throw error;
     }
+
+    if (!data) {
+      throw new Error('No se encontró la orden para actualizar');
+    }
     
     console.log('✅ Estado de orden actualizado correctamente');
+    return {
+      ...data,
+      items: Array.isArray(data.items) ? data.items : []
+    };
   }
 };
