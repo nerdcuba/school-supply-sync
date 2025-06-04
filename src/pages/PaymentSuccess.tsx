@@ -15,10 +15,12 @@ const PaymentSuccess = () => {
   const [orderProcessed, setOrderProcessed] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const processPayment = async () => {
       console.log('🎉 Processing payment success for session:', sessionId);
       
-      if (!sessionId) {
+      if (!sessionId || !isMounted) {
         setLoading(false);
         return;
       }
@@ -30,7 +32,7 @@ const PaymentSuccess = () => {
         window.localStorage.setItem('paymentCompleted', Date.now().toString());
 
         // Si hay usuario autenticado, actualizar la orden en la base de datos
-        if (user && !orderProcessed) {
+        if (user && !orderProcessed && isMounted) {
           console.log('👤 Updating order status for user:', user.email);
           
           // Buscar la orden con este session_id
@@ -42,7 +44,7 @@ const PaymentSuccess = () => {
 
           if (fetchError) {
             console.error('❌ Error fetching order:', fetchError);
-          } else if (orders && orders.length > 0) {
+          } else if (orders && orders.length > 0 && isMounted) {
             const order = orders[0];
             console.log('📋 Found order to update:', order.id);
 
@@ -57,7 +59,7 @@ const PaymentSuccess = () => {
 
             if (updateError) {
               console.error('❌ Error updating order:', updateError);
-            } else {
+            } else if (isMounted) {
               console.log('✅ Order status updated to completed');
               setOrderProcessed(true);
               
@@ -78,17 +80,21 @@ const PaymentSuccess = () => {
           }
         }
 
-        toast({
-          title: "¡Pago exitoso!",
-          description: "Tu pedido ha sido procesado correctamente.",
-          variant: "default",
-        });
+        if (isMounted) {
+          toast({
+            title: "¡Pago exitoso!",
+            description: "Tu pedido ha sido procesado correctamente.",
+            variant: "default",
+          });
+        }
 
       } catch (error) {
         console.error('❌ Error processing payment success:', error);
       }
 
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     };
 
     // Simular verificación del pago
@@ -96,8 +102,11 @@ const PaymentSuccess = () => {
       processPayment();
     }, 2000);
 
-    return () => clearTimeout(timer);
-  }, [sessionId, user, addPurchase, orderProcessed]);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, []); // Dependencias vacías para evitar problemas de tipos
 
   if (loading) {
     return (
