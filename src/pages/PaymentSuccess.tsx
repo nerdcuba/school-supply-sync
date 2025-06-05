@@ -40,6 +40,9 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
   };
 
   useEffect(() => {
+    // Evitar múltiples ejecuciones
+    if (hasProcessed) return;
+
     const verifyPayment = async () => {
       const sessionId = searchParams.get('session_id');
       
@@ -51,6 +54,15 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
           variant: "destructive",
         });
         setVerifying(false);
+        return;
+      }
+
+      // Verificar si ya se procesó esta sesión
+      const processedKey = `payment_processed_${sessionId}`;
+      if (localStorage.getItem(processedKey)) {
+        console.log('🔄 Pago ya procesado anteriormente para esta sesión');
+        setVerifying(false);
+        setHasProcessed(true);
         return;
       }
 
@@ -72,6 +84,9 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
           setOrderDetails(data.order);
           clearCartOnce();
           
+          // Marcar como procesado
+          localStorage.setItem(processedKey, 'true');
+          
           toast({
             title: "¡Pago Exitoso!",
             description: "Tu orden ha sido procesada correctamente.",
@@ -92,9 +107,7 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
       }
     };
 
-    if (!hasProcessed) {
-      verifyPayment();
-    }
+    verifyPayment();
   }, [searchParams, onClearCart, hasProcessed]);
 
   if (verifying) {
