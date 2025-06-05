@@ -58,6 +58,117 @@ const OrdersTable = ({ orders, getOrderDetails }: OrdersTableProps) => {
     setCurrentPage(1); // Reset to first page when changing page size
   };
 
+  // Funciones mejoradas para extraer información
+  const getSchoolFromOrder = (order: any) => {
+    console.log('🏫 [OrdersTable] Extrayendo escuela de orden:', order.id);
+    
+    // Verificar en campos directos de la orden
+    if (order.school_name) {
+      return order.school_name;
+    }
+    
+    // Buscar en items
+    if (order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        // Buscar en customerInfo
+        if (item.customerInfo?.school) {
+          return item.customerInfo.school;
+        }
+        
+        // Buscar en campos directos del item
+        if (item.school) {
+          return item.school;
+        }
+        
+        // Buscar en supplies
+        if (item.supplies && Array.isArray(item.supplies)) {
+          for (const supply of item.supplies) {
+            if (supply.school) {
+              return supply.school;
+            }
+          }
+        }
+        
+        // Buscar en el nombre del item
+        if (item.name && item.name.includes(' - ')) {
+          const parts = item.name.split(' - ');
+          // La escuela suele estar en la segunda posición después del nombre del pack
+          if (parts.length >= 3) {
+            const schoolCandidate = parts[1].trim();
+            // Verificar que no sea un grado
+            if (!schoolCandidate.match(/^(K|K-\d+|\d+(st|nd|rd|th)|Grade\s+\d+|Grado\s+\d+)$/i)) {
+              return schoolCandidate;
+            }
+          }
+        }
+      }
+    }
+    
+    return 'N/A';
+  };
+
+  const getGradeFromOrder = (order: any) => {
+    console.log('📚 [OrdersTable] Extrayendo grado de orden:', order.id);
+    
+    // Verificar en campos directos de la orden
+    if (order.grade) {
+      return order.grade;
+    }
+    
+    // Buscar en items
+    if (order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        // Buscar en customerInfo
+        if (item.customerInfo?.grade) {
+          return item.customerInfo.grade;
+        }
+        
+        // Buscar en campos directos del item
+        if (item.grade) {
+          return item.grade;
+        }
+        
+        // Buscar en supplies
+        if (item.supplies && Array.isArray(item.supplies)) {
+          for (const supply of item.supplies) {
+            if (supply.grade) {
+              return supply.grade;
+            }
+          }
+        }
+        
+        // Buscar en el nombre del item
+        if (item.name && item.name.includes(' - ')) {
+          const parts = item.name.split(' - ');
+          // Buscar la parte que parece un grado
+          for (const part of parts) {
+            const trimmedPart = part.trim();
+            if (trimmedPart.match(/^(K|K-\d+|\d+(st|nd|rd|th)|Grade\s+\d+|Grado\s+\d+)$/i)) {
+              return trimmedPart;
+            }
+          }
+        }
+        
+        // Buscar patrones de grado en cualquier parte del nombre
+        if (item.name) {
+          const gradePatterns = [
+            /K-\d+/i, /\bK\b/i, /\d+st\b/i, /\d+nd\b/i, /\d+rd\b/i, /\d+th\b/i,
+            /Grade\s+\d+/i, /Grado\s+\d+/i
+          ];
+          
+          for (const pattern of gradePatterns) {
+            const match = item.name.match(pattern);
+            if (match) {
+              return match[0];
+            }
+          }
+        }
+      }
+    }
+    
+    return 'N/A';
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -101,14 +212,13 @@ const OrdersTable = ({ orders, getOrderDetails }: OrdersTableProps) => {
               </TableHeader>
               <TableBody>
                 {paginatedOrders.map((order: any) => {
-                  const orderDetails = getOrderDetails(order);
                   return (
                     <TableRow key={order.id}>
                       <TableCell className="font-mono text-sm">
                         #{order.id.slice(0, 8)}
                       </TableCell>
-                      <TableCell>{orderDetails.school}</TableCell>
-                      <TableCell>{orderDetails.grade}</TableCell>
+                      <TableCell>{getSchoolFromOrder(order)}</TableCell>
+                      <TableCell>{getGradeFromOrder(order)}</TableCell>
                       <TableCell className="font-semibold">${order.total}</TableCell>
                       <TableCell>{getStatusBadge(order.status || 'pending')}</TableCell>
                       <TableCell className="text-sm text-gray-600">

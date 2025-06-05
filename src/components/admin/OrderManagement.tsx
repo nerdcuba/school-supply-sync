@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -284,34 +285,29 @@ const OrderManagement = () => {
       for (const item of order.items) {
         console.log('🔍 Revisando item para info del cliente:', item);
         
-        // Buscar en diferentes campos posibles para el nombre
-        if (item.fullName && typeof item.fullName === 'string' && item.fullName.trim() !== '') {
-          console.log('✅ Nombre encontrado en fullName:', item.fullName);
-          return item.fullName;
-        }
-        
+        // Buscar en customerInfo primero (estructura más profunda)
         if (item.customerInfo?.billing?.fullName) {
           console.log('✅ Nombre encontrado en customerInfo.billing.fullName:', item.customerInfo.billing.fullName);
           return item.customerInfo.billing.fullName;
         }
         
-        // Fallback a otros campos posibles
+        // Buscar en campos directos del item
+        if (item.fullName && typeof item.fullName === 'string' && item.fullName.trim() !== '') {
+          console.log('✅ Nombre encontrado en fullName:', item.fullName);
+          return item.fullName;
+        }
+        
+        // Buscar en otros campos posibles
         const possibleNameFields = [
-          'customerName', 'name', 'clientName',
-          'billing?.fullName', 'billing?.name'
+          'customerName', 'name', 'clientName', 'billing.fullName', 'billing.name'
         ];
         
         for (const field of possibleNameFields) {
-          let value;
-          if (field.includes('?.')) {
-            const parts = field.split('?.');
-            value = item;
-            for (const part of parts) {
-              value = value?.[part];
-              if (!value) break;
-            }
-          } else {
-            value = item[field];
+          const parts = field.split('.');
+          let value = item;
+          for (const part of parts) {
+            value = value?.[part];
+            if (!value) break;
           }
           
           if (value && typeof value === 'string' && value.trim() !== '') {
@@ -341,27 +337,62 @@ const OrderManagement = () => {
       for (const item of order.items) {
         console.log('🔍 Revisando item para info de escuela:', item);
         
-        // Buscar en diferentes campos posibles para la escuela
+        // Buscar en customerInfo primero
+        if (item.customerInfo?.school && typeof item.customerInfo.school === 'string' && item.customerInfo.school.trim() !== '') {
+          console.log('✅ Escuela encontrada en customerInfo.school:', item.customerInfo.school);
+          return item.customerInfo.school;
+        }
+        
+        // Buscar en campos directos del item
         if (item.school && typeof item.school === 'string' && item.school.trim() !== '') {
           console.log('✅ Escuela encontrada en item.school:', item.school);
           return item.school;
         }
         
-        // Buscar en el nombre del item (muchas veces incluye la escuela)
-        if (item.name && typeof item.name === 'string' && item.name.includes(' - ')) {
-          const parts = item.name.split(' - ');
-          if (parts.length >= 2) {
-            const schoolPart = parts[parts.length - 1]; // Última parte después del último " - "
-            console.log('✅ Escuela extraída del nombre del item:', schoolPart);
-            return schoolPart;
+        // Buscar en el nombre del item - estructura específica de los packs
+        if (item.name && typeof item.name === 'string') {
+          // Para nombres como "Orden de 1 artículo(s)" buscar en otros campos
+          if (item.name.includes('Orden de') && item.name.includes('artículo')) {
+            // Este es el contenedor, buscar en supplies o en otros items
+            continue;
+          }
+          
+          // Para nombres con formato "Pack - Escuela - Grado"
+          if (item.name.includes(' - ')) {
+            const parts = item.name.split(' - ');
+            // La escuela podría estar en diferentes posiciones
+            for (let i = 1; i < parts.length; i++) {
+              const part = parts[i].trim();
+              // Evitar partes que parecen grados
+              if (!part.match(/^(K|K-\d+|\d+(st|nd|rd|th)|Grade\s+\d+|Grado\s+\d+)$/i)) {
+                console.log('✅ Escuela extraída del nombre del item:', part);
+                return part;
+              }
+            }
+          }
+        }
+        
+        // Buscar en supplies si existen
+        if (item.supplies && Array.isArray(item.supplies)) {
+          for (const supply of item.supplies) {
+            if (supply.school && typeof supply.school === 'string' && supply.school.trim() !== '') {
+              console.log('✅ Escuela encontrada en supply.school:', supply.school);
+              return supply.school;
+            }
           }
         }
         
         // Otros campos posibles
-        const possibleSchoolFields = ['schoolName', 'school_name', 'institution'];
+        const possibleSchoolFields = ['schoolName', 'school_name', 'institution', 'customerInfo.schoolName'];
         
         for (const field of possibleSchoolFields) {
-          const value = item[field];
+          const parts = field.split('.');
+          let value = item;
+          for (const part of parts) {
+            value = value?.[part];
+            if (!value) break;
+          }
+          
           if (value && typeof value === 'string' && value.trim() !== '') {
             console.log(`✅ Escuela encontrada en ${field}:`, value);
             return value;
@@ -389,15 +420,34 @@ const OrderManagement = () => {
       for (const item of order.items) {
         console.log('🔍 Revisando item para info de grado:', item);
         
-        // Buscar en diferentes campos posibles para el grado
+        // Buscar en customerInfo primero
+        if (item.customerInfo?.grade && typeof item.customerInfo.grade === 'string' && item.customerInfo.grade.trim() !== '') {
+          console.log('✅ Grado encontrado en customerInfo.grade:', item.customerInfo.grade);
+          return item.customerInfo.grade;
+        }
+        
+        // Buscar en campos directos del item
         if (item.grade && typeof item.grade === 'string' && item.grade.trim() !== '') {
           console.log('✅ Grado encontrado en item.grade:', item.grade);
           return item.grade;
         }
         
-        // Buscar en el nombre del item (muchas veces incluye el grado)
+        // Buscar en el nombre del item
         if (item.name && typeof item.name === 'string') {
-          // Buscar patrones como "K-1", "1st", "2nd", etc.
+          // Para nombres con formato "Pack - Escuela - Grado"
+          if (item.name.includes(' - ')) {
+            const parts = item.name.split(' - ');
+            // Buscar la parte que parece un grado
+            for (const part of parts) {
+              const trimmedPart = part.trim();
+              if (trimmedPart.match(/^(K|K-\d+|\d+(st|nd|rd|th)|Grade\s+\d+|Grado\s+\d+)$/i)) {
+                console.log('✅ Grado extraído del nombre del item:', trimmedPart);
+                return trimmedPart;
+              }
+            }
+          }
+          
+          // Buscar patrones de grado en cualquier parte del nombre
           const gradePatterns = [
             /K-\d+/i,           // K-1, K-2, etc.
             /\bK\b/i,           // K
@@ -418,11 +468,27 @@ const OrderManagement = () => {
           }
         }
         
+        // Buscar en supplies si existen
+        if (item.supplies && Array.isArray(item.supplies)) {
+          for (const supply of item.supplies) {
+            if (supply.grade && typeof supply.grade === 'string' && supply.grade.trim() !== '') {
+              console.log('✅ Grado encontrado en supply.grade:', supply.grade);
+              return supply.grade;
+            }
+          }
+        }
+        
         // Otros campos posibles
-        const possibleGradeFields = ['gradeName', 'grade_name', 'level'];
+        const possibleGradeFields = ['gradeName', 'grade_name', 'level', 'customerInfo.grade'];
         
         for (const field of possibleGradeFields) {
-          const value = item[field];
+          const parts = field.split('.');
+          let value = item;
+          for (const part of parts) {
+            value = value?.[part];
+            if (!value) break;
+          }
+          
           if (value && typeof value === 'string' && value.trim() !== '') {
             console.log(`✅ Grado encontrado en ${field}:`, value);
             return value;
@@ -437,66 +503,37 @@ const OrderManagement = () => {
 
   const getDeliveryInfo = (order: Order) => {
     console.log('🚚 Extrayendo información de entrega de la orden:', order.id);
-    console.log('🚚 Items completos para entrega:', JSON.stringify(order.items, null, 2));
     
     if (order.items && order.items.length > 0) {
-      // Buscar en todos los items por información de entrega
       for (const item of order.items) {
-        console.log('🔍 Revisando item para info de entrega:', item);
-        
-        // Lista expandida de campos posibles para entrega
-        const deliveryFields = [
-          'deliveryName', 'deliveryAddress', 'deliveryCity', 'deliveryZipCode',
-          'delivery?.name', 'delivery?.address', 'delivery?.city', 'delivery?.zipCode',
-          'deliveryInfo?.name', 'deliveryInfo?.address', 'deliveryInfo?.city', 'deliveryInfo?.zipCode',
-          'shipping?.name', 'shipping?.address', 'shipping?.city', 'shipping?.zipCode',
-          'shippingInfo?.name', 'shippingInfo?.address', 'shippingInfo?.city', 'shippingInfo?.zipCode',
-          'checkoutData?.deliveryName', 'checkoutData?.deliveryAddress',
-          'userData?.deliveryName', 'userData?.deliveryAddress'
-        ];
-        
-        const delivery: any = {};
-        
-        // Intentar extraer cada campo
-        for (const field of deliveryFields) {
-          let value;
-          if (field.includes('?.')) {
-            const parts = field.split('?.');
-            value = item;
-            for (const part of parts) {
-              value = value?.[part];
-              if (!value) break;
-            }
-          } else {
-            value = item[field];
-          }
-          
-          if (value && typeof value === 'string' && value.trim() !== '') {
-            const cleanField = field.split('?.').pop() || field;
-            delivery[cleanField] = value;
-            console.log(`✅ Campo de entrega encontrado ${field}:`, value);
-          }
+        // Buscar en customerInfo primero
+        if (item.customerInfo?.delivery) {
+          const delivery = item.customerInfo.delivery;
+          return {
+            deliveryName: delivery.deliveryName || delivery.name || 'N/A',
+            deliveryAddress: delivery.deliveryAddress || delivery.address || 'N/A',
+            deliveryCity: delivery.deliveryCity || delivery.city || 'N/A',
+            deliveryZipCode: delivery.deliveryZipCode || delivery.zipCode || 'N/A',
+            sameAsDelivery: delivery.sameAsDelivery || delivery.sameAsBilling || false
+          };
         }
         
-        // Si encontramos al menos un campo de entrega, procesarlo
-        if (Object.keys(delivery).length > 0) {
-          const result = {
-            deliveryName: delivery.name || delivery.deliveryName || 'N/A',
-            deliveryAddress: delivery.address || delivery.deliveryAddress || 'N/A',
-            deliveryCity: delivery.city || delivery.deliveryCity || 'N/A',
-            deliveryZipCode: delivery.zipCode || delivery.deliveryZipCode || 'N/A',
+        // Buscar campos directos en el item
+        if (item.deliveryName || item.deliveryAddress) {
+          return {
+            deliveryName: item.deliveryName || 'N/A',
+            deliveryAddress: item.deliveryAddress || 'N/A',
+            deliveryCity: item.deliveryCity || 'N/A',
+            deliveryZipCode: item.deliveryZipCode || 'N/A',
             sameAsDelivery: item.sameAsDelivery || item.sameAsBilling || false
           };
-          console.log('✅ Información de entrega procesada:', result);
-          return result;
         }
         
         // Verificar si usa la misma dirección que facturación
         if (item.sameAsDelivery || item.sameAsBilling) {
-          console.log('✅ Usa la misma dirección que facturación');
           return {
             deliveryName: 'N/A',
-            deliveryAddress: 'N/A',
+            deliveryAddress: 'N/A', 
             deliveryCity: 'N/A',
             deliveryZipCode: 'N/A',
             sameAsDelivery: true
@@ -505,7 +542,6 @@ const OrderManagement = () => {
       }
     }
     
-    console.log('❌ No se encontró información de entrega');
     return {
       deliveryName: 'N/A',
       deliveryAddress: 'N/A',
@@ -517,64 +553,36 @@ const OrderManagement = () => {
 
   const getBillingInfo = (order: Order) => {
     console.log('💰 Extrayendo información de facturación de la orden:', order.id);
-    console.log('💰 Items completos para facturación:', JSON.stringify(order.items, null, 2));
     
     if (order.items && order.items.length > 0) {
-      // Buscar en todos los items por información de facturación
       for (const item of order.items) {
-        console.log('🔍 Revisando item para info de facturación:', item);
-        
-        // Lista expandida de campos posibles para facturación
-        const billingFields = [
-          'fullName', 'email', 'phone', 'address', 'city', 'zipCode',
-          'customerName', 'customerEmail', 'customerPhone',
-          'billing?.fullName', 'billing?.email', 'billing?.phone', 'billing?.address', 'billing?.city', 'billing?.zipCode',
-          'billingInfo?.fullName', 'billingInfo?.email', 'billingInfo?.phone', 'billingInfo?.address', 'billingInfo?.city', 'billingInfo?.zipCode',
-          'customer?.name', 'customer?.email', 'customer?.phone', 'customer?.address', 'customer?.city', 'customer?.zipCode',
-          'checkoutData?.fullName', 'checkoutData?.email', 'checkoutData?.phone',
-          'userData?.name', 'userData?.email', 'userData?.phone'
-        ];
-        
-        const billing: any = {};
-        
-        // Intentar extraer cada campo
-        for (const field of billingFields) {
-          let value;
-          if (field.includes('?.')) {
-            const parts = field.split('?.');
-            value = item;
-            for (const part of parts) {
-              value = value?.[part];
-              if (!value) break;
-            }
-          } else {
-            value = item[field];
-          }
-          
-          if (value && typeof value === 'string' && value.trim() !== '') {
-            const cleanField = field.split('?.').pop() || field;
-            billing[cleanField] = value;
-            console.log(`✅ Campo de facturación encontrado ${field}:`, value);
-          }
-        }
-        
-        // Si encontramos al menos un campo de facturación, procesarlo
-        if (Object.keys(billing).length > 0) {
-          const result = {
-            fullName: billing.fullName || billing.name || billing.customerName || 'N/A',
-            email: billing.email || billing.customerEmail || 'N/A',
-            phone: billing.phone || billing.customerPhone || 'N/A',
+        // Buscar en customerInfo.billing primero
+        if (item.customerInfo?.billing) {
+          const billing = item.customerInfo.billing;
+          return {
+            fullName: billing.fullName || billing.name || 'N/A',
+            email: billing.email || 'N/A',
+            phone: billing.phone || 'N/A',
             address: billing.address || 'N/A',
             city: billing.city || 'N/A',
             zipCode: billing.zipCode || 'N/A'
           };
-          console.log('✅ Información de facturación procesada:', result);
-          return result;
+        }
+        
+        // Buscar campos directos en el item
+        if (item.fullName || item.email || item.phone) {
+          return {
+            fullName: item.fullName || item.customerName || item.name || 'N/A',
+            email: item.email || item.customerEmail || 'N/A',
+            phone: item.phone || item.customerPhone || 'N/A',
+            address: item.address || 'N/A',
+            city: item.city || 'N/A',
+            zipCode: item.zipCode || 'N/A'
+          };
         }
       }
     }
     
-    console.log('❌ No se encontró información de facturación');
     return {
       fullName: 'N/A',
       email: 'N/A',
