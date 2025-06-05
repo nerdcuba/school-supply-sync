@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -57,8 +56,8 @@ const AdminDashboard = () => {
       <header className="bg-purple-900 text-white p-4 shadow-md">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center">
-            <Shield className="mr-2" size={24} />
-            <h1 className="text-xl font-bold">Panel de Administración</h1>
+            <Shield className="mr-2 text-white" size={24} />
+            <h1 className="text-xl font-bold text-white">Panel de Administración</h1>
           </div>
           <Button 
             variant="ghost" 
