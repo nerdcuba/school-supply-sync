@@ -5,6 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { toast } from '@/hooks/use-toast';
 import { School, Plus, Pencil, Trash2, Search, Power, PowerOff, Users, BookOpen, Upload } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -33,7 +35,11 @@ const SchoolManagement = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Cargar escuelas desde Supabase - usar getAllForAdmin para ver todas las escuelas
+  // New pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [schoolsPerPage, setSchoolsPerPage] = useState(10);
+
+  // ... keep existing code (useEffect, loadSchools function)
   useEffect(() => {
     loadSchools();
     
@@ -76,7 +82,27 @@ const SchoolManagement = () => {
     school.grades.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Función mejorada para parsear CSV con comillas y comas
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredSchools.length / schoolsPerPage);
+  const startIndex = (currentPage - 1) * schoolsPerPage;
+  const endIndex = startIndex + schoolsPerPage;
+  const paginatedSchools = filteredSchools.slice(startIndex, endIndex);
+
+  // Reset pagination when search term or schools per page changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, schoolsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleSchoolsPerPageChange = (value: string) => {
+    setSchoolsPerPage(parseInt(value));
+    setCurrentPage(1);
+  };
+
+  // ... keep existing code (parseCSVLine, handleCsvUpload, handleAddSchool, handleUpdateSchool, handleDeleteSchool, handleToggleActive functions)
   const parseCSVLine = (line: string): string[] => {
     const result = [];
     let current = '';
@@ -99,7 +125,6 @@ const SchoolManagement = () => {
     return result;
   };
 
-  // Función para procesar archivo CSV
   const handleCsvUpload = async () => {
     if (!csvFile) {
       toast({
@@ -125,14 +150,11 @@ const SchoolManagement = () => {
         return;
       }
 
-      // Parsear la primera fila para obtener los headers
       const headers = parseCSVLine(rows[0]).map(h => h.toLowerCase().replace(/['"]/g, '').trim());
       
-      // Validar headers requeridos
       const requiredHeaders = ['name', 'address', 'phone', 'grades', 'enrollment'];
       const headerMapping: { [key: string]: string } = {};
       
-      // Mapear headers con flexibilidad en los nombres
       requiredHeaders.forEach(required => {
         const found = headers.find(h => 
           h === required || 
@@ -158,7 +180,6 @@ const SchoolManagement = () => {
       const schoolsToAdd = [];
       const errors = [];
 
-      // Procesar cada fila de datos
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i].trim();
         if (!row) continue;
@@ -176,27 +197,23 @@ const SchoolManagement = () => {
             schoolData[header] = values[index].replace(/['"]/g, '').trim();
           });
 
-          // Extraer datos usando el mapeo de headers
           const name = schoolData[headerMapping['name']];
           const address = schoolData[headerMapping['address']];
           const phone = schoolData[headerMapping['phone']];
           const grades = schoolData[headerMapping['grades']];
           const enrollmentValue = schoolData[headerMapping['enrollment']];
 
-          // Validar datos requeridos
           if (!name || !address || !phone || !grades) {
             errors.push(`Fila ${i + 1}: Campos obligatorios faltantes (nombre: ${name}, dirección: ${address}, teléfono: ${phone}, grados: ${grades})`);
             continue;
           }
 
-          // Validar y convertir matrícula
           const enrollment = parseInt(enrollmentValue.replace(/[^\d]/g, ''));
           if (isNaN(enrollment) || enrollment <= 0) {
             errors.push(`Fila ${i + 1}: Matrícula debe ser un número positivo (valor: ${enrollmentValue})`);
             continue;
           }
 
-          // Verificar duplicados
           const existingSchool = schools.find(s => 
             s.name.toLowerCase() === name.toLowerCase()
           );
@@ -220,7 +237,6 @@ const SchoolManagement = () => {
         }
       }
 
-      // Mostrar errores si los hay, pero continuar si hay escuelas válidas
       if (errors.length > 0) {
         console.log('Errores encontrados:', errors);
         toast({
@@ -229,7 +245,6 @@ const SchoolManagement = () => {
           variant: "destructive"
         });
         
-        // Si no hay escuelas válidas, no continuar
         if (schoolsToAdd.length === 0) {
           return;
         }
@@ -244,7 +259,6 @@ const SchoolManagement = () => {
         return;
       }
 
-      // Agregar escuelas en batch
       let successCount = 0;
       let failCount = 0;
 
@@ -278,9 +292,7 @@ const SchoolManagement = () => {
     }
   };
 
-  // ... keep existing code (all other functions: handleAddSchool, handleUpdateSchool, handleDeleteSchool, handleToggleActive)
   const handleAddSchool = async () => {
-    // Validar duplicados
     if (schools.some(s => s.name.toLowerCase() === newSchool.name.toLowerCase())) {
       toast({
         title: "Error",
@@ -290,7 +302,6 @@ const SchoolManagement = () => {
       return;
     }
 
-    // Validación básica
     if (!newSchool.name || !newSchool.address || !newSchool.phone || !newSchool.grades || newSchool.enrollment <= 0) {
       toast({
         title: "Error",
@@ -328,7 +339,6 @@ const SchoolManagement = () => {
   const handleUpdateSchool = async () => {
     if (!editingSchool) return;
 
-    // Validar duplicados (excluyendo la escuela actual)
     if (schools.some(s => s.id !== editingSchool.id && s.name.toLowerCase() === editingSchool.name.toLowerCase())) {
       toast({
         title: "Error",
@@ -338,7 +348,6 @@ const SchoolManagement = () => {
       return;
     }
 
-    // Validación básica
     if (!editingSchool.name || !editingSchool.address || !editingSchool.phone || !editingSchool.grades || editingSchool.enrollment <= 0) {
       toast({
         title: "Error",
@@ -419,7 +428,7 @@ const SchoolManagement = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Gestión de Escuelas</h2>
         <div className="flex space-x-2">
-          {/* Botón de subir CSV */}
+          {/* ... keep existing code (CSV upload and add school dialogs) */}
           <Dialog open={openUploadDialog} onOpenChange={setOpenUploadDialog}>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -457,7 +466,6 @@ const SchoolManagement = () => {
             </DialogContent>
           </Dialog>
 
-          {/* ... keep existing code (añadir escuela individual dialog) */}
           <Dialog open={openAddDialog} onOpenChange={setOpenAddDialog}>
             <DialogTrigger asChild>
               <Button>
@@ -532,10 +540,9 @@ const SchoolManagement = () => {
         </div>
       </div>
 
-      {/* ... keep existing code (search bar, results display, school listing, edit dialog, delete dialog) */}
-      {/* Barra de búsqueda */}
-      <div className="flex items-center space-x-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-        <div className="relative flex-1">
+      {/* Search bar and pagination controls */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+        <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
@@ -544,19 +551,38 @@ const SchoolManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        {searchTerm && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSearchTerm('')}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            Limpiar
-          </Button>
-        )}
+        
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="schools-per-page" className="text-sm whitespace-nowrap">Mostrar:</Label>
+            <Select value={schoolsPerPage.toString()} onValueChange={handleSchoolsPerPageChange}>
+              <SelectTrigger className="w-20 h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-gray-600 whitespace-nowrap">por página</span>
+          </div>
+          
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchTerm('')}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Limpiar
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Mostrar resultados de búsqueda */}
+      {/* Results summary */}
       {searchTerm && (
         <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
           Mostrando {filteredSchools.length} de {schools.length} escuelas
@@ -564,7 +590,7 @@ const SchoolManagement = () => {
         </div>
       )}
 
-      {/* Listado de escuelas */}
+      {/* Schools listing */}
       {schools.length === 0 ? (
         <Card className="text-center p-10">
           <CardContent className="pt-10">
@@ -591,7 +617,7 @@ const SchoolManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSchools.map((school) => (
+                {paginatedSchools.map((school) => (
                   <TableRow key={school.id} className={!school.is_active ? 'opacity-50' : ''}>
                     <TableCell>
                       <div className="flex items-center">
@@ -665,7 +691,56 @@ const SchoolManagement = () => {
         </Card>
       )}
 
-      {/* Diálogo de edición */}
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6 px-2">
+          <div className="text-sm text-gray-600">
+            Mostrando {startIndex + 1}-{Math.min(endIndex, filteredSchools.length)} de {filteredSchools.length} escuelas
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let page;
+                if (totalPages <= 5) {
+                  page = i + 1;
+                } else if (currentPage <= 3) {
+                  page = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  page = totalPages - 4 + i;
+                } else {
+                  page = currentPage - 2 + i;
+                }
+                    
+                return (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(page)}
+                      isActive={page === currentPage}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+
+      {/* ... keep existing code (edit dialog, delete dialog) */}
       <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -727,7 +802,6 @@ const SchoolManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de confirmación para eliminar */}
       <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
