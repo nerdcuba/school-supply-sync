@@ -34,7 +34,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // VERIFICACIÓN SIMPLE DE ORDEN EXISTENTE PRIMERO
+    // VERIFICACIÓN EXHAUSTIVA DE ORDEN EXISTENTE
     console.log('🔍 Checking for existing order with session ID:', sessionId);
     const { data: existingOrder, error: checkError } = await supabaseService
       .from("orders")
@@ -158,7 +158,7 @@ serve(async (req) => {
         }
       }];
 
-      // Create the order with "pendiente" status using UPSERT
+      // Create the order with "pendiente" status usando INSERT SIMPLE
       const orderData = {
         user_id: userId !== 'guest' ? userId : null,
         items: itemsWithCustomerInfo,
@@ -172,23 +172,52 @@ serve(async (req) => {
 
       console.log('📝 Order data to be created:', JSON.stringify(orderData, null, 2));
 
-      // USAR UPSERT CON LA RESTRICCIÓN ÚNICA
-      console.log('🔄 Attempting to upsert order...');
+      // INTENTAR INSERT SIMPLE PRIMERO
+      console.log('🔄 Attempting to insert order...');
       const { data: orderResult, error: orderError } = await supabaseService
         .from("orders")
-        .upsert(orderData, { 
-          onConflict: 'stripe_session_id',
-          ignoreDuplicates: false 
-        })
+        .insert(orderData)
         .select()
         .single();
 
       if (orderError) {
-        console.error('❌ Error upserting order:', orderError);
-        throw new Error('Failed to create/update order: ' + orderError.message);
+        console.error('❌ Error inserting order:', orderError);
+        
+        // Si es error de duplicado, buscar la orden existente
+        if (orderError.code === '23505' || orderError.message?.includes('duplicate')) {
+          console.log('🔄 Duplicate detected, fetching existing order...');
+          const { data: existingOrderData, error: fetchError } = await supabaseService
+            .from("orders")
+            .select("*")
+            .eq("stripe_session_id", sessionId)
+            .maybeSingle();
+          
+          if (fetchError) {
+            console.error('❌ Error fetching existing order:', fetchError);
+            throw new Error('Failed to fetch existing order: ' + fetchError.message);
+          }
+          
+          if (existingOrderData) {
+            console.log('✅ Found existing order after duplicate error:', existingOrderData.id);
+            return new Response(
+              JSON.stringify({ 
+                success: true,
+                paid: true,
+                order: existingOrderData,
+                note: "Order already existed, returning existing record"
+              }),
+              {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                status: 200,
+              }
+            );
+          }
+        }
+        
+        throw new Error('Failed to create order: ' + orderError.message);
       }
 
-      console.log('✅ Order upserted successfully:', orderResult.id);
+      console.log('✅ Order created successfully:', orderResult.id);
 
       return new Response(
         JSON.stringify({ 
