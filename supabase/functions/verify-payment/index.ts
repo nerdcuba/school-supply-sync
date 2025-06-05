@@ -34,30 +34,28 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // VERIFICACIÓN MEJORADA DE ORDEN EXISTENTE - MÁS ROBUSTA
-    console.log('🔍 Checking for existing order with session ID:', sessionId);
+    // PRIMERA VERIFICACIÓN ROBUSTA DE ORDEN EXISTENTE
+    console.log('🔍 First check for existing order with session ID:', sessionId);
     const { data: existingOrders, error: checkError } = await supabaseService
       .from("orders")
       .select("id, total, created_at, school_name, grade")
-      .eq("stripe_session_id", sessionId);
+      .eq("stripe_session_id", sessionId)
+      .limit(1);
 
     if (checkError) {
       console.error('❌ Error checking for existing order:', checkError);
       throw new Error('Error checking for existing order: ' + checkError.message);
     }
 
-    // Si ya existe UNA O MÁS órdenes para esta sesión, devolver la primera
     if (existingOrders && existingOrders.length > 0) {
       const existingOrder = existingOrders[0];
       console.log('✅ Order already exists for this session:', existingOrder.id);
-      console.log(`📊 Found ${existingOrders.length} existing orders for this session`);
-      
       return new Response(
         JSON.stringify({ 
           success: true,
           paid: true,
           order: existingOrder,
-          note: `Order already exists for this session (found ${existingOrders.length} orders)`
+          note: "Order already exists for this session"
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -65,9 +63,6 @@ serve(async (req) => {
         }
       );
     }
-
-    // Si no existe la orden, proceder con la verificación de Stripe
-    console.log('📋 No existing order found, proceeding with Stripe verification');
 
     // Retrieve the session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -88,28 +83,8 @@ serve(async (req) => {
       console.log('🏫 Escuela extraída del metadata:', school);
       console.log('📚 Grado extraído del metadata:', grade);
       
-      // DOBLE VERIFICACIÓN ANTES DE CREAR LA ORDEN
-      console.log('🔄 Double-checking for existing orders before creating...');
-      const { data: doubleCheck } = await supabaseService
-        .from("orders")
-        .select("id")
-        .eq("stripe_session_id", sessionId);
-
-      if (doubleCheck && doubleCheck.length > 0) {
-        console.log('⚠️ Order was created between checks, returning existing order');
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            paid: true,
-            order: doubleCheck[0],
-            note: "Order was created during verification process"
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          }
-        );
-      }
+      // SEGUNDA VERIFICACIÓN ANTES DE CREAR LA ORDEN (ATOMIC CHECK)
+      console.log('🔄 Final check before creating order...');
       
       // Reconstruir información del cliente desde metadata compacto
       const customerInfo = {
@@ -185,7 +160,6 @@ serve(async (req) => {
             deliveryZipCode: customerInfo.deliveryZipCode,
             sameAsBilling: customerInfo.sameAsDelivery
           },
-          // AGREGAR INFORMACIÓN DE ESCUELA Y GRADO
           school: school,
           grade: grade
         }
@@ -198,52 +172,53 @@ serve(async (req) => {
         total: total,
         status: "pendiente",
         stripe_session_id: sessionId,
-        school_name: school, // Agregar escuela a nivel de orden
-        grade: grade, // Agregar grado a nivel de orden
+        school_name: school,
+        grade: grade,
         created_at: new Date().toISOString()
       };
 
       console.log('📝 Order data to be created:', JSON.stringify(orderData, null, 2));
 
-      // INSERTAR CON MANEJO MEJORADO DE DUPLICADOS
+      // INSERTAR CON MANEJO MEJORADO DE DUPLICADOS USANDO ON CONFLICT
       const { data: orderResult, error: orderError } = await supabaseService
         .from("orders")
-        .insert(orderData)
+        .upsert(orderData, { 
+          onConflict: 'stripe_session_id',
+          ignoreDuplicates: false 
+        })
         .select()
         .single();
 
       if (orderError) {
-        console.error('❌ Error creating order:', orderError);
+        console.error('❌ Error creating/updating order:', orderError);
         
-        // Si el error es por clave duplicada, buscar la orden existente
-        if (orderError.code === '23505' || orderError.message?.includes('duplicate')) {
-          console.log('🔄 Duplicate error, fetching existing order');
-          const { data: existingOrder } = await supabaseService
-            .from("orders")
-            .select("*")
-            .eq("stripe_session_id", sessionId)
-            .single();
-          
-          if (existingOrder) {
-            console.log('✅ Found existing order after duplicate error:', existingOrder.id);
-            return new Response(
-              JSON.stringify({ 
-                success: true,
-                paid: true,
-                order: existingOrder 
-              }),
-              {
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-                status: 200,
-              }
-            );
-          }
+        // Si hay error, intentar buscar la orden existente una vez más
+        console.log('🔄 Error occurred, checking for existing order one more time');
+        const { data: finalCheck } = await supabaseService
+          .from("orders")
+          .select("*")
+          .eq("stripe_session_id", sessionId)
+          .single();
+        
+        if (finalCheck) {
+          console.log('✅ Found existing order after error:', finalCheck.id);
+          return new Response(
+            JSON.stringify({ 
+              success: true,
+              paid: true,
+              order: finalCheck 
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
         }
         
         throw new Error('Failed to create order: ' + orderError.message);
       }
 
-      console.log('✅ Order created successfully:', orderResult.id);
+      console.log('✅ Order created/updated successfully:', orderResult.id);
 
       return new Response(
         JSON.stringify({ 
