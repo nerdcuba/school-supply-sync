@@ -34,7 +34,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // VERIFICACIÓN SIMPLE DE ORDEN EXISTENTE
+    // VERIFICACIÓN SIMPLE DE ORDEN EXISTENTE PRIMERO
     console.log('🔍 Checking for existing order with session ID:', sessionId);
     const { data: existingOrder, error: checkError } = await supabaseService
       .from("orders")
@@ -158,7 +158,7 @@ serve(async (req) => {
         }
       }];
 
-      // Create the order with "pendiente" status
+      // Create the order with "pendiente" status using UPSERT
       const orderData = {
         user_id: userId !== 'guest' ? userId : null,
         items: itemsWithCustomerInfo,
@@ -172,45 +172,23 @@ serve(async (req) => {
 
       console.log('📝 Order data to be created:', JSON.stringify(orderData, null, 2));
 
-      // INSERTAR CON MANEJO SIMPLE DE DUPLICADOS
+      // USAR UPSERT CON LA RESTRICCIÓN ÚNICA
+      console.log('🔄 Attempting to upsert order...');
       const { data: orderResult, error: orderError } = await supabaseService
         .from("orders")
-        .insert(orderData)
+        .upsert(orderData, { 
+          onConflict: 'stripe_session_id',
+          ignoreDuplicates: false 
+        })
         .select()
         .single();
 
       if (orderError) {
-        console.error('❌ Error creating order:', orderError);
-        
-        // Si el error es por duplicado, intentar buscar la orden existente
-        if (orderError.code === '23505') { // Unique violation
-          console.log('🔄 Duplicate detected, fetching existing order');
-          const { data: existingOrderData } = await supabaseService
-            .from("orders")
-            .select("*")
-            .eq("stripe_session_id", sessionId)
-            .single();
-          
-          if (existingOrderData) {
-            console.log('✅ Found existing order after duplicate error:', existingOrderData.id);
-            return new Response(
-              JSON.stringify({ 
-                success: true,
-                paid: true,
-                order: existingOrderData 
-              }),
-              {
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-                status: 200,
-              }
-            );
-          }
-        }
-        
-        throw new Error('Failed to create order: ' + orderError.message);
+        console.error('❌ Error upserting order:', orderError);
+        throw new Error('Failed to create/update order: ' + orderError.message);
       }
 
-      console.log('✅ Order created successfully:', orderResult.id);
+      console.log('✅ Order upserted successfully:', orderResult.id);
 
       return new Response(
         JSON.stringify({ 
