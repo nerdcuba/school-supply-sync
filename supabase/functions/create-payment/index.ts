@@ -16,100 +16,137 @@ serve(async (req) => {
   }
 
   try {
-    const { items, total, customerData } = await req.json();
-    console.log('📦 Received payment request:', { 
-      itemsCount: items?.length, 
-      total, 
-      customerEmail: customerData?.email 
-    });
+    const requestData = await req.json();
+    console.log('📦 Received payment request:', requestData);
 
-    // Get authenticated user
+    // Extraer datos del request
+    const { 
+      items = [], 
+      total, 
+      customerInfo = {}, 
+      school = '', 
+      grade = '', 
+      customerEmail,
+      itemsCount 
+    } = requestData;
+
+    console.log('🏫 School received:', school);
+    console.log('📚 Grade received:', grade);
+    console.log('👤 Customer info received:', customerInfo);
+
     const authHeader = req.headers.get("Authorization");
     console.log('🔐 Auth header present:', !!authHeader);
-    
+
     let user = null;
     if (authHeader) {
       const supabaseClient = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
         Deno.env.get("SUPABASE_ANON_KEY") ?? ""
       );
-      
+
       const token = authHeader.replace("Bearer ", "");
       const { data } = await supabaseClient.auth.getUser(token);
       user = data.user;
-      console.log('👤 User authenticated:', user?.email || 'No user');
+      console.log('👤 User authenticated:', user?.email);
     }
 
-    // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2023-10-16",
     });
 
-    // Check for existing Stripe customer
-    const customerEmail = user?.email || customerData?.email || "guest@example.com";
-    const customers = await stripe.customers.list({ 
-      email: customerEmail, 
-      limit: 1 
+    const email = customerEmail || user?.email || 'guest@example.com';
+    console.log('📧 Using email for Stripe:', email);
+
+    // Buscar o crear customer en Stripe
+    const existingCustomers = await stripe.customers.list({
+      email: email,
+      limit: 1,
     });
-    
+
     let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
+    if (existingCustomers.data.length > 0) {
+      customerId = existingCustomers.data[0].id;
       console.log('✅ Found existing Stripe customer:', customerId);
     } else {
-      console.log('📝 Will create new Stripe customer for:', customerEmail);
+      const newCustomer = await stripe.customers.create({
+        email: email,
+        name: customerInfo.fullName || user?.user_metadata?.name || '',
+      });
+      customerId = newCustomer.id;
+      console.log('🆕 Created new Stripe customer:', customerId);
     }
 
-    // Create simplified line items for Stripe (sin información del cliente)
-    const lineItems = items.map((item: any) => ({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: item.name || "Product",
-          description: item.description || undefined,
+    // Construir metadata completo con TODA la información
+    const metadata = {
+      user_id: user?.id || 'guest',
+      customer_name: customerInfo.fullName || user?.user_metadata?.name || '',
+      customer_email: email,
+      customer_phone: customerInfo.phone || '',
+      billing_address: customerInfo.address && customerInfo.city && customerInfo.zipCode 
+        ? `${customerInfo.address}, ${customerInfo.city}, ${customerInfo.zipCode}`
+        : '',
+      delivery_address: customerInfo.sameAsDelivery ? 'same' : 
+        (customerInfo.deliveryAddress && customerInfo.deliveryCity && customerInfo.deliveryZipCode 
+          ? `${customerInfo.deliveryAddress}, ${customerInfo.deliveryCity}, ${customerInfo.deliveryZipCode}`
+          : ''),
+      delivery_name: customerInfo.sameAsDelivery ? 'same' : (customerInfo.deliveryName || ''),
+      delivery_same: customerInfo.sameAsDelivery ? '1' : '0',
+      items_count: itemsCount?.toString() || items.length.toString(),
+      total: total?.toString() || '0',
+      // AGREGAR INFORMACIÓN DE ESCUELA Y GRADO AL METADATA
+      school: school || '',
+      grade: grade || '',
+    };
+
+    console.log('📏 Metadata to be sent to Stripe:', JSON.stringify(metadata, null, 2));
+    console.log('📏 Metadata size:', JSON.stringify(metadata).length, 'characters');
+
+    // Crear line items para Stripe
+    const lineItems = [];
+    
+    if (items && items.length > 0) {
+      // Si tenemos items específicos, usarlos
+      for (const item of items) {
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: item.name || 'Product',
+              description: item.description || '',
+            },
+            unit_amount: Math.round((item.price || 0) * 100), // Convert to cents
+          },
+          quantity: item.quantity || 1,
+        });
+      }
+    } else {
+      // Fallback: crear un item genérico
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Pack de útiles escolares - ${school || 'Escuela'} - ${grade || 'Grado'}`,
+            description: `Pack completo de útiles escolares`,
+          },
+          unit_amount: Math.round((total || 0) * 100), // Convert to cents
         },
-        unit_amount: Math.round((item.price || 0) * 100), // Convert to cents
-      },
-      quantity: item.quantity || 1,
-    }));
+        quantity: 1,
+      });
+    }
 
     console.log('💳 Creating Stripe session with', lineItems.length, 'items');
 
-    // Crear metadata compacto solo con información esencial
-    const compactMetadata = {
-      user_id: user?.id || 'guest',
-      total: total.toString(),
-      items_count: items.length.toString(),
-      // Solo los campos esenciales de customer data en formato compacto
-      customer_email: customerData?.email || '',
-      customer_name: customerData?.fullName || '',
-      customer_phone: customerData?.phone || '',
-      billing_address: `${customerData?.address || ''}, ${customerData?.city || ''}, ${customerData?.zipCode || ''}`,
-      delivery_same: customerData?.sameAsDelivery ? '1' : '0',
-      delivery_address: customerData?.sameAsDelivery ? 'same' : `${customerData?.deliveryAddress || ''}, ${customerData?.deliveryCity || ''}, ${customerData?.deliveryZipCode || ''}`,
-      delivery_name: customerData?.sameAsDelivery ? 'same' : (customerData?.deliveryName || '')
-    };
-
-    // Verificar que el metadata no exceda los límites de Stripe
-    const metadataString = JSON.stringify(compactMetadata);
-    console.log('📏 Metadata size:', metadataString.length, 'characters');
-    
-    if (metadataString.length > 500) {
-      console.log('⚠️ Metadata too large, using minimal version');
-      // Usar solo lo más esencial si aún es muy largo
-      compactMetadata.billing_address = customerData?.city || '';
-      compactMetadata.delivery_address = customerData?.sameAsDelivery ? 'same' : (customerData?.deliveryCity || '');
-    }
-
-    // Create Stripe checkout session
+    // Crear la sesión de Stripe
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : customerEmail,
       line_items: lineItems,
-      mode: "payment",
+      mode: 'payment',
       success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/payment-canceled`,
-      metadata: compactMetadata
+      metadata: metadata,
+      payment_intent_data: {
+        metadata: metadata, // También incluir en payment_intent para mayor seguridad
+      },
     });
 
     console.log('🎉 Stripe session created:', session.id);
@@ -127,10 +164,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Payment creation error:', error);
+    console.error('❌ Error creating payment session:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Error processing payment" 
+        error: error.message || "Error creating payment session" 
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
