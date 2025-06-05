@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,13 +6,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { Package, Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Package, Plus, Pencil, Trash2, Search, Upload } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { adminSupplyPackService, AdminSupplyPack, SupplyItem } from '@/services/adminSupplyPackService';
 import { schoolService, School } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
 import PackItemsEditor from './PackItemsEditor';
+import CSVUploadDialog from './CSVUploadDialog';
 
 const PackManagement = () => {
   const [packs, setPacks] = useState<AdminSupplyPack[]>([]);
@@ -30,9 +30,11 @@ const PackManagement = () => {
   });
   const [editingPack, setEditingPack] = useState<AdminSupplyPack | null>(null);
   const [deletingPack, setDeletingPack] = useState<AdminSupplyPack | null>(null);
+  const [csvUploadPack, setCsvUploadPack] = useState<AdminSupplyPack | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openCSVDialog, setOpenCSVDialog] = useState(false);
 
   // Cargar paquetes y escuelas desde Supabase
   useEffect(() => {
@@ -200,6 +202,32 @@ const PackManagement = () => {
     }
   };
 
+  // Manejar carga de CSV
+  const handleCSVUpload = async (items: SupplyItem[]) => {
+    if (!csvUploadPack) return;
+
+    try {
+      const updatedPack = {
+        ...csvUploadPack,
+        items: [...csvUploadPack.items, ...items]
+      };
+      
+      await adminSupplyPackService.update(csvUploadPack.id, updatedPack);
+      setCsvUploadPack(null);
+      
+      toast({
+        title: "Artículos añadidos",
+        description: `Se añadieron ${items.length} artículos al paquete desde el CSV`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron añadir los artículos del CSV",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -360,6 +388,17 @@ const PackManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
+                            setCsvUploadPack(pack);
+                            setOpenCSVDialog(true);
+                          }}
+                          title="Subir CSV de artículos"
+                        >
+                          <Upload size={14} />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
                             setEditingPack(pack);
                             setOpenEditDialog(true);
                           }}
@@ -485,6 +524,14 @@ const PackManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Diálogo de carga CSV */}
+      <CSVUploadDialog
+        open={openCSVDialog}
+        onOpenChange={setOpenCSVDialog}
+        onItemsUploaded={handleCSVUpload}
+        packName={csvUploadPack?.name || ''}
+      />
     </div>
   );
 };
