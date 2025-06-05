@@ -34,36 +34,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // VERIFICACIÓN CRÍTICA: BUSCAR ORDEN EXISTENTE PRIMERO
-    console.log('🔍 Checking for existing order with session ID:', sessionId);
-    
-    const { data: existingOrder, error: checkError } = await supabaseService
-      .from("orders")
-      .select("id, total, created_at, school_name, grade, status")
-      .eq("stripe_session_id", sessionId)
-      .maybeSingle();
-
-    if (checkError) {
-      console.error('❌ Error checking for existing order:', checkError);
-      throw new Error('Error checking for existing order: ' + checkError.message);
-    }
-
-    if (existingOrder) {
-      console.log('✅ Order already exists for this session:', existingOrder.id);
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          paid: true,
-          order: existingOrder,
-          note: "Order already exists for this session"
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        }
-      );
-    }
-
     // Retrieve the session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     console.log('📋 Session status:', session.payment_status);
@@ -159,10 +129,9 @@ serve(async (req) => {
         }
       }];
 
-      // VERIFICACIÓN FINAL ANTES DE INSERTAR CON BLOQUEO
-      console.log('🔒 Final check with advisory lock before inserting...');
+      // Usar la función PostgreSQL para insertar de forma atómica
+      console.log('🔒 Using atomic insert function to prevent duplicates...');
       
-      // Usar una función de PostgreSQL para insertar solo si no existe
       const { data: orderResult, error: insertError } = await supabaseService.rpc('insert_order_if_not_exists', {
         p_stripe_session_id: sessionId,
         p_user_id: userId !== 'guest' ? userId : null,
@@ -174,42 +143,13 @@ serve(async (req) => {
       });
 
       if (insertError) {
-        console.error('❌ Error in RPC insert:', insertError);
-        
-        // Si hay error, verificar si la orden ya existe
-        const { data: existingOrderData, error: fetchError } = await supabaseService
-          .from("orders")
-          .select("*")
-          .eq("stripe_session_id", sessionId)
-          .maybeSingle();
-        
-        if (fetchError) {
-          console.error('❌ Error fetching existing order after RPC error:', fetchError);
-          throw new Error('Failed to fetch existing order: ' + fetchError.message);
-        }
-        
-        if (existingOrderData) {
-          console.log('✅ Found existing order after RPC error:', existingOrderData.id);
-          return new Response(
-            JSON.stringify({ 
-              success: true,
-              paid: true,
-              order: existingOrderData,
-              note: "Order already existed, returning existing record"
-            }),
-            {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-              status: 200,
-            }
-          );
-        }
-        
-        throw new Error('Failed to create order via RPC: ' + insertError.message);
+        console.error('❌ Error in atomic insert function:', insertError);
+        throw new Error('Failed to create order: ' + insertError.message);
       }
 
-      console.log('✅ Order processed successfully via RPC:', orderResult);
+      console.log('✅ Order processed successfully with ID:', orderResult);
 
-      // Obtener la orden creada
+      // Obtener la orden creada o existente
       const { data: finalOrder, error: finalFetchError } = await supabaseService
         .from("orders")
         .select("*")

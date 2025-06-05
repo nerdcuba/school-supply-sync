@@ -274,6 +274,18 @@ export type Database = {
         Args: { user_id_to_delete: string }
         Returns: boolean
       }
+      insert_order_if_not_exists: {
+        Args: {
+          p_stripe_session_id: string
+          p_user_id: string
+          p_items: Json
+          p_total: number
+          p_status: string
+          p_school_name: string
+          p_grade: string
+        }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
