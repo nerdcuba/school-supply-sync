@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useAdmin } from '@/contexts/AdminContext';
-import { LogOut, LayoutDashboard, School, Package, Users, Settings, Shield, Laptop, ShoppingCart } from 'lucide-react';
+import { LogOut, LayoutDashboard, School, Package, Users, Settings, Shield, Laptop, ShoppingCart, Image } from 'lucide-react';
 import SchoolManagement from '@/components/admin/SchoolManagement';
 import PackManagement from '@/components/admin/PackManagement';
 import UserManagement from '@/components/admin/UserManagement';
@@ -11,6 +12,7 @@ import Analytics from '@/components/admin/Analytics';
 import AdminSettings from '@/components/admin/AdminSettings';
 import ElectronicsManagement from '@/components/admin/ElectronicsManagement';
 import OrderManagement from '@/components/admin/OrderManagement';
+import SliderManagement from '@/components/admin/SliderManagement';
 import { Toaster } from '@/components/ui/toaster';
 
 const AdminDashboard = () => {
@@ -73,7 +75,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className="container mx-auto py-6 px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-7 gap-2">
+          <TabsList className="grid grid-cols-8 gap-2">
             <TabsTrigger value="analytics" className="flex items-center">
               <LayoutDashboard size={16} className="mr-2" />
               Analítica
@@ -81,6 +83,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="orders" className="flex items-center">
               <ShoppingCart size={16} className="mr-2" />
               Órdenes
+            </TabsTrigger>
+            <TabsTrigger value="slider" className="flex items-center">
+              <Image size={16} className="mr-2" />
+              Slider
             </TabsTrigger>
             <TabsTrigger value="schools" className="flex items-center">
               <School size={16} className="mr-2" />
@@ -110,6 +116,10 @@ const AdminDashboard = () => {
           
           <TabsContent value="orders">
             <OrderManagement />
+          </TabsContent>
+          
+          <TabsContent value="slider">
+            <SliderManagement />
           </TabsContent>
           
           <TabsContent value="schools">

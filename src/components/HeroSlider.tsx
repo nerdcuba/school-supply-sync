@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Slide {
+  id: string;
   titleKey: string;
   subtitleKey: string;
   buttonTextKey: string;
@@ -15,41 +16,82 @@ interface Slide {
 
 const HeroSlider = () => {
   const [current, setCurrent] = useState(0);
+  const [slides, setSlides] = useState<Slide[]>([]);
   const { t } = useLanguage();
 
-  const slides: Slide[] = [
-    {
-      titleKey: 'hero.slide1.title',
-      subtitleKey: 'hero.slide1.subtitle',
-      buttonTextKey: 'hero.slide1.button',
-      buttonLink: '/schools',
-      bgImage: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-      buttonStyle: 'secondary'
-    },
-    {
-      titleKey: 'hero.slide2.title',
-      subtitleKey: 'hero.slide2.subtitle',
-      buttonTextKey: 'hero.slide2.button',
-      buttonLink: '/schools',
-      bgImage: 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-      buttonStyle: 'accent'
-    },
-    {
-      titleKey: 'hero.slide3.title',
-      subtitleKey: 'hero.slide3.subtitle',
-      buttonTextKey: 'hero.slide3.button',
-      buttonLink: '/dashboard',
-      bgImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-      buttonStyle: 'primary'
-    }
-  ];
+  // Cargar slides desde localStorage o usar valores por defecto
+  useEffect(() => {
+    const loadSlides = () => {
+      const savedSlides = localStorage.getItem('heroSlides');
+      if (savedSlides) {
+        try {
+          const parsedSlides = JSON.parse(savedSlides);
+          setSlides(parsedSlides);
+        } catch (error) {
+          console.error('Error loading slides:', error);
+          loadDefaultSlides();
+        }
+      } else {
+        loadDefaultSlides();
+      }
+    };
+
+    const loadDefaultSlides = () => {
+      const defaultSlides: Slide[] = [
+        {
+          id: '1',
+          titleKey: 'Listas Oficiales de Útiles Escolares',
+          subtitleKey: 'Encuentra las listas oficiales de útiles escolares de todas las escuelas de Costa Rica',
+          buttonTextKey: 'Ver Escuelas',
+          buttonLink: '/schools',
+          bgImage: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+          buttonStyle: 'secondary'
+        },
+        {
+          id: '2',
+          titleKey: 'Compra Conveniente desde Casa',
+          subtitleKey: 'Ordena todos los útiles necesarios desde la comodidad de tu hogar',
+          buttonTextKey: 'Explorar Productos',
+          buttonLink: '/schools',
+          bgImage: 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+          buttonStyle: 'accent'
+        },
+        {
+          id: '3',
+          titleKey: 'Mantente Organizado',
+          subtitleKey: 'Registra tus compras y accede a tus listas cuando quieras',
+          buttonTextKey: 'Mi Perfil',
+          buttonLink: '/dashboard',
+          bgImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+          buttonStyle: 'primary'
+        }
+      ];
+      setSlides(defaultSlides);
+    };
+
+    loadSlides();
+
+    // Escuchar cambios en los slides
+    const handleSlidesUpdate = (event: CustomEvent) => {
+      console.log('🔄 Slides actualizados desde admin');
+      setSlides(event.detail);
+    };
+
+    window.addEventListener('slidesUpdated', handleSlidesUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('slidesUpdated', handleSlidesUpdate as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
+    if (slides.length === 0) return;
+    
     const interval = setInterval(() => {
       setCurrent(prev => (prev + 1) % slides.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [slides.length]);
 
   const goToSlide = (index: number) => setCurrent(index);
   const nextSlide = () => setCurrent((current + 1) % slides.length);
@@ -68,11 +110,19 @@ const HeroSlider = () => {
     }
   };
 
+  if (slides.length === 0) {
+    return (
+      <div className="h-96 md:h-[400px] w-full bg-gray-200 flex items-center justify-center">
+        <p className="text-gray-500">Cargando slides...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="relative h-96 md:h-[400px] w-full overflow-hidden bg-gray-900">
       {slides.map((slide, index) => (
         <div
-          key={index}
+          key={slide.id}
           className={`absolute inset-0 transition-opacity duration-500 ${
             index === current ? 'opacity-100' : 'opacity-0'
           }`}
@@ -90,16 +140,18 @@ const HeroSlider = () => {
           <div className="relative z-10 flex items-center justify-center h-full px-4">
             <div className="text-center text-white max-w-4xl mx-auto">
               <h1 className="text-3xl md:text-5xl font-bold mb-4 text-white animate-fade-in">
-                {t(slide.titleKey)}
+                {slide.titleKey}
               </h1>
               <p className="text-lg md:text-xl mb-8 text-gray-200 animate-fade-in">
-                {t(slide.subtitleKey)}
+                {slide.subtitleKey}
               </p>
-              <Link to={slide.buttonLink}>
-                <button className={`${getButtonClass(slide.buttonStyle)} animate-fade-in`}>
-                  {t(slide.buttonTextKey)}
-                </button>
-              </Link>
+              {slide.buttonTextKey && (
+                <Link to={slide.buttonLink}>
+                  <button className={`${getButtonClass(slide.buttonStyle)} animate-fade-in`}>
+                    {slide.buttonTextKey}
+                  </button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
