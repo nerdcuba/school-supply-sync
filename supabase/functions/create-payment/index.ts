@@ -22,7 +22,7 @@ serve(async (req) => {
     const { 
       items, 
       customerEmail, 
-      customerInfo // New parameter for customer information
+      customerInfo // Customer information from checkout form
     } = await req.json()
     
     console.log('📦 Received payment request:', { 
@@ -73,7 +73,7 @@ serve(async (req) => {
 
     console.log('💳 Creating Stripe session with', items.length, 'items');
 
-    // Prepare session parameters
+    // Prepare session parameters - SIMPLIFIED for payment only
     const sessionParams: any = {
       payment_method_types: ['card'],
       line_items: items.map((item: any) => ({
@@ -95,15 +95,10 @@ serve(async (req) => {
         items: JSON.stringify(items),
         schoolName: items[0]?.school || '',
         grade: items[0]?.grade || '',
+        // Store customer info in metadata for retrieval later
+        customerInfo: customerInfo ? JSON.stringify(customerInfo) : undefined,
       },
-      // Enable collection of customer information
-      billing_address_collection: 'required',
-      shipping_address_collection: {
-        allowed_countries: ['US', 'CA', 'MX'],
-      },
-      phone_number_collection: {
-        enabled: true,
-      },
+      // SIMPLIFIED: Only ask for email, not full address collection
       customer_creation: 'always',
     }
 
@@ -112,11 +107,6 @@ serve(async (req) => {
       sessionParams.customer = customerId
     } else {
       sessionParams.customer_email = customerEmail
-    }
-
-    // Add customer info to metadata if provided
-    if (customerInfo) {
-      sessionParams.metadata.customerInfo = JSON.stringify(customerInfo)
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams)

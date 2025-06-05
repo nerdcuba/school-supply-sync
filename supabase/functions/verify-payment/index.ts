@@ -50,22 +50,20 @@ serve(async (req) => {
 
     console.log('📋 No existing order found, proceeding with Stripe verification');
 
-    // Get session from Stripe with expanded customer and payment_intent data
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['customer', 'payment_intent']
-    })
+    // Get session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId)
     
     console.log(`📋 Session status: ${session.payment_status}`);
 
     if (session.payment_status === 'paid') {
       console.log('✅ Payment confirmed as paid');
       
-      // Extract customer information from Stripe session
+      // Extract customer information from session metadata first, then fallback to Stripe data
       let customerInfo = {
         billing: {
           fullName: 'No disponible',
           email: session.customer_details?.email || 'No disponible',
-          phone: session.customer_details?.phone || 'No disponible',
+          phone: 'No disponible',
           address: 'No disponible',
           city: 'No disponible',
           zipCode: 'No disponible'
@@ -79,49 +77,39 @@ serve(async (req) => {
         }
       };
 
-      // Extract billing address if available
-      if (session.customer_details?.address) {
-        const address = session.customer_details.address;
-        customerInfo.billing = {
-          fullName: session.customer_details.name || 'No disponible',
-          email: session.customer_details.email || 'No disponible',
-          phone: session.customer_details.phone || 'No disponible',
-          address: [address.line1, address.line2].filter(Boolean).join(', ') || 'No disponible',
-          city: address.city || 'No disponible',
-          zipCode: address.postal_code || 'No disponible'
-        };
+      // First, try to get customer info from metadata (sent from frontend)
+      if (session.metadata?.customerInfo) {
+        try {
+          const metadataCustomerInfo = JSON.parse(session.metadata.customerInfo);
+          console.log('📋 Found customer info in metadata:', metadataCustomerInfo);
+          customerInfo = metadataCustomerInfo;
+        } catch (error) {
+          console.log('⚠️ Could not parse customer info from metadata:', error);
+        }
       }
 
-      // Extract shipping address if available
-      if (session.shipping_details?.address) {
-        const shippingAddress = session.shipping_details.address;
-        customerInfo.delivery = {
-          deliveryName: session.shipping_details.name || customerInfo.billing.fullName,
-          deliveryAddress: [shippingAddress.line1, shippingAddress.line2].filter(Boolean).join(', ') || 'No disponible',
-          deliveryCity: shippingAddress.city || 'No disponible',
-          deliveryZipCode: shippingAddress.postal_code || 'No disponible',
-          sameAsBilling: false
-        };
-      } else {
-        // If no shipping address, assume same as billing
-        customerInfo.delivery = {
-          deliveryName: customerInfo.billing.fullName,
-          deliveryAddress: customerInfo.billing.address,
-          deliveryCity: customerInfo.billing.city,
-          deliveryZipCode: customerInfo.billing.zipCode,
-          sameAsBilling: true
-        };
+      // Fallback: Extract basic info from Stripe customer details if metadata is empty
+      if (customerInfo.billing.fullName === 'No disponible' && session.customer_details) {
+        customerInfo.billing.fullName = session.customer_details.name || 'No disponible';
+        customerInfo.billing.email = session.customer_details.email || 'No disponible';
+        customerInfo.billing.phone = session.customer_details.phone || 'No disponible';
+        
+        // Set delivery same as billing if no specific delivery info
+        customerInfo.delivery.deliveryName = customerInfo.billing.fullName;
+        customerInfo.delivery.sameAsBilling = true;
+        
+        console.log('📋 Used Stripe customer details as fallback');
       }
 
-      console.log('💾 Customer info extracted:', JSON.stringify(customerInfo, null, 2));
+      console.log('💾 Final customer info:', JSON.stringify(customerInfo, null, 2));
 
       // Get items from session metadata
       const items = JSON.parse(session.metadata?.items || '[]');
       
-      // Enhance items with customer information for backward compatibility
+      // Enhance items with customer information
       const enhancedItems = items.map((item: any) => ({
         ...item,
-        // Add customer info to each item for compatibility
+        // Add customer info to each item for backward compatibility
         customerInfo: customerInfo,
         // Also add individual fields for easier access
         fullName: customerInfo.billing.fullName,
