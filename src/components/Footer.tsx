@@ -16,34 +16,34 @@ const Footer = () => {
               <div className="bg-blue-600 text-white p-2 rounded-full">
                 <GraduationCap size={20} />
               </div>
-              <h3 className="text-xl font-bold">Plan Ahead Solutions</h3>
+              <h3 className="text-xl font-bold text-white">Plan Ahead Solutions</h3>
             </div>
-            <p className="text-gray-400">
+            <p className="text-white">
               {t('home.subtitle')}
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">{t('footer.quickLinks')}</h4>
-            <ul className="space-y-2 text-gray-400">
+            <h4 className="text-lg font-semibold mb-4 text-white">{t('footer.quickLinks')}</h4>
+            <ul className="space-y-2 text-white">
               <li>
-                <Link to="/" className="hover:text-white transition-colors">
+                <Link to="/" className="hover:text-gray-300 transition-colors">
                   {t('nav.home')}
                 </Link>
               </li>
               <li>
-                <Link to="/schools" className="hover:text-white transition-colors">
+                <Link to="/schools" className="hover:text-gray-300 transition-colors">
                   {t('nav.schools')}
                 </Link>
               </li>
               <li>
-                <Link to="/how-it-works" className="hover:text-white transition-colors">
+                <Link to="/how-it-works" className="hover:text-gray-300 transition-colors">
                   {t('nav.howItWorks')}
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="hover:text-white transition-colors">
+                <Link to="/contact" className="hover:text-gray-300 transition-colors">
                   {t('nav.contact')}
                 </Link>
               </li>
@@ -52,20 +52,20 @@ const Footer = () => {
 
           {/* Account */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">{t('footer.account')}</h4>
-            <ul className="space-y-2 text-gray-400">
+            <h4 className="text-lg font-semibold mb-4 text-white">{t('footer.account')}</h4>
+            <ul className="space-y-2 text-white">
               <li>
-                <Link to="/login" className="hover:text-white transition-colors">
+                <Link to="/login" className="hover:text-gray-300 transition-colors">
                   {t('nav.login')}
                 </Link>
               </li>
               <li>
-                <Link to="/register" className="hover:text-white transition-colors">
+                <Link to="/register" className="hover:text-gray-300 transition-colors">
                   {t('nav.register')}
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard" className="hover:text-white transition-colors">
+                <Link to="/dashboard" className="hover:text-gray-300 transition-colors">
                   {t('nav.dashboard')}
                 </Link>
               </li>
@@ -74,8 +74,8 @@ const Footer = () => {
 
           {/* Contact */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">{t('footer.contact')}</h4>
-            <div className="space-y-2 text-gray-400">
+            <h4 className="text-lg font-semibold mb-4 text-white">{t('footer.contact')}</h4>
+            <div className="space-y-2 text-white">
               <div className="flex items-center space-x-2">
                 <Mail size={16} />
                 <span>info@planaheadsolutions.com</span>
@@ -92,7 +92,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-white">
           <p>&copy; 2024 Plan Ahead Solutions. {t('footer.rights')}</p>
         </div>
       </div>
