@@ -34,28 +34,30 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // PRIMERO: Verificar si ya existe una orden con este stripe_session_id
+    // VERIFICACIÓN MEJORADA DE ORDEN EXISTENTE - MÁS ROBUSTA
     console.log('🔍 Checking for existing order with session ID:', sessionId);
-    const { data: existingOrder, error: checkError } = await supabaseService
+    const { data: existingOrders, error: checkError } = await supabaseService
       .from("orders")
-      .select("id, total, created_at")
-      .eq("stripe_session_id", sessionId)
-      .single();
+      .select("id, total, created_at, school_name, grade")
+      .eq("stripe_session_id", sessionId);
 
-    if (checkError && checkError.code !== 'PGRST116') {
-      // PGRST116 significa "no rows found", cualquier otro error es problemático
+    if (checkError) {
       console.error('❌ Error checking for existing order:', checkError);
       throw new Error('Error checking for existing order: ' + checkError.message);
     }
 
-    if (existingOrder) {
+    // Si ya existe UNA O MÁS órdenes para esta sesión, devolver la primera
+    if (existingOrders && existingOrders.length > 0) {
+      const existingOrder = existingOrders[0];
       console.log('✅ Order already exists for this session:', existingOrder.id);
+      console.log(`📊 Found ${existingOrders.length} existing orders for this session`);
+      
       return new Response(
         JSON.stringify({ 
           success: true,
           paid: true,
           order: existingOrder,
-          note: "Order already exists for this session"
+          note: `Order already exists for this session (found ${existingOrders.length} orders)`
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -85,6 +87,29 @@ serve(async (req) => {
       
       console.log('🏫 Escuela extraída del metadata:', school);
       console.log('📚 Grado extraído del metadata:', grade);
+      
+      // DOBLE VERIFICACIÓN ANTES DE CREAR LA ORDEN
+      console.log('🔄 Double-checking for existing orders before creating...');
+      const { data: doubleCheck } = await supabaseService
+        .from("orders")
+        .select("id")
+        .eq("stripe_session_id", sessionId);
+
+      if (doubleCheck && doubleCheck.length > 0) {
+        console.log('⚠️ Order was created between checks, returning existing order');
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            paid: true,
+            order: doubleCheck[0],
+            note: "Order was created during verification process"
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
+      }
       
       // Reconstruir información del cliente desde metadata compacto
       const customerInfo = {
@@ -139,7 +164,7 @@ serve(async (req) => {
       // Crear items con información del cliente incluida y información de escuela/grado
       const itemsWithCustomerInfo = [{
         id: `order-${sessionId}`,
-        name: `Orden de ${session.metadata?.items_count || 1} artículo(s)`,
+        name: `Orden de ${session.metadata?.items_count || 1} artículo(s) - ${school} - ${grade}`,
         quantity: parseInt(session.metadata?.items_count || '1'),
         price: total,
         // Incluir toda la información del cliente en el item
@@ -180,7 +205,7 @@ serve(async (req) => {
 
       console.log('📝 Order data to be created:', JSON.stringify(orderData, null, 2));
 
-      // Usar INSERT con verificación adicional para evitar duplicados
+      // INSERTAR CON MANEJO MEJORADO DE DUPLICADOS
       const { data: orderResult, error: orderError } = await supabaseService
         .from("orders")
         .insert(orderData)
@@ -188,22 +213,24 @@ serve(async (req) => {
         .single();
 
       if (orderError) {
-        // Si el error es por clave duplicada (aunque no deberíamos llegar aquí), verificar nuevamente
-        if (orderError.code === '23505') {
-          console.log('🔄 Duplicate key error, checking for existing order again');
-          const { data: duplicateOrder } = await supabaseService
+        console.error('❌ Error creating order:', orderError);
+        
+        // Si el error es por clave duplicada, buscar la orden existente
+        if (orderError.code === '23505' || orderError.message?.includes('duplicate')) {
+          console.log('🔄 Duplicate error, fetching existing order');
+          const { data: existingOrder } = await supabaseService
             .from("orders")
             .select("*")
             .eq("stripe_session_id", sessionId)
             .single();
           
-          if (duplicateOrder) {
-            console.log('✅ Found existing order after duplicate error:', duplicateOrder.id);
+          if (existingOrder) {
+            console.log('✅ Found existing order after duplicate error:', existingOrder.id);
             return new Response(
               JSON.stringify({ 
                 success: true,
                 paid: true,
-                order: duplicateOrder 
+                order: existingOrder 
               }),
               {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -213,7 +240,6 @@ serve(async (req) => {
           }
         }
         
-        console.error('❌ Error creating order:', orderError);
         throw new Error('Failed to create order: ' + orderError.message);
       }
 
