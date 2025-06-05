@@ -228,6 +228,21 @@ const PackManagement = () => {
     }
   };
 
+  // Función para iniciar la edición de un paquete
+  const startEditingPack = (pack: AdminSupplyPack) => {
+    console.log('Editando paquete:', pack);
+    console.log('Items del paquete:', pack.items);
+    
+    // Crear una copia profunda del paquete para editarlo
+    const packToEdit = {
+      ...pack,
+      items: Array.isArray(pack.items) ? [...pack.items] : []
+    };
+    
+    setEditingPack(packToEdit);
+    setOpenEditDialog(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -398,10 +413,7 @@ const PackManagement = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setEditingPack(pack);
-                            setOpenEditDialog(true);
-                          }}
+                          onClick={() => startEditingPack(pack)}
                         >
                           <Pencil size={14} />
                         </Button>
@@ -459,11 +471,11 @@ const PackManagement = () => {
               <div className="grid gap-2">
                 <Label htmlFor="edit-school">Escuela*</Label>
                 <Select 
+                  value={editingPack?.schoolId || ''}
                   onValueChange={(value) => {
                     const selectedSchool = schools.find(school => school.id === value);
                     setEditingPack(prev => prev ? {...prev, schoolId: value, schoolName: selectedSchool?.name || ''} : null);
                   }}
-                  defaultValue={editingPack?.schoolId}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona una escuela" />
@@ -491,7 +503,7 @@ const PackManagement = () => {
             
             {editingPack && (
               <PackItemsEditor 
-                items={editingPack.items}
+                items={editingPack.items || []}
                 onItemsChange={(items) => setEditingPack({...editingPack, items})}
               />
             )}
