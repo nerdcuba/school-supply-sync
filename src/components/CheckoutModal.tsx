@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -94,6 +93,80 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
     );
   }
 
+  // Función para extraer información de escuela y grado de los items
+  const getSchoolAndGradeFromItems = () => {
+    console.log('🔍 Extrayendo escuela y grado de los items:', items);
+    
+    if (items && items.length > 0) {
+      for (const item of items) {
+        console.log('📦 Analizando item:', item);
+        
+        // Buscar escuela y grado en campos directos
+        if (item.school && item.grade) {
+          console.log('✅ Encontrados en campos directos:', { school: item.school, grade: item.grade });
+          return { school: item.school, grade: item.grade };
+        }
+        
+        // Buscar en customerInfo si existe
+        if (item.customerInfo?.school && item.customerInfo?.grade) {
+          console.log('✅ Encontrados en customerInfo:', { school: item.customerInfo.school, grade: item.customerInfo.grade });
+          return { school: item.customerInfo.school, grade: item.customerInfo.grade };
+        }
+        
+        // Intentar extraer del nombre del item
+        if (item.name && typeof item.name === 'string') {
+          console.log('🔍 Intentando extraer del nombre:', item.name);
+          
+          // Patrones para detectar grado
+          const gradePatterns = [
+            /\b(K-\d+|\d+st|\d+nd|\d+rd|\d+th|Grade\s+\d+|Grado\s+\d+)\b/i,
+            /\bK\b/i
+          ];
+          
+          let extractedGrade = '';
+          let extractedSchool = '';
+          
+          // Buscar grado
+          for (const pattern of gradePatterns) {
+            const match = item.name.match(pattern);
+            if (match) {
+              extractedGrade = match[0];
+              console.log('📚 Grado extraído del nombre:', extractedGrade);
+              break;
+            }
+          }
+          
+          // Buscar escuela (asumiendo formato "Pack - Grado - Escuela")
+          if (item.name.includes(' - ')) {
+            const parts = item.name.split(' - ');
+            console.log('🔍 Partes del nombre:', parts);
+            
+            // Buscar la parte que parece ser la escuela (no es grado ni "Pack")
+            for (let i = 1; i < parts.length; i++) {
+              const part = parts[i].trim();
+              if (!part.match(/^(Pack|K|K-\d+|\d+(st|nd|rd|th)|Grade\s+\d+|Grado\s+\d+)$/i)) {
+                extractedSchool = part;
+                console.log('🏫 Escuela extraída del nombre:', extractedSchool);
+                break;
+              }
+            }
+          }
+          
+          if (extractedSchool || extractedGrade) {
+            console.log('✅ Extraídos del nombre:', { school: extractedSchool, grade: extractedGrade });
+            return { 
+              school: extractedSchool || 'N/A', 
+              grade: extractedGrade || 'N/A' 
+            };
+          }
+        }
+      }
+    }
+    
+    console.log('❌ No se pudo extraer escuela y grado');
+    return { school: '', grade: '' };
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -149,6 +222,10 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
         return;
       }
 
+      // Extraer información de escuela y grado
+      const { school, grade } = getSchoolAndGradeFromItems();
+      console.log('🏫📚 Información extraída:', { school, grade });
+
       // Prepare items with customer information embedded
       const itemsWithCustomerInfo = items.map(item => ({
         ...item,
@@ -181,7 +258,10 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
             deliveryCity: sameAsDelivery ? formData.city : formData.deliveryCity,
             deliveryZipCode: sameAsDelivery ? formData.zipCode : formData.deliveryZipCode,
             sameAsBilling: sameAsDelivery
-          }
+          },
+          // AGREGAR INFORMACIÓN DE ESCUELA Y GRADO
+          school: school,
+          grade: grade
         }
       }));
 
@@ -192,13 +272,19 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
       };
 
       console.log('📋 Sending items with customer info:', itemsWithCustomerInfo);
+      console.log('🏫📚 Sending school and grade:', { school, grade });
 
-      // Call the Stripe payment function
+      // Call the Stripe payment function CON INFORMACIÓN DE ESCUELA Y GRADO
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
           items: itemsWithCustomerInfo,
           total: finalTotal,
-          customerData: customerData
+          customerInfo: customerData,
+          // ENVIAR EXPLÍCITAMENTE ESCUELA Y GRADO
+          school: school,
+          grade: grade,
+          customerEmail: formData.email,
+          itemsCount: items.length
         }
       });
 
