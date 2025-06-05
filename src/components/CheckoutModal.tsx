@@ -149,16 +149,54 @@ const CheckoutModal = ({ isOpen, onClose, items, total, onCheckoutComplete }: Ch
         return;
       }
 
-      // Prepare customer data with delivery info
+      // Prepare items with customer information embedded
+      const itemsWithCustomerInfo = items.map(item => ({
+        ...item,
+        // Información de facturación
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        zipCode: formData.zipCode,
+        // Información de entrega
+        deliveryName: sameAsDelivery ? formData.fullName : formData.deliveryName,
+        deliveryAddress: sameAsDelivery ? formData.address : formData.deliveryAddress,
+        deliveryCity: sameAsDelivery ? formData.city : formData.deliveryCity,
+        deliveryZipCode: sameAsDelivery ? formData.zipCode : formData.deliveryZipCode,
+        sameAsDelivery: sameAsDelivery,
+        // Información completa del cliente para referencias cruzadas
+        customerInfo: {
+          billing: {
+            fullName: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            zipCode: formData.zipCode
+          },
+          delivery: {
+            deliveryName: sameAsDelivery ? formData.fullName : formData.deliveryName,
+            deliveryAddress: sameAsDelivery ? formData.address : formData.deliveryAddress,
+            deliveryCity: sameAsDelivery ? formData.city : formData.deliveryCity,
+            deliveryZipCode: sameAsDelivery ? formData.zipCode : formData.deliveryZipCode,
+            sameAsBilling: sameAsDelivery
+          }
+        }
+      }));
+
+      // Prepare customer data
       const customerData = {
         ...formData,
         sameAsDelivery
       };
 
+      console.log('📋 Sending items with customer info:', itemsWithCustomerInfo);
+
       // Call the Stripe payment function
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
-          items: items,
+          items: itemsWithCustomerInfo,
           total: finalTotal,
           customerData: customerData
         }

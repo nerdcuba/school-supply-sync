@@ -81,6 +81,8 @@ serve(async (req) => {
       const customerData = JSON.parse(session.metadata?.customer_data || '{}');
 
       console.log('💾 Creating order for user:', userId);
+      console.log('📋 Customer data received:', customerData);
+      console.log('📋 Items data received:', itemsData);
 
       // Create the order with "pendiente" status (initial state after payment)
       const orderData = {

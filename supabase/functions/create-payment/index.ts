@@ -93,8 +93,6 @@ serve(async (req) => {
     });
 
     console.log('🎉 Stripe session created:', session.id);
-
-    // NO CREAR LA ORDEN AQUÍ - Solo crear después del pago exitoso
     console.log('⏳ Orden se creará después del pago exitoso en Stripe');
 
     return new Response(
