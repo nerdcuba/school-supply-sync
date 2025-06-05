@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { adminSupplyPackService, AdminSupplyPack, SupplyItem } from '@/services/adminSupplyPackService';
 import { schoolService, School } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
+import PackItemsEditor from './PackItemsEditor';
 
 const PackManagement = () => {
   const [packs, setPacks] = useState<AdminSupplyPack[]>([]);
@@ -101,6 +103,15 @@ const PackManagement = () => {
       return;
     }
 
+    if (newPack.items.length === 0) {
+      toast({
+        title: "Error",
+        description: "Por favor añade al menos un artículo al paquete",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       await adminSupplyPackService.create(newPack);
       setNewPack({
@@ -115,7 +126,7 @@ const PackManagement = () => {
       
       toast({
         title: "Paquete añadido",
-        description: "El paquete ha sido añadido con éxito"
+        description: `El paquete ha sido añadido con éxito con ${newPack.items.length} artículos`
       });
     } catch (error) {
       toast({
@@ -135,6 +146,15 @@ const PackManagement = () => {
       toast({
         title: "Error",
         description: "Por favor completa los campos obligatorios",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (editingPack.items.length === 0) {
+      toast({
+        title: "Error",
+        description: "Por favor añade al menos un artículo al paquete",
         variant: "destructive"
       });
       return;
@@ -199,58 +219,68 @@ const PackManagement = () => {
               Añadir Paquete
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Añadir Nuevo Paquete</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nombre del Paquete*</Label>
-                <Input 
-                  id="name" 
-                  value={newPack.name} 
-                  onChange={(e) => setNewPack({...newPack, name: e.target.value})}
-                  placeholder="Ej. Paquete Primaria 2024"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Nombre del Paquete*</Label>
+                  <Input 
+                    id="name" 
+                    value={newPack.name} 
+                    onChange={(e) => setNewPack({...newPack, name: e.target.value})}
+                    placeholder="Ej. Paquete Primaria 2024"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="grade">Grado*</Label>
+                  <Input 
+                    id="grade" 
+                    value={newPack.grade} 
+                    onChange={(e) => setNewPack({...newPack, grade: e.target.value})}
+                    placeholder="Ej. 1er grado"
+                    required
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="school">Escuela*</Label>
-                <Select onValueChange={(value) => {
-                  const selectedSchool = schools.find(school => school.id === value);
-                  setNewPack({...newPack, schoolId: value, schoolName: selectedSchool?.name || ''});
-                }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona una escuela" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schools.map((school) => (
-                      <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="school">Escuela*</Label>
+                  <Select onValueChange={(value) => {
+                    const selectedSchool = schools.find(school => school.id === value);
+                    setNewPack({...newPack, schoolId: value, schoolName: selectedSchool?.name || ''});
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona una escuela" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schools.map((school) => (
+                        <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="price">Precio*</Label>
+                  <Input 
+                    id="price" 
+                    type="number"
+                    step="0.01"
+                    value={newPack.price.toString()} 
+                    onChange={(e) => setNewPack({...newPack, price: parseFloat(e.target.value) || 0})}
+                    placeholder="Ej. 25.00"
+                    required
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="grade">Grado*</Label>
-                <Input 
-                  id="grade" 
-                  value={newPack.grade} 
-                  onChange={(e) => setNewPack({...newPack, grade: e.target.value})}
-                  placeholder="Ej. 1er grado"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="price">Precio*</Label>
-                <Input 
-                  id="price" 
-                  type="number"
-                  value={newPack.price.toString()} 
-                  onChange={(e) => setNewPack({...newPack, price: parseFloat(e.target.value)})}
-                  placeholder="Ej. 25.00"
-                  required
-                />
-              </div>
+              
+              <PackItemsEditor 
+                items={newPack.items}
+                onItemsChange={(items) => setNewPack({...newPack, items})}
+              />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpenAddDialog(false)}>Cancelar</Button>
@@ -359,61 +389,73 @@ const PackManagement = () => {
 
       {/* Diálogo de edición */}
       <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Paquete</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Nombre del Paquete*</Label>
-              <Input 
-                id="edit-name" 
-                value={editingPack?.name || ''} 
-                onChange={(e) => setEditingPack(prev => prev ? {...prev, name: e.target.value} : null)}
-                placeholder="Ej. Paquete Primaria 2024"
-                required
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Nombre del Paquete*</Label>
+                <Input 
+                  id="edit-name" 
+                  value={editingPack?.name || ''} 
+                  onChange={(e) => setEditingPack(prev => prev ? {...prev, name: e.target.value} : null)}
+                  placeholder="Ej. Paquete Primaria 2024"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-grade">Grado*</Label>
+                <Input 
+                  id="edit-grade" 
+                  value={editingPack?.grade || ''} 
+                  onChange={(e) => setEditingPack(prev => prev ? {...prev, grade: e.target.value} : null)}
+                  placeholder="Ej. 1er grado"
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-school">Escuela*</Label>
+                <Select 
+                  onValueChange={(value) => {
+                    const selectedSchool = schools.find(school => school.id === value);
+                    setEditingPack(prev => prev ? {...prev, schoolId: value, schoolName: selectedSchool?.name || ''} : null);
+                  }}
+                  defaultValue={editingPack?.schoolId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecciona una escuela" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schools.map((school) => (
+                      <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-price">Precio*</Label>
+                <Input 
+                  id="edit-price" 
+                  type="number"
+                  step="0.01"
+                  value={editingPack?.price?.toString() || ''} 
+                  onChange={(e) => setEditingPack(prev => prev ? {...prev, price: parseFloat(e.target.value) || 0} : null)}
+                  placeholder="Ej. 25.00"
+                  required
+                />
+              </div>
+            </div>
+            
+            {editingPack && (
+              <PackItemsEditor 
+                items={editingPack.items}
+                onItemsChange={(items) => setEditingPack({...editingPack, items})}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-school">Escuela*</Label>
-              <Select 
-                onValueChange={(value) => {
-                  const selectedSchool = schools.find(school => school.id === value);
-                  setEditingPack(prev => prev ? {...prev, schoolId: value, schoolName: selectedSchool?.name || ''} : null);
-                }}
-                defaultValue={editingPack?.schoolId}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona una escuela" />
-                </SelectTrigger>
-                <SelectContent>
-                  {schools.map((school) => (
-                    <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-grade">Grado*</Label>
-              <Input 
-                id="edit-grade" 
-                value={editingPack?.grade || ''} 
-                onChange={(e) => setEditingPack(prev => prev ? {...prev, grade: e.target.value} : null)}
-                placeholder="Ej. 1er grado"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-price">Precio*</Label>
-              <Input 
-                id="edit-price" 
-                type="number"
-                value={editingPack?.price?.toString() || ''} 
-                onChange={(e) => setEditingPack(prev => prev ? {...prev, price: parseFloat(e.target.value)} : null)}
-                placeholder="Ej. 25.00"
-                required
-              />
-            </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenEditDialog(false)}>Cancelar</Button>
