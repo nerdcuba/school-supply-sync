@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
@@ -275,14 +276,23 @@ const OrderManagement = () => {
   };
 
   const getCustomerName = (order: Order) => {
-    // Try to extract customer name from order items or user_id
+    // Buscar información del cliente en los items de la orden
     if (order.items && order.items.length > 0) {
-      const firstItem = order.items[0];
-      if (firstItem.customer_name || firstItem.fullName) {
-        return firstItem.customer_name || firstItem.fullName;
+      // Revisar cada item para encontrar información del cliente
+      for (const item of order.items) {
+        console.log('🔍 Revisando item para info del cliente:', item);
+        
+        // Verificar diferentes campos donde puede estar el nombre
+        if (item.customerName) return item.customerName;
+        if (item.fullName) return item.fullName;
+        if (item.billing?.fullName) return item.billing.fullName;
+        if (item.customer?.name) return item.customer.name;
+        if (item.billingInfo?.fullName) return item.billingInfo.fullName;
       }
     }
-    return order.user_id ? order.user_id.slice(0, 8) + '...' : 'Usuario invitado';
+    
+    // Fallback al user_id si no encontramos nombre
+    return order.user_id ? `Usuario ${order.user_id.slice(0, 8)}...` : 'Usuario invitado';
   };
 
   const getSchoolFromOrder = (order: Order) => {
@@ -304,16 +314,42 @@ const OrderManagement = () => {
   };
 
   const getDeliveryInfo = (order: Order) => {
+    console.log('🚚 Extrayendo información de entrega de la orden:', order);
+    
     if (order.items && order.items.length > 0) {
-      const firstItem = order.items[0];
-      return {
-        deliveryName: firstItem.deliveryName || 'N/A',
-        deliveryAddress: firstItem.deliveryAddress || 'N/A',
-        deliveryCity: firstItem.deliveryCity || 'N/A',
-        deliveryZipCode: firstItem.deliveryZipCode || 'N/A',
-        sameAsDelivery: firstItem.sameAsDelivery || false
-      };
+      // Buscar en todos los items por información de entrega
+      for (const item of order.items) {
+        console.log('🔍 Revisando item para info de entrega:', item);
+        
+        // Verificar si hay información de entrega directamente en el item
+        if (item.deliveryName || item.deliveryAddress || item.delivery) {
+          const delivery = {
+            deliveryName: item.deliveryName || item.delivery?.name || 'N/A',
+            deliveryAddress: item.deliveryAddress || item.delivery?.address || 'N/A',
+            deliveryCity: item.deliveryCity || item.delivery?.city || 'N/A',
+            deliveryZipCode: item.deliveryZipCode || item.delivery?.zipCode || 'N/A',
+            sameAsDelivery: item.sameAsDelivery || item.delivery?.sameAsBilling || false
+          };
+          console.log('✅ Información de entrega encontrada:', delivery);
+          return delivery;
+        }
+        
+        // Verificar en objetos anidados
+        if (item.deliveryInfo) {
+          const delivery = {
+            deliveryName: item.deliveryInfo.name || item.deliveryInfo.deliveryName || 'N/A',
+            deliveryAddress: item.deliveryInfo.address || item.deliveryInfo.deliveryAddress || 'N/A',
+            deliveryCity: item.deliveryInfo.city || item.deliveryInfo.deliveryCity || 'N/A',
+            deliveryZipCode: item.deliveryInfo.zipCode || item.deliveryInfo.deliveryZipCode || 'N/A',
+            sameAsDelivery: item.deliveryInfo.sameAsBilling || item.deliveryInfo.sameAsDelivery || false
+          };
+          console.log('✅ Información de entrega encontrada en deliveryInfo:', delivery);
+          return delivery;
+        }
+      }
     }
+    
+    console.log('❌ No se encontró información de entrega');
     return {
       deliveryName: 'N/A',
       deliveryAddress: 'N/A',
@@ -324,17 +360,58 @@ const OrderManagement = () => {
   };
 
   const getBillingInfo = (order: Order) => {
+    console.log('💰 Extrayendo información de facturación de la orden:', order);
+    
     if (order.items && order.items.length > 0) {
-      const firstItem = order.items[0];
-      return {
-        fullName: firstItem.fullName || 'N/A',
-        email: firstItem.email || 'N/A',
-        phone: firstItem.phone || 'N/A',
-        address: firstItem.address || 'N/A',
-        city: firstItem.city || 'N/A',
-        zipCode: firstItem.zipCode || 'N/A'
-      };
+      // Buscar en todos los items por información de facturación
+      for (const item of order.items) {
+        console.log('🔍 Revisando item para info de facturación:', item);
+        
+        // Verificar si hay información de facturación directamente en el item
+        if (item.fullName || item.email || item.billing) {
+          const billing = {
+            fullName: item.fullName || item.billing?.fullName || item.customerName || 'N/A',
+            email: item.email || item.billing?.email || 'N/A',
+            phone: item.phone || item.billing?.phone || 'N/A',
+            address: item.address || item.billing?.address || 'N/A',
+            city: item.city || item.billing?.city || 'N/A',
+            zipCode: item.zipCode || item.billing?.zipCode || 'N/A'
+          };
+          console.log('✅ Información de facturación encontrada:', billing);
+          return billing;
+        }
+        
+        // Verificar en objetos anidados
+        if (item.billingInfo) {
+          const billing = {
+            fullName: item.billingInfo.fullName || item.billingInfo.name || 'N/A',
+            email: item.billingInfo.email || 'N/A',
+            phone: item.billingInfo.phone || 'N/A',
+            address: item.billingInfo.address || 'N/A',
+            city: item.billingInfo.city || 'N/A',
+            zipCode: item.billingInfo.zipCode || 'N/A'
+          };
+          console.log('✅ Información de facturación encontrada en billingInfo:', billing);
+          return billing;
+        }
+        
+        // Verificar en customer info
+        if (item.customer) {
+          const billing = {
+            fullName: item.customer.name || item.customer.fullName || 'N/A',
+            email: item.customer.email || 'N/A',
+            phone: item.customer.phone || 'N/A',
+            address: item.customer.address || 'N/A',
+            city: item.customer.city || 'N/A',
+            zipCode: item.customer.zipCode || 'N/A'
+          };
+          console.log('✅ Información de facturación encontrada en customer:', billing);
+          return billing;
+        }
+      }
     }
+    
+    console.log('❌ No se encontró información de facturación');
     return {
       fullName: 'N/A',
       email: 'N/A',
@@ -538,6 +615,9 @@ const OrderManagement = () => {
                           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>Detalles de la Orden</DialogTitle>
+                              <DialogDescription>
+                                Información completa de la orden #{selectedOrder?.id.slice(0, 8)}
+                              </DialogDescription>
                             </DialogHeader>
                             {selectedOrder && (
                               <div className="space-y-6">
@@ -585,11 +665,11 @@ const OrderManagement = () => {
                                         <>
                                           <div>
                                             <label className="font-medium text-sm text-gray-600">Nombre Completo:</label>
-                                            <p>{billing.fullName}</p>
+                                            <p className="break-words">{billing.fullName}</p>
                                           </div>
                                           <div>
                                             <label className="font-medium text-sm text-gray-600">Email:</label>
-                                            <p>{billing.email}</p>
+                                            <p className="break-words">{billing.email}</p>
                                           </div>
                                           <div>
                                             <label className="font-medium text-sm text-gray-600">Teléfono:</label>
@@ -597,7 +677,7 @@ const OrderManagement = () => {
                                           </div>
                                           <div>
                                             <label className="font-medium text-sm text-gray-600">Dirección:</label>
-                                            <p>{billing.address}</p>
+                                            <p className="break-words">{billing.address}</p>
                                           </div>
                                           <div>
                                             <label className="font-medium text-sm text-gray-600">Ciudad:</label>
@@ -636,11 +716,11 @@ const OrderManagement = () => {
                                         <div className="grid grid-cols-2 gap-4">
                                           <div>
                                             <label className="font-medium text-sm text-gray-600">Nombre del Destinatario:</label>
-                                            <p>{delivery.deliveryName}</p>
+                                            <p className="break-words">{delivery.deliveryName}</p>
                                           </div>
                                           <div className="col-span-2">
                                             <label className="font-medium text-sm text-gray-600">Dirección de Entrega:</label>
-                                            <p>{delivery.deliveryAddress}</p>
+                                            <p className="break-words">{delivery.deliveryAddress}</p>
                                           </div>
                                           <div>
                                             <label className="font-medium text-sm text-gray-600">Ciudad:</label>
