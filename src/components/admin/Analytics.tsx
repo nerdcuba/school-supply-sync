@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, DollarSign, ShoppingCart, School, Package, Laptop, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingCart, School, Package, Laptop } from 'lucide-react';
 import { dashboardService } from '@/services/dashboardService';
 import { orderService } from '@/services/orderService';
 import { electronicsService } from '@/services/electronicsService';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import OrdersPieChart from './OrdersPieChart';
 import OrdersTable from './OrdersTable';
 import DateRangeFilter from './DateRangeFilter';
@@ -25,6 +26,15 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+
+  // Configurar realtime para actualizar automáticamente cuando cambien las órdenes
+  useRealtimeOrders({
+    onOrdersUpdate: () => {
+      console.log('🔄 Actualizando analytics por cambio en órdenes...');
+      loadAnalytics();
+    },
+    isAdmin: true
+  });
 
   useEffect(() => {
     console.log('🔄 Cargando Analytics...');
@@ -91,6 +101,22 @@ const Analytics = () => {
     console.log('📅 Cambio de rango de fechas:', { newStartDate, newEndDate });
     setStartDate(newStartDate);
     setEndDate(newEndDate);
+  };
+
+  // Función mejorada para normalizar estados
+  const normalizeStatus = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      'pending': 'pending',
+      'pendiente': 'pending',
+      'processing': 'processing', 
+      'procesando': 'processing',
+      'completed': 'completed',
+      'completada': 'completed',
+      'cancelled': 'cancelled',
+      'cancelada': 'cancelled'
+    };
+    
+    return statusMap[status?.toLowerCase()] || 'pending';
   };
 
   // Función para obtener información de la escuela y grado desde los items de la orden
@@ -284,25 +310,37 @@ const Analytics = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">
-                    {filteredOrders.filter((o: any) => (o.status || 'pending') === 'pending').length}
+                    {filteredOrders.filter((o: any) => {
+                      const status = normalizeStatus(o.status || 'pending');
+                      return status === 'pending';
+                    }).length}
                   </div>
                   <div className="text-sm text-blue-800">Pendientes</div>
                 </div>
                 <div className="p-4 bg-yellow-50 rounded-lg">
                   <div className="text-2xl font-bold text-yellow-600">
-                    {filteredOrders.filter((o: any) => o.status === 'processing').length}
+                    {filteredOrders.filter((o: any) => {
+                      const status = normalizeStatus(o.status || 'pending');
+                      return status === 'processing';
+                    }).length}
                   </div>
                   <div className="text-sm text-yellow-800">Procesando</div>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {filteredOrders.filter((o: any) => o.status === 'completed').length}
+                    {filteredOrders.filter((o: any) => {
+                      const status = normalizeStatus(o.status || 'pending');
+                      return status === 'completed';
+                    }).length}
                   </div>
                   <div className="text-sm text-green-800">Completadas</div>
                 </div>
                 <div className="p-4 bg-red-50 rounded-lg">
                   <div className="text-2xl font-bold text-red-600">
-                    {filteredOrders.filter((o: any) => o.status === 'cancelled').length}
+                    {filteredOrders.filter((o: any) => {
+                      const status = normalizeStatus(o.status || 'pending');
+                      return status === 'cancelled';
+                    }).length}
                   </div>
                   <div className="text-sm text-red-800">Canceladas</div>
                 </div>

@@ -7,18 +7,39 @@ interface OrdersPieChartProps {
 }
 
 const OrdersPieChart = ({ orders }: OrdersPieChartProps) => {
+  console.log('📊 Renderizando pie chart con órdenes:', orders.length);
+
+  if (!orders || orders.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Distribución de Estados de Órdenes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <p className="text-gray-500">No hay órdenes para mostrar</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const statusCounts = orders.reduce((acc, order) => {
     const status = order.status || 'pending';
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {});
 
+  console.log('📈 Status counts:', statusCounts);
+
   const data = [
-    { name: 'Pendiente', value: statusCounts.pending || 0, color: '#3B82F6' },
-    { name: 'Procesando', value: statusCounts.processing || 0, color: '#EAB308' },
-    { name: 'Completado', value: statusCounts.completed || 0, color: '#22C55E' },
-    { name: 'Cancelado', value: statusCounts.cancelled || 0, color: '#EF4444' },
+    { name: 'Pendiente', value: statusCounts.pending || statusCounts.pendiente || 0, color: '#3B82F6' },
+    { name: 'Procesando', value: statusCounts.processing || statusCounts.procesando || 0, color: '#EAB308' },
+    { name: 'Completado', value: statusCounts.completed || statusCounts.completada || 0, color: '#22C55E' },
+    { name: 'Cancelado', value: statusCounts.cancelled || statusCounts.cancelada || 0, color: '#EF4444' },
   ].filter(item => item.value > 0);
+
+  console.log('📊 Chart data:', data);
 
   const COLORS = data.map(item => item.color);
 
@@ -44,6 +65,21 @@ const OrdersPieChart = ({ orders }: OrdersPieChartProps) => {
       </text>
     );
   };
+
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Distribución de Estados de Órdenes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <p className="text-gray-500">Todas las órdenes tienen el mismo estado</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

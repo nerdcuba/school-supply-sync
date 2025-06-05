@@ -22,14 +22,21 @@ const OrdersTable = ({ orders, getOrderDetails }: OrdersTableProps) => {
   const paginatedOrders = orders.slice(startIndex, endIndex);
 
   const getStatusBadge = (status: string) => {
+    // Normalizar el estado para manejar diferentes formatos
+    const normalizedStatus = status?.toLowerCase() || 'pending';
+    
     const statusConfig = {
       pending: { label: 'Pendiente', variant: 'default' as const, icon: Clock, className: 'bg-blue-500 text-white hover:bg-blue-600' },
+      pendiente: { label: 'Pendiente', variant: 'default' as const, icon: Clock, className: 'bg-blue-500 text-white hover:bg-blue-600' },
       processing: { label: 'Procesando', variant: 'default' as const, icon: Package, className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
+      procesando: { label: 'Procesando', variant: 'default' as const, icon: Package, className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
       completed: { label: 'Completado', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-500 text-white hover:bg-green-600' },
+      completada: { label: 'Completado', variant: 'default' as const, icon: CheckCircle, className: 'bg-green-500 text-white hover:bg-green-600' },
       cancelled: { label: 'Cancelado', variant: 'default' as const, icon: XCircle, className: 'bg-red-500 text-white hover:bg-red-600' },
+      cancelada: { label: 'Cancelado', variant: 'default' as const, icon: XCircle, className: 'bg-red-500 text-white hover:bg-red-600' },
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[normalizedStatus as keyof typeof statusConfig] || statusConfig.pending;
     const Icon = config.icon;
 
     return (
@@ -114,7 +121,7 @@ const OrdersTable = ({ orders, getOrderDetails }: OrdersTableProps) => {
             </Table>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center justify-between mt-6 px-2">
                 <div className="text-sm text-gray-600">
                   Mostrando {startIndex + 1}-{Math.min(endIndex, orders.length)} de {orders.length} órdenes
                 </div>
@@ -126,17 +133,30 @@ const OrdersTable = ({ orders, getOrderDetails }: OrdersTableProps) => {
                         className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                       />
                     </PaginationItem>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          onClick={() => handlePageChange(page)}
-                          isActive={page === currentPage}
-                          className="cursor-pointer"
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let page;
+                      if (totalPages <= 5) {
+                        page = i + 1;
+                      } else if (currentPage <= 3) {
+                        page = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        page = totalPages - 4 + i;
+                      } else {
+                        page = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(page)}
+                            isActive={page === currentPage}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
                     <PaginationItem>
                       <PaginationNext 
                         onClick={() => handlePageChange(currentPage + 1)}
