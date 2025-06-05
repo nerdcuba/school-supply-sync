@@ -34,21 +34,20 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // PRIMERA VERIFICACIÓN ROBUSTA DE ORDEN EXISTENTE
-    console.log('🔍 First check for existing order with session ID:', sessionId);
-    const { data: existingOrders, error: checkError } = await supabaseService
+    // VERIFICACIÓN SIMPLE DE ORDEN EXISTENTE
+    console.log('🔍 Checking for existing order with session ID:', sessionId);
+    const { data: existingOrder, error: checkError } = await supabaseService
       .from("orders")
       .select("id, total, created_at, school_name, grade")
       .eq("stripe_session_id", sessionId)
-      .limit(1);
+      .maybeSingle();
 
     if (checkError) {
       console.error('❌ Error checking for existing order:', checkError);
       throw new Error('Error checking for existing order: ' + checkError.message);
     }
 
-    if (existingOrders && existingOrders.length > 0) {
-      const existingOrder = existingOrders[0];
+    if (existingOrder) {
       console.log('✅ Order already exists for this session:', existingOrder.id);
       return new Response(
         JSON.stringify({ 
@@ -72,21 +71,16 @@ serve(async (req) => {
     if (session.payment_status === 'paid') {
       console.log('✅ Payment confirmed as paid');
 
-      // Parse metadata con información mejorada
+      // Parse metadata
       const userId = session.metadata?.user_id;
       const total = parseFloat(session.metadata?.total || '0');
-      
-      // Extraer información de escuela y grado desde metadata
       const school = session.metadata?.school || '';
       const grade = session.metadata?.grade || '';
       
       console.log('🏫 Escuela extraída del metadata:', school);
       console.log('📚 Grado extraído del metadata:', grade);
       
-      // SEGUNDA VERIFICACIÓN ANTES DE CREAR LA ORDEN (ATOMIC CHECK)
-      console.log('🔄 Final check before creating order...');
-      
-      // Reconstruir información del cliente desde metadata compacto
+      // Reconstruir información del cliente desde metadata
       const customerInfo = {
         fullName: session.metadata?.customer_name || '',
         email: session.metadata?.customer_email || '',
@@ -136,13 +130,12 @@ serve(async (req) => {
       console.log('💾 Creating order for user:', userId);
       console.log('📋 Customer data reconstructed:', customerInfo);
 
-      // Crear items con información del cliente incluida y información de escuela/grado
+      // Crear items con información del cliente incluida
       const itemsWithCustomerInfo = [{
         id: `order-${sessionId}`,
         name: `Orden de ${session.metadata?.items_count || 1} artículo(s) - ${school} - ${grade}`,
         quantity: parseInt(session.metadata?.items_count || '1'),
         price: total,
-        // Incluir toda la información del cliente en el item
         ...customerInfo,
         customerInfo: {
           billing: {
@@ -165,7 +158,7 @@ serve(async (req) => {
         }
       }];
 
-      // Create the order with "pendiente" status (initial state after payment)
+      // Create the order with "pendiente" status
       const orderData = {
         user_id: userId !== 'guest' ? userId : null,
         items: itemsWithCustomerInfo,
@@ -179,46 +172,45 @@ serve(async (req) => {
 
       console.log('📝 Order data to be created:', JSON.stringify(orderData, null, 2));
 
-      // INSERTAR CON MANEJO MEJORADO DE DUPLICADOS USANDO ON CONFLICT
+      // INSERTAR CON MANEJO SIMPLE DE DUPLICADOS
       const { data: orderResult, error: orderError } = await supabaseService
         .from("orders")
-        .upsert(orderData, { 
-          onConflict: 'stripe_session_id',
-          ignoreDuplicates: false 
-        })
+        .insert(orderData)
         .select()
         .single();
 
       if (orderError) {
-        console.error('❌ Error creating/updating order:', orderError);
+        console.error('❌ Error creating order:', orderError);
         
-        // Si hay error, intentar buscar la orden existente una vez más
-        console.log('🔄 Error occurred, checking for existing order one more time');
-        const { data: finalCheck } = await supabaseService
-          .from("orders")
-          .select("*")
-          .eq("stripe_session_id", sessionId)
-          .single();
-        
-        if (finalCheck) {
-          console.log('✅ Found existing order after error:', finalCheck.id);
-          return new Response(
-            JSON.stringify({ 
-              success: true,
-              paid: true,
-              order: finalCheck 
-            }),
-            {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-              status: 200,
-            }
-          );
+        // Si el error es por duplicado, intentar buscar la orden existente
+        if (orderError.code === '23505') { // Unique violation
+          console.log('🔄 Duplicate detected, fetching existing order');
+          const { data: existingOrderData } = await supabaseService
+            .from("orders")
+            .select("*")
+            .eq("stripe_session_id", sessionId)
+            .single();
+          
+          if (existingOrderData) {
+            console.log('✅ Found existing order after duplicate error:', existingOrderData.id);
+            return new Response(
+              JSON.stringify({ 
+                success: true,
+                paid: true,
+                order: existingOrderData 
+              }),
+              {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                status: 200,
+              }
+            );
+          }
         }
         
         throw new Error('Failed to create order: ' + orderError.message);
       }
 
-      console.log('✅ Order created/updated successfully:', orderResult.id);
+      console.log('✅ Order created successfully:', orderResult.id);
 
       return new Response(
         JSON.stringify({ 
