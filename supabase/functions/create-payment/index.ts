@@ -112,7 +112,7 @@ serve(async (req) => {
             currency: 'usd',
             product_data: {
               name: item.name || 'Product',
-              description: item.description || '',
+              description: item.description || `Pack de útiles escolares - ${school || 'Escuela'} - ${grade || 'Grado'}`,
             },
             unit_amount: Math.round((item.price || 0) * 100), // Convert to cents
           },
