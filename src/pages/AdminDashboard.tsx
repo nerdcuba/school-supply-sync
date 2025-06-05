@@ -46,7 +46,7 @@ const AdminDashboard = () => {
   if (!isAdminAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-lg">Redirigiendo al login de administrador...</div>
+        <div className="text-lg text-white">Redirigiendo al login de administrador...</div>
       </div>
     );
   }
@@ -58,7 +58,7 @@ const AdminDashboard = () => {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center">
             <Shield className="mr-2" size={24} />
-            <h1 className="text-xl font-bold">Panel de Administración</h1>
+            <h1 className="text-xl font-bold text-white">Panel de Administración</h1>
           </div>
           <Button 
             variant="ghost" 
@@ -66,7 +66,7 @@ const AdminDashboard = () => {
             onClick={handleLogout}
           >
             <LogOut size={16} className="mr-2" />
-            Cerrar Sesión
+            <span className="text-white">Cerrar Sesión</span>
           </Button>
         </div>
       </header>
@@ -75,33 +75,33 @@ const AdminDashboard = () => {
       <div className="container mx-auto py-6 px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid grid-cols-7 gap-2">
-            <TabsTrigger value="analytics" className="flex items-center">
+            <TabsTrigger value="analytics" className="flex items-center text-white">
               <LayoutDashboard size={16} className="mr-2" />
-              Analítica
+              <span className="text-white">Analítica</span>
             </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center">
+            <TabsTrigger value="orders" className="flex items-center text-white">
               <ShoppingCart size={16} className="mr-2" />
-              Órdenes
+              <span className="text-white">Órdenes</span>
             </TabsTrigger>
-            <TabsTrigger value="schools" className="flex items-center">
+            <TabsTrigger value="schools" className="flex items-center text-white">
               <School size={16} className="mr-2" />
-              Escuelas
+              <span className="text-white">Escuelas</span>
             </TabsTrigger>
-            <TabsTrigger value="packs" className="flex items-center">
+            <TabsTrigger value="packs" className="flex items-center text-white">
               <Package size={16} className="mr-2" />
-              Packs de Útiles
+              <span className="text-white">Packs de Útiles</span>
             </TabsTrigger>
-            <TabsTrigger value="electronics" className="flex items-center">
+            <TabsTrigger value="electronics" className="flex items-center text-white">
               <Laptop size={16} className="mr-2" />
-              Electrónicos
+              <span className="text-white">Electrónicos</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center">
+            <TabsTrigger value="users" className="flex items-center text-white">
               <Users size={16} className="mr-2" />
-              Usuarios
+              <span className="text-white">Usuarios</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center">
+            <TabsTrigger value="settings" className="flex items-center text-white">
               <Settings size={16} className="mr-2" />
-              Configuración
+              <span className="text-white">Configuración</span>
             </TabsTrigger>
           </TabsList>
 
