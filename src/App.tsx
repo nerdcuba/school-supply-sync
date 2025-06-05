@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -144,7 +145,7 @@ function App() {
                       <Route path="/" element={<Index />} />
                       <Route path="/schools" element={<Schools />} />
                       <Route path="/school/:id" element={<SchoolDetails onAddToCart={handleAddToCart} />} />
-                      <Route path="/electronics" element={<Electronics />} />
+                      <Route path="/electronics" element={<Electronics onAddToCart={handleAddToCart} />} />
                       <Route path="/how-it-works" element={<HowItWorks />} />
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/login" element={<Login />} />
