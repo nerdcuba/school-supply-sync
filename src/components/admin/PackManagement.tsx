@@ -143,6 +143,9 @@ const PackManagement = () => {
   const handleUpdatePack = async () => {
     if (!editingPack) return;
 
+    console.log('Actualizando paquete:', editingPack);
+    console.log('Items a guardar:', editingPack.items);
+
     // Validación básica
     if (!editingPack.name || !editingPack.schoolId || !editingPack.grade || !editingPack.price) {
       toast({
@@ -163,15 +166,32 @@ const PackManagement = () => {
     }
 
     try {
-      await adminSupplyPackService.update(editingPack.id, editingPack);
+      // Crear el objeto de actualización con todos los campos necesarios
+      const updateData = {
+        name: editingPack.name,
+        schoolId: editingPack.schoolId,
+        schoolName: editingPack.schoolName,
+        grade: editingPack.grade,
+        price: editingPack.price,
+        items: editingPack.items
+      };
+
+      console.log('Datos de actualización:', updateData);
+
+      await adminSupplyPackService.update(editingPack.id, updateData);
+      
+      // Recargar los paquetes para reflejar los cambios
+      await loadPacks();
+      
       setEditingPack(null);
       setOpenEditDialog(false);
       
       toast({
         title: "Paquete actualizado",
-        description: "La información del paquete ha sido actualizada"
+        description: `La información del paquete ha sido actualizada con ${editingPack.items.length} artículos`
       });
     } catch (error) {
+      console.error('Error al actualizar paquete:', error);
       toast({
         title: "Error",
         description: "No se pudo actualizar el paquete",
@@ -504,7 +524,10 @@ const PackManagement = () => {
             {editingPack && (
               <PackItemsEditor 
                 items={editingPack.items || []}
-                onItemsChange={(items) => setEditingPack({...editingPack, items})}
+                onItemsChange={(items) => {
+                  console.log('Items actualizados en editor:', items);
+                  setEditingPack({...editingPack, items});
+                }}
               />
             )}
           </div>
