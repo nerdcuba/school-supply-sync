@@ -70,13 +70,21 @@ serve(async (req) => {
     // Retrieve the session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     console.log('📋 Session status:', session.payment_status);
+    console.log('📋 Session metadata:', JSON.stringify(session.metadata, null, 2));
 
     if (session.payment_status === 'paid') {
       console.log('✅ Payment confirmed as paid');
 
-      // Parse metadata compacto
+      // Parse metadata con información mejorada
       const userId = session.metadata?.user_id;
       const total = parseFloat(session.metadata?.total || '0');
+      
+      // Extraer información de escuela y grado desde metadata
+      const school = session.metadata?.school || '';
+      const grade = session.metadata?.grade || '';
+      
+      console.log('🏫 Escuela extraída del metadata:', school);
+      console.log('📚 Grado extraído del metadata:', grade);
       
       // Reconstruir información del cliente desde metadata compacto
       const customerInfo = {
@@ -90,7 +98,9 @@ serve(async (req) => {
         deliveryAddress: '',
         deliveryCity: '',
         deliveryZipCode: '',
-        sameAsDelivery: session.metadata?.delivery_same === '1'
+        sameAsDelivery: session.metadata?.delivery_same === '1',
+        school: school,
+        grade: grade
       };
 
       // Extraer dirección de facturación
@@ -126,7 +136,7 @@ serve(async (req) => {
       console.log('💾 Creating order for user:', userId);
       console.log('📋 Customer data reconstructed:', customerInfo);
 
-      // Crear items con información del cliente incluida
+      // Crear items con información del cliente incluida y información de escuela/grado
       const itemsWithCustomerInfo = [{
         id: `order-${sessionId}`,
         name: `Orden de ${session.metadata?.items_count || 1} artículo(s)`,
@@ -149,7 +159,10 @@ serve(async (req) => {
             deliveryCity: customerInfo.deliveryCity,
             deliveryZipCode: customerInfo.deliveryZipCode,
             sameAsBilling: customerInfo.sameAsDelivery
-          }
+          },
+          // AGREGAR INFORMACIÓN DE ESCUELA Y GRADO
+          school: school,
+          grade: grade
         }
       }];
 
@@ -160,8 +173,12 @@ serve(async (req) => {
         total: total,
         status: "pendiente",
         stripe_session_id: sessionId,
+        school_name: school, // Agregar escuela a nivel de orden
+        grade: grade, // Agregar grado a nivel de orden
         created_at: new Date().toISOString()
       };
+
+      console.log('📝 Order data to be created:', JSON.stringify(orderData, null, 2));
 
       // Usar INSERT con verificación adicional para evitar duplicados
       const { data: orderResult, error: orderError } = await supabaseService
