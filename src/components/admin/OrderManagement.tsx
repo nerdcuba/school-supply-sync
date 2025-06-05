@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Eye, Package, Clock, CheckCircle, XCircle, Search, Filter, CalendarIcon, X, MapPin, User, Truck } from 'lucide-react';
+import { Eye, Package, Clock, CheckCircle, XCircle, Search, Filter, CalendarIcon, X, MapPin, User, Truck, AlertCircle } from 'lucide-react';
 import { orderService, Order } from '@/services/orderService';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
@@ -275,39 +275,21 @@ const OrderManagement = () => {
   };
 
   const getCustomerName = (order: Order) => {
-    console.log('🔍 Extrayendo nombre del cliente para orden:', order.id);
-    console.log('🔍 Items completos de la orden:', JSON.stringify(order.items, null, 2));
+    console.log('🔍 Buscando nombre del cliente en orden:', order.id);
     
-    // Buscar información del cliente en los items de la orden
+    // Intentar obtener del primer item que tenga información de cliente
     if (order.items && order.items.length > 0) {
-      // Revisar cada item para encontrar información del cliente
       for (const item of order.items) {
-        console.log('🔍 Revisando item para info del cliente:', item);
-        
-        // Buscar en diferentes campos posibles
-        const possibleNameFields = [
+        // Buscar en múltiples campos posibles
+        const possibleFields = [
           'customerName', 'fullName', 'name', 'clientName',
-          'billing?.fullName', 'billing?.name', 'billing?.customerName',
+          'billing?.fullName', 'billing?.name', 
           'customer?.name', 'customer?.fullName',
-          'billingInfo?.fullName', 'billingInfo?.name',
-          'checkoutData?.customerName', 'checkoutData?.fullName',
-          'userData?.name', 'userData?.fullName'
+          'checkoutData?.customerName', 'checkoutData?.fullName'
         ];
         
-        for (const field of possibleNameFields) {
-          let value;
-          if (field.includes('?.')) {
-            // Manejar campos anidados con optional chaining
-            const parts = field.split('?.');
-            value = item;
-            for (const part of parts) {
-              value = value?.[part];
-              if (!value) break;
-            }
-          } else {
-            value = item[field];
-          }
-          
+        for (const field of possibleFields) {
+          const value = getNestedValue(item, field);
           if (value && typeof value === 'string' && value.trim() !== '') {
             console.log(`✅ Nombre encontrado en ${field}:`, value);
             return value;
@@ -317,8 +299,20 @@ const OrderManagement = () => {
     }
     
     console.log('❌ No se encontró nombre del cliente');
-    // Fallback al user_id si no encontramos nombre
-    return order.user_id ? `Usuario ${order.user_id.slice(0, 8)}...` : 'Usuario invitado';
+    return order.user_id ? `Usuario ${order.user_id.slice(0, 8)}...` : 'Cliente sin identificar';
+  };
+
+  const getNestedValue = (obj: any, path: string): any => {
+    if (path.includes('?.')) {
+      const parts = path.split('?.');
+      let current = obj;
+      for (const part of parts) {
+        current = current?.[part];
+        if (!current) break;
+      }
+      return current;
+    }
+    return obj[path];
   };
 
   const getSchoolFromOrder = (order: Order) => {
@@ -339,154 +333,68 @@ const OrderManagement = () => {
     return 'N/A';
   };
 
-  const getDeliveryInfo = (order: Order) => {
-    console.log('🚚 Extrayendo información de entrega de la orden:', order.id);
-    console.log('🚚 Items completos para entrega:', JSON.stringify(order.items, null, 2));
+  const extractCustomerInfo = (order: Order) => {
+    console.log('🔍 DIAGNÓSTICO COMPLETO - Extrayendo información del cliente para orden:', order.id);
+    console.log('🔍 DIAGNÓSTICO - Estructura completa de la orden:', JSON.stringify(order, null, 2));
     
-    if (order.items && order.items.length > 0) {
-      // Buscar en todos los items por información de entrega
-      for (const item of order.items) {
-        console.log('🔍 Revisando item para info de entrega:', item);
-        
-        // Lista expandida de campos posibles para entrega
-        const deliveryFields = [
-          'deliveryName', 'deliveryAddress', 'deliveryCity', 'deliveryZipCode',
-          'delivery?.name', 'delivery?.address', 'delivery?.city', 'delivery?.zipCode',
-          'deliveryInfo?.name', 'deliveryInfo?.address', 'deliveryInfo?.city', 'deliveryInfo?.zipCode',
-          'shipping?.name', 'shipping?.address', 'shipping?.city', 'shipping?.zipCode',
-          'shippingInfo?.name', 'shippingInfo?.address', 'shippingInfo?.city', 'shippingInfo?.zipCode',
-          'checkoutData?.deliveryName', 'checkoutData?.deliveryAddress',
-          'userData?.deliveryName', 'userData?.deliveryAddress'
-        ];
-        
-        const delivery: any = {};
-        
-        // Intentar extraer cada campo
-        for (const field of deliveryFields) {
-          let value;
-          if (field.includes('?.')) {
-            const parts = field.split('?.');
-            value = item;
-            for (const part of parts) {
-              value = value?.[part];
-              if (!value) break;
-            }
-          } else {
-            value = item[field];
-          }
-          
-          if (value && typeof value === 'string' && value.trim() !== '') {
-            const cleanField = field.split('?.').pop() || field;
-            delivery[cleanField] = value;
-            console.log(`✅ Campo de entrega encontrado ${field}:`, value);
-          }
-        }
-        
-        // Si encontramos al menos un campo de entrega, procesarlo
-        if (Object.keys(delivery).length > 0) {
-          const result = {
-            deliveryName: delivery.name || delivery.deliveryName || 'N/A',
-            deliveryAddress: delivery.address || delivery.deliveryAddress || 'N/A',
-            deliveryCity: delivery.city || delivery.deliveryCity || 'N/A',
-            deliveryZipCode: delivery.zipCode || delivery.deliveryZipCode || 'N/A',
-            sameAsDelivery: item.sameAsDelivery || item.sameAsBilling || false
-          };
-          console.log('✅ Información de entrega procesada:', result);
-          return result;
-        }
-        
-        // Verificar si usa la misma dirección que facturación
-        if (item.sameAsDelivery || item.sameAsBilling) {
-          console.log('✅ Usa la misma dirección que facturación');
-          return {
-            deliveryName: 'N/A',
-            deliveryAddress: 'N/A',
-            deliveryCity: 'N/A',
-            deliveryZipCode: 'N/A',
-            sameAsDelivery: true
-          };
-        }
+    const defaultInfo = {
+      billing: {
+        fullName: 'No disponible',
+        email: 'No disponible', 
+        phone: 'No disponible',
+        address: 'No disponible',
+        city: 'No disponible',
+        zipCode: 'No disponible'
+      },
+      delivery: {
+        deliveryName: 'No disponible',
+        deliveryAddress: 'No disponible', 
+        deliveryCity: 'No disponible',
+        deliveryZipCode: 'No disponible',
+        sameAsBilling: false
       }
-    }
-    
-    console.log('❌ No se encontró información de entrega');
-    return {
-      deliveryName: 'N/A',
-      deliveryAddress: 'N/A',
-      deliveryCity: 'N/A',
-      deliveryZipCode: 'N/A',
-      sameAsDelivery: false
     };
-  };
 
-  const getBillingInfo = (order: Order) => {
-    console.log('💰 Extrayendo información de facturación de la orden:', order.id);
-    console.log('💰 Items completos para facturación:', JSON.stringify(order.items, null, 2));
-    
-    if (order.items && order.items.length > 0) {
-      // Buscar en todos los items por información de facturación
-      for (const item of order.items) {
-        console.log('🔍 Revisando item para info de facturación:', item);
+    if (!order.items || order.items.length === 0) {
+      console.log('❌ DIAGNÓSTICO - No hay items en la orden');
+      return defaultInfo;
+    }
+
+    // Buscar en todos los items por cualquier información de cliente
+    for (let i = 0; i < order.items.length; i++) {
+      const item = order.items[i];
+      console.log(`🔍 DIAGNÓSTICO - Revisando item ${i}:`, JSON.stringify(item, null, 2));
+      
+      // Lista exhaustiva de campos donde puede estar la información
+      const allPossibleFields = [
+        // Facturación
+        'fullName', 'email', 'phone', 'address', 'city', 'zipCode',
+        'customerName', 'customerEmail', 'customerPhone', 'customerAddress',
+        'billing.fullName', 'billing.email', 'billing.phone', 'billing.address', 'billing.city', 'billing.zipCode',
+        'billingInfo.fullName', 'billingInfo.email', 'billingInfo.phone', 'billingInfo.address', 'billingInfo.city', 'billingInfo.zipCode',
+        'customer.name', 'customer.email', 'customer.phone', 'customer.address', 'customer.city', 'customer.zipCode',
+        'checkoutData.fullName', 'checkoutData.email', 'checkoutData.phone', 'checkoutData.address',
+        'userData.name', 'userData.email', 'userData.phone', 'userData.address',
         
-        // Lista expandida de campos posibles para facturación
-        const billingFields = [
-          'fullName', 'email', 'phone', 'address', 'city', 'zipCode',
-          'customerName', 'customerEmail', 'customerPhone',
-          'billing?.fullName', 'billing?.email', 'billing?.phone', 'billing?.address', 'billing?.city', 'billing?.zipCode',
-          'billingInfo?.fullName', 'billingInfo?.email', 'billingInfo?.phone', 'billingInfo?.address', 'billingInfo?.city', 'billingInfo?.zipCode',
-          'customer?.name', 'customer?.email', 'customer?.phone', 'customer?.address', 'customer?.city', 'customer?.zipCode',
-          'checkoutData?.fullName', 'checkoutData?.email', 'checkoutData?.phone',
-          'userData?.name', 'userData?.email', 'userData?.phone'
-        ];
-        
-        const billing: any = {};
-        
-        // Intentar extraer cada campo
-        for (const field of billingFields) {
-          let value;
-          if (field.includes('?.')) {
-            const parts = field.split('?.');
-            value = item;
-            for (const part of parts) {
-              value = value?.[part];
-              if (!value) break;
-            }
-          } else {
-            value = item[field];
-          }
-          
-          if (value && typeof value === 'string' && value.trim() !== '') {
-            const cleanField = field.split('?.').pop() || field;
-            billing[cleanField] = value;
-            console.log(`✅ Campo de facturación encontrado ${field}:`, value);
-          }
-        }
-        
-        // Si encontramos al menos un campo de facturación, procesarlo
-        if (Object.keys(billing).length > 0) {
-          const result = {
-            fullName: billing.fullName || billing.name || billing.customerName || 'N/A',
-            email: billing.email || billing.customerEmail || 'N/A',
-            phone: billing.phone || billing.customerPhone || 'N/A',
-            address: billing.address || 'N/A',
-            city: billing.city || 'N/A',
-            zipCode: billing.zipCode || 'N/A'
-          };
-          console.log('✅ Información de facturación procesada:', result);
-          return result;
+        // Entrega
+        'deliveryName', 'deliveryAddress', 'deliveryCity', 'deliveryZipCode',
+        'delivery.name', 'delivery.address', 'delivery.city', 'delivery.zipCode',
+        'deliveryInfo.name', 'deliveryInfo.address', 'deliveryInfo.city', 'deliveryInfo.zipCode',
+        'shipping.name', 'shipping.address', 'shipping.city', 'shipping.zipCode',
+        'checkoutData.deliveryName', 'checkoutData.deliveryAddress',
+        'sameAsBilling', 'sameAsDelivery'
+      ];
+
+      for (const field of allPossibleFields) {
+        const value = getNestedValue(item, field);
+        if (value !== undefined && value !== null && value !== '') {
+          console.log(`✅ DIAGNÓSTICO - Campo encontrado ${field}:`, value);
         }
       }
     }
-    
-    console.log('❌ No se encontró información de facturación');
-    return {
-      fullName: 'N/A',
-      email: 'N/A',
-      phone: 'N/A',
-      address: 'N/A',
-      city: 'N/A',
-      zipCode: 'N/A'
-    };
+
+    console.log('❌ DIAGNÓSTICO - No se encontró información de cliente en ningún formato conocido');
+    return defaultInfo;
   };
 
   if (loading) {
@@ -725,11 +633,26 @@ const OrderManagement = () => {
                                     <User size={18} />
                                     Información de Facturación
                                   </h3>
-                                  <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-gray-50">
+                                  <div className="p-4 border rounded-lg bg-gray-50">
                                     {(() => {
-                                      const billing = getBillingInfo(selectedOrder);
+                                      const customerInfo = extractCustomerInfo(selectedOrder);
+                                      const billing = customerInfo.billing;
+                                      const hasRealData = Object.values(billing).some(value => value !== 'No disponible');
+                                      
+                                      if (!hasRealData) {
+                                        return (
+                                          <div className="flex items-center gap-2 text-amber-700 bg-amber-50 p-3 rounded border border-amber-200">
+                                            <AlertCircle size={16} />
+                                            <span className="text-sm">
+                                              La información de facturación no está disponible para esta orden. 
+                                              Esto puede ocurrir con órdenes creadas antes de implementar la captura completa de datos del cliente.
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                      
                                       return (
-                                        <>
+                                        <div className="grid grid-cols-2 gap-4">
                                           <div>
                                             <label className="font-medium text-sm text-gray-600">Nombre Completo:</label>
                                             <p className="break-words">{billing.fullName}</p>
@@ -754,7 +677,7 @@ const OrderManagement = () => {
                                             <label className="font-medium text-sm text-gray-600">Código Postal:</label>
                                             <p>{billing.zipCode}</p>
                                           </div>
-                                        </>
+                                        </div>
                                       );
                                     })()}
                                   </div>
@@ -768,9 +691,25 @@ const OrderManagement = () => {
                                   </h3>
                                   <div className="p-4 border rounded-lg bg-blue-50">
                                     {(() => {
-                                      const delivery = getDeliveryInfo(selectedOrder);
+                                      const customerInfo = extractCustomerInfo(selectedOrder);
+                                      const delivery = customerInfo.delivery;
+                                      const hasRealData = Object.values(delivery).some(value => 
+                                        value !== 'No disponible' && value !== false
+                                      );
                                       
-                                      if (delivery.sameAsDelivery) {
+                                      if (!hasRealData) {
+                                        return (
+                                          <div className="flex items-center gap-2 text-amber-700 bg-amber-50 p-3 rounded border border-amber-200">
+                                            <AlertCircle size={16} />
+                                            <span className="text-sm">
+                                              La información de entrega no está disponible para esta orden.
+                                              Esto puede ocurrir con órdenes creadas antes de implementar la captura completa de datos de entrega.
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      if (delivery.sameAsBilling) {
                                         return (
                                           <div className="flex items-center gap-2 text-blue-700">
                                             <MapPin size={16} />
