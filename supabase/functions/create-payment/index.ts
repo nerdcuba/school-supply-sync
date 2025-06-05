@@ -60,7 +60,7 @@ serve(async (req) => {
       console.log('📝 Will create new Stripe customer for:', customerEmail);
     }
 
-    // Create line items for Stripe
+    // Create simplified line items for Stripe (sin información del cliente)
     const lineItems = items.map((item: any) => ({
       price_data: {
         currency: "usd",
@@ -75,6 +75,32 @@ serve(async (req) => {
 
     console.log('💳 Creating Stripe session with', lineItems.length, 'items');
 
+    // Crear metadata compacto solo con información esencial
+    const compactMetadata = {
+      user_id: user?.id || 'guest',
+      total: total.toString(),
+      items_count: items.length.toString(),
+      // Solo los campos esenciales de customer data en formato compacto
+      customer_email: customerData?.email || '',
+      customer_name: customerData?.fullName || '',
+      customer_phone: customerData?.phone || '',
+      billing_address: `${customerData?.address || ''}, ${customerData?.city || ''}, ${customerData?.zipCode || ''}`,
+      delivery_same: customerData?.sameAsDelivery ? '1' : '0',
+      delivery_address: customerData?.sameAsDelivery ? 'same' : `${customerData?.deliveryAddress || ''}, ${customerData?.deliveryCity || ''}, ${customerData?.deliveryZipCode || ''}`,
+      delivery_name: customerData?.sameAsDelivery ? 'same' : (customerData?.deliveryName || '')
+    };
+
+    // Verificar que el metadata no exceda los límites de Stripe
+    const metadataString = JSON.stringify(compactMetadata);
+    console.log('📏 Metadata size:', metadataString.length, 'characters');
+    
+    if (metadataString.length > 500) {
+      console.log('⚠️ Metadata too large, using minimal version');
+      // Usar solo lo más esencial si aún es muy largo
+      compactMetadata.billing_address = customerData?.city || '';
+      compactMetadata.delivery_address = customerData?.sameAsDelivery ? 'same' : (customerData?.deliveryCity || '');
+    }
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -83,13 +109,7 @@ serve(async (req) => {
       mode: "payment",
       success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/payment-canceled`,
-      metadata: {
-        user_id: user?.id || 'guest',
-        total: total.toString(),
-        items_count: items.length.toString(),
-        items_data: JSON.stringify(items),
-        customer_data: JSON.stringify(customerData)
-      }
+      metadata: compactMetadata
     });
 
     console.log('🎉 Stripe session created:', session.id);

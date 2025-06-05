@@ -74,22 +74,91 @@ serve(async (req) => {
     if (session.payment_status === 'paid') {
       console.log('✅ Payment confirmed as paid');
 
-      // Parse metadata
+      // Parse metadata compacto
       const userId = session.metadata?.user_id;
       const total = parseFloat(session.metadata?.total || '0');
-      const itemsData = JSON.parse(session.metadata?.items_data || '[]');
-      const customerData = JSON.parse(session.metadata?.customer_data || '{}');
+      
+      // Reconstruir información del cliente desde metadata compacto
+      const customerInfo = {
+        fullName: session.metadata?.customer_name || '',
+        email: session.metadata?.customer_email || '',
+        phone: session.metadata?.customer_phone || '',
+        address: '',
+        city: '',
+        zipCode: '',
+        deliveryName: '',
+        deliveryAddress: '',
+        deliveryCity: '',
+        deliveryZipCode: '',
+        sameAsDelivery: session.metadata?.delivery_same === '1'
+      };
+
+      // Extraer dirección de facturación
+      const billingAddress = session.metadata?.billing_address || '';
+      const billingParts = billingAddress.split(', ');
+      if (billingParts.length >= 3) {
+        customerInfo.address = billingParts[0] || '';
+        customerInfo.city = billingParts[1] || '';
+        customerInfo.zipCode = billingParts[2] || '';
+      } else if (billingParts.length === 1) {
+        customerInfo.city = billingParts[0] || '';
+      }
+
+      // Extraer dirección de entrega
+      const deliveryAddress = session.metadata?.delivery_address || '';
+      if (deliveryAddress === 'same' || customerInfo.sameAsDelivery) {
+        customerInfo.deliveryName = customerInfo.fullName;
+        customerInfo.deliveryAddress = customerInfo.address;
+        customerInfo.deliveryCity = customerInfo.city;
+        customerInfo.deliveryZipCode = customerInfo.zipCode;
+      } else {
+        customerInfo.deliveryName = session.metadata?.delivery_name || '';
+        const deliveryParts = deliveryAddress.split(', ');
+        if (deliveryParts.length >= 3) {
+          customerInfo.deliveryAddress = deliveryParts[0] || '';
+          customerInfo.deliveryCity = deliveryParts[1] || '';
+          customerInfo.deliveryZipCode = deliveryParts[2] || '';
+        } else if (deliveryParts.length === 1) {
+          customerInfo.deliveryCity = deliveryParts[0] || '';
+        }
+      }
 
       console.log('💾 Creating order for user:', userId);
-      console.log('📋 Customer data received:', customerData);
-      console.log('📋 Items data received:', itemsData);
+      console.log('📋 Customer data reconstructed:', customerInfo);
+
+      // Crear items con información del cliente incluida
+      const itemsWithCustomerInfo = [{
+        id: `order-${sessionId}`,
+        name: `Orden de ${session.metadata?.items_count || 1} artículo(s)`,
+        quantity: parseInt(session.metadata?.items_count || '1'),
+        price: total,
+        // Incluir toda la información del cliente en el item
+        ...customerInfo,
+        customerInfo: {
+          billing: {
+            fullName: customerInfo.fullName,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
+            address: customerInfo.address,
+            city: customerInfo.city,
+            zipCode: customerInfo.zipCode
+          },
+          delivery: {
+            deliveryName: customerInfo.deliveryName,
+            deliveryAddress: customerInfo.deliveryAddress,
+            deliveryCity: customerInfo.deliveryCity,
+            deliveryZipCode: customerInfo.deliveryZipCode,
+            sameAsBilling: customerInfo.sameAsDelivery
+          }
+        }
+      }];
 
       // Create the order with "pendiente" status (initial state after payment)
       const orderData = {
         user_id: userId !== 'guest' ? userId : null,
-        items: itemsData,
+        items: itemsWithCustomerInfo,
         total: total,
-        status: "pendiente", // Estado inicial después del pago confirmado
+        status: "pendiente",
         stripe_session_id: sessionId,
         created_at: new Date().toISOString()
       };
