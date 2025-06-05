@@ -284,20 +284,26 @@ const OrderManagement = () => {
       for (const item of order.items) {
         console.log('🔍 Revisando item para info del cliente:', item);
         
-        // Buscar en diferentes campos posibles
+        // Buscar en diferentes campos posibles para el nombre
+        if (item.fullName && typeof item.fullName === 'string' && item.fullName.trim() !== '') {
+          console.log('✅ Nombre encontrado en fullName:', item.fullName);
+          return item.fullName;
+        }
+        
+        if (item.customerInfo?.billing?.fullName) {
+          console.log('✅ Nombre encontrado en customerInfo.billing.fullName:', item.customerInfo.billing.fullName);
+          return item.customerInfo.billing.fullName;
+        }
+        
+        // Fallback a otros campos posibles
         const possibleNameFields = [
-          'customerName', 'fullName', 'name', 'clientName',
-          'billing?.fullName', 'billing?.name', 'billing?.customerName',
-          'customer?.name', 'customer?.fullName',
-          'billingInfo?.fullName', 'billingInfo?.name',
-          'checkoutData?.customerName', 'checkoutData?.fullName',
-          'userData?.name', 'userData?.fullName'
+          'customerName', 'name', 'clientName',
+          'billing?.fullName', 'billing?.name'
         ];
         
         for (const field of possibleNameFields) {
           let value;
           if (field.includes('?.')) {
-            // Manejar campos anidados con optional chaining
             const parts = field.split('?.');
             value = item;
             for (const part of parts) {
@@ -317,25 +323,115 @@ const OrderManagement = () => {
     }
     
     console.log('❌ No se encontró nombre del cliente');
-    // Fallback al user_id si no encontramos nombre
     return order.user_id ? `Usuario ${order.user_id.slice(0, 8)}...` : 'Usuario invitado';
   };
 
   const getSchoolFromOrder = (order: Order) => {
-    if (order.school_name) return order.school_name;
-    if (order.items && order.items.length > 0) {
-      const firstItem = order.items[0];
-      if (firstItem.school) return firstItem.school;
+    console.log('🏫 Extrayendo información de escuela de la orden:', order.id);
+    console.log('🏫 Items completos para escuela:', JSON.stringify(order.items, null, 2));
+    
+    // Primero verificar en los campos directos de la orden
+    if (order.school_name) {
+      console.log('✅ Escuela encontrada en order.school_name:', order.school_name);
+      return order.school_name;
     }
+    
+    // Buscar en los items de la orden
+    if (order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        console.log('🔍 Revisando item para info de escuela:', item);
+        
+        // Buscar en diferentes campos posibles para la escuela
+        if (item.school && typeof item.school === 'string' && item.school.trim() !== '') {
+          console.log('✅ Escuela encontrada en item.school:', item.school);
+          return item.school;
+        }
+        
+        // Buscar en el nombre del item (muchas veces incluye la escuela)
+        if (item.name && typeof item.name === 'string' && item.name.includes(' - ')) {
+          const parts = item.name.split(' - ');
+          if (parts.length >= 2) {
+            const schoolPart = parts[parts.length - 1]; // Última parte después del último " - "
+            console.log('✅ Escuela extraída del nombre del item:', schoolPart);
+            return schoolPart;
+          }
+        }
+        
+        // Otros campos posibles
+        const possibleSchoolFields = ['schoolName', 'school_name', 'institution'];
+        
+        for (const field of possibleSchoolFields) {
+          const value = item[field];
+          if (value && typeof value === 'string' && value.trim() !== '') {
+            console.log(`✅ Escuela encontrada en ${field}:`, value);
+            return value;
+          }
+        }
+      }
+    }
+    
+    console.log('❌ No se encontró información de escuela');
     return 'N/A';
   };
 
   const getGradeFromOrder = (order: Order) => {
-    if (order.grade) return order.grade;
-    if (order.items && order.items.length > 0) {
-      const firstItem = order.items[0];
-      if (firstItem.grade) return firstItem.grade;
+    console.log('📚 Extrayendo información de grado de la orden:', order.id);
+    console.log('📚 Items completos para grado:', JSON.stringify(order.items, null, 2));
+    
+    // Primero verificar en los campos directos de la orden
+    if (order.grade) {
+      console.log('✅ Grado encontrado en order.grade:', order.grade);
+      return order.grade;
     }
+    
+    // Buscar en los items de la orden
+    if (order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        console.log('🔍 Revisando item para info de grado:', item);
+        
+        // Buscar en diferentes campos posibles para el grado
+        if (item.grade && typeof item.grade === 'string' && item.grade.trim() !== '') {
+          console.log('✅ Grado encontrado en item.grade:', item.grade);
+          return item.grade;
+        }
+        
+        // Buscar en el nombre del item (muchas veces incluye el grado)
+        if (item.name && typeof item.name === 'string') {
+          // Buscar patrones como "K-1", "1st", "2nd", etc.
+          const gradePatterns = [
+            /K-\d+/i,           // K-1, K-2, etc.
+            /\bK\b/i,           // K
+            /\d+st\b/i,         // 1st, 21st, etc.
+            /\d+nd\b/i,         // 2nd, 22nd, etc.
+            /\d+rd\b/i,         // 3rd, 23rd, etc.
+            /\d+th\b/i,         // 4th, 5th, 6th, etc.
+            /Grade\s+\d+/i,     // Grade 1, Grade 2, etc.
+            /Grado\s+\d+/i      // Grado 1, Grado 2, etc.
+          ];
+          
+          for (const pattern of gradePatterns) {
+            const match = item.name.match(pattern);
+            if (match) {
+              console.log('✅ Grado extraído del nombre del item:', match[0]);
+              return match[0];
+            }
+          }
+        }
+        
+        // Otros campos posibles
+        const possibleGradeFields = ['gradeName', 'grade_name', 'level'];
+        
+        for (const field of possibleGradeFields) {
+          const value = item[field];
+          if (value && typeof value === 'string' && value.trim() !== '') {
+            console.log(`✅ Grado encontrado en ${field}:`, value);
+            return value;
+          }
+        }
+      }
+    }
+    
+    console.log('❌ No se encontró información de grado');
     return 'N/A';
   };
 
