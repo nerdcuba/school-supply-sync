@@ -18,23 +18,18 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [hasProcessed, setHasProcessed] = useState(false);
 
-  // Función simple para limpiar el carrito una sola vez
   const clearCartOnce = () => {
-    if (hasProcessed) return; // Evitar múltiples ejecuciones
+    if (hasProcessed) return;
     
     console.log('🧹 Limpiando carrito después del pago exitoso...');
     
     try {
-      // Llamar a la función del padre
       if (onClearCart) {
         onClearCart();
       }
       
-      // Limpiar localStorage
       localStorage.removeItem('cartItems');
       localStorage.setItem('cartItems', '[]');
-      
-      // Disparar evento único
       window.dispatchEvent(new CustomEvent('cartCleared'));
       
       setHasProcessed(true);
@@ -75,11 +70,8 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
 
         if (data.success && data.paid) {
           setOrderDetails(data.order);
-          
-          // Limpiar el carrito una sola vez después de verificar el pago
           clearCartOnce();
           
-          // Mostrar notificación una sola vez
           toast({
             title: "¡Pago Exitoso!",
             description: "Tu orden ha sido procesada correctamente.",
@@ -100,7 +92,6 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
       }
     };
 
-    // Solo ejecutar si no se ha procesado antes
     if (!hasProcessed) {
       verifyPayment();
     }
@@ -177,6 +168,20 @@ const PaymentSuccess = ({ onClearCart }: PaymentSuccessProps) => {
                         {new Date(orderDetails.created_at).toLocaleDateString('es-MX')}
                       </span>
                     </div>
+
+                    {orderDetails.items && orderDetails.items.length > 0 && (
+                      <div className="border-t pt-3 mt-3">
+                        <span className="text-gray-600 font-medium">Artículos:</span>
+                        <ul className="mt-2 space-y-1">
+                          {orderDetails.items.map((item: any, index: number) => (
+                            <li key={index} className="text-sm text-gray-700 flex justify-between">
+                              <span>{item.name} x {item.quantity}</span>
+                              <span>${(item.price * item.quantity).toFixed(2)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

@@ -34,10 +34,32 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Retrieve the session
+    // Primero verificar si ya existe una orden con este session_id
+    console.log('🔍 Checking for existing order...');
+    const { data: existingOrder, error: existingError } = await supabaseService
+      .from("orders")
+      .select("*")
+      .eq("stripe_session_id", sessionId)
+      .single();
+
+    if (existingOrder && !existingError) {
+      console.log('✅ Order already exists, returning existing order:', existingOrder.id);
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          paid: true,
+          order: existingOrder 
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
+
+    // Si no existe, proceder con verificación y creación
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     console.log('📋 Session status:', session.payment_status);
-    console.log('📋 Session metadata:', JSON.stringify(session.metadata, null, 2));
 
     if (session.payment_status === 'paid') {
       console.log('✅ Payment confirmed as paid');
@@ -99,35 +121,48 @@ serve(async (req) => {
       }
 
       console.log('💾 Creating order for user:', userId);
-      console.log('📋 Customer data reconstructed:', customerInfo);
 
-      // Crear items con información del cliente incluida
-      const itemsWithCustomerInfo = [{
-        id: `order-${sessionId}`,
-        name: `Orden de ${session.metadata?.items_count || 1} artículo(s) - ${school} - ${grade}`,
-        quantity: parseInt(session.metadata?.items_count || '1'),
-        price: total,
-        ...customerInfo,
-        customerInfo: {
-          billing: {
-            fullName: customerInfo.fullName,
-            email: customerInfo.email,
-            phone: customerInfo.phone,
-            address: customerInfo.address,
-            city: customerInfo.city,
-            zipCode: customerInfo.zipCode
-          },
-          delivery: {
-            deliveryName: customerInfo.deliveryName,
-            deliveryAddress: customerInfo.deliveryAddress,
-            deliveryCity: customerInfo.deliveryCity,
-            deliveryZipCode: customerInfo.deliveryZipCode,
-            sameAsBilling: customerInfo.sameAsDelivery
-          },
-          school: school,
-          grade: grade
-        }
-      }];
+      // Recuperar los line_items de Stripe para obtener los productos reales
+      const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
+        expand: ['data.price.product']
+      });
+
+      console.log('🛒 Line items from Stripe:', JSON.stringify(lineItems.data, null, 2));
+
+      // Crear items basados en los line_items de Stripe
+      const itemsWithCustomerInfo = lineItems.data.map((item, index) => {
+        const product = item.price?.product as Stripe.Product;
+        return {
+          id: `stripe-item-${sessionId}-${index}`,
+          name: product?.name || `Artículo ${index + 1}`,
+          description: product?.description || '',
+          quantity: item.quantity || 1,
+          price: (item.price?.unit_amount || 0) / 100, // Convert from cents
+          stripeProductId: product?.id,
+          stripePriceId: item.price?.id,
+          customerInfo: {
+            billing: {
+              fullName: customerInfo.fullName,
+              email: customerInfo.email,
+              phone: customerInfo.phone,
+              address: customerInfo.address,
+              city: customerInfo.city,
+              zipCode: customerInfo.zipCode
+            },
+            delivery: {
+              deliveryName: customerInfo.deliveryName,
+              deliveryAddress: customerInfo.deliveryAddress,
+              deliveryCity: customerInfo.deliveryCity,
+              deliveryZipCode: customerInfo.deliveryZipCode,
+              sameAsBilling: customerInfo.sameAsDelivery
+            },
+            school: school,
+            grade: grade
+          }
+        };
+      });
+
+      console.log('📦 Items procesados:', JSON.stringify(itemsWithCustomerInfo, null, 2));
 
       // Usar la función PostgreSQL para insertar de forma atómica
       console.log('🔒 Using atomic insert function to prevent duplicates...');
@@ -149,16 +184,40 @@ serve(async (req) => {
 
       console.log('✅ Order processed successfully with ID:', orderResult);
 
-      // Obtener la orden creada o existente
+      // Obtener la orden creada con una consulta más específica
       const { data: finalOrder, error: finalFetchError } = await supabaseService
         .from("orders")
         .select("*")
-        .eq("stripe_session_id", sessionId)
+        .eq("id", orderResult)
         .single();
 
       if (finalFetchError) {
-        console.error('❌ Error fetching final order:', finalFetchError);
-        throw new Error('Error fetching created order: ' + finalFetchError.message);
+        console.error('❌ Error fetching final order by ID:', finalFetchError);
+        // Fallback: intentar por stripe_session_id pero limitando a 1
+        const { data: fallbackOrder, error: fallbackError } = await supabaseService
+          .from("orders")
+          .select("*")
+          .eq("stripe_session_id", sessionId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+          
+        if (fallbackError) {
+          console.error('❌ Error in fallback fetch:', fallbackError);
+          throw new Error('Error fetching created order: ' + fallbackError.message);
+        }
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            paid: true,
+            order: fallbackOrder 
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
       }
 
       return new Response(
