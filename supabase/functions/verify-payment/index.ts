@@ -34,53 +34,34 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // PRIMERA VERIFICACIÓN: BUSCAR ORDEN EXISTENTE CON RETRY
+    // VERIFICACIÓN CRÍTICA: BUSCAR ORDEN EXISTENTE PRIMERO
     console.log('🔍 Checking for existing order with session ID:', sessionId);
-    let existingOrder = null;
-    let checkAttempts = 0;
-    const maxCheckAttempts = 3;
+    
+    const { data: existingOrder, error: checkError } = await supabaseService
+      .from("orders")
+      .select("id, total, created_at, school_name, grade, status")
+      .eq("stripe_session_id", sessionId)
+      .maybeSingle();
 
-    while (checkAttempts < maxCheckAttempts && !existingOrder) {
-      checkAttempts++;
-      console.log(`🔍 Check attempt ${checkAttempts}/${maxCheckAttempts}`);
-      
-      const { data: foundOrder, error: checkError } = await supabaseService
-        .from("orders")
-        .select("id, total, created_at, school_name, grade, status")
-        .eq("stripe_session_id", sessionId)
-        .maybeSingle();
+    if (checkError) {
+      console.error('❌ Error checking for existing order:', checkError);
+      throw new Error('Error checking for existing order: ' + checkError.message);
+    }
 
-      if (checkError) {
-        console.error('❌ Error checking for existing order:', checkError);
-        if (checkAttempts === maxCheckAttempts) {
-          throw new Error('Error checking for existing order: ' + checkError.message);
+    if (existingOrder) {
+      console.log('✅ Order already exists for this session:', existingOrder.id);
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          paid: true,
+          order: existingOrder,
+          note: "Order already exists for this session"
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
         }
-        // Esperar un poco antes del siguiente intento
-        await new Promise(resolve => setTimeout(resolve, 100));
-        continue;
-      }
-
-      if (foundOrder) {
-        existingOrder = foundOrder;
-        console.log('✅ Order already exists for this session:', existingOrder.id);
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            paid: true,
-            order: existingOrder,
-            note: "Order already exists for this session"
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          }
-        );
-      }
-
-      // Si no encontramos la orden, esperar un poco antes del siguiente intento
-      if (checkAttempts < maxCheckAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+      );
     }
 
     // Retrieve the session
@@ -178,112 +159,73 @@ serve(async (req) => {
         }
       }];
 
-      // VERIFICACIÓN FINAL ANTES DE INSERTAR
-      console.log('🔍 Final check before inserting...');
-      const { data: finalCheck, error: finalCheckError } = await supabaseService
-        .from("orders")
-        .select("id")
-        .eq("stripe_session_id", sessionId)
-        .maybeSingle();
+      // VERIFICACIÓN FINAL ANTES DE INSERTAR CON BLOQUEO
+      console.log('🔒 Final check with advisory lock before inserting...');
+      
+      // Usar una función de PostgreSQL para insertar solo si no existe
+      const { data: orderResult, error: insertError } = await supabaseService.rpc('insert_order_if_not_exists', {
+        p_stripe_session_id: sessionId,
+        p_user_id: userId !== 'guest' ? userId : null,
+        p_items: itemsWithCustomerInfo,
+        p_total: total,
+        p_status: "pendiente",
+        p_school_name: school,
+        p_grade: grade
+      });
 
-      if (finalCheckError) {
-        console.error('❌ Error in final check:', finalCheckError);
-        throw new Error('Error in final check: ' + finalCheckError.message);
-      }
-
-      if (finalCheck) {
-        console.log('✅ Order found in final check, returning existing:', finalCheck.id);
-        const { data: existingCompleteOrder, error: fetchError } = await supabaseService
+      if (insertError) {
+        console.error('❌ Error in RPC insert:', insertError);
+        
+        // Si hay error, verificar si la orden ya existe
+        const { data: existingOrderData, error: fetchError } = await supabaseService
           .from("orders")
           .select("*")
           .eq("stripe_session_id", sessionId)
-          .single();
-          
+          .maybeSingle();
+        
         if (fetchError) {
-          console.error('❌ Error fetching complete existing order:', fetchError);
-          throw new Error('Error fetching existing order: ' + fetchError.message);
+          console.error('❌ Error fetching existing order after RPC error:', fetchError);
+          throw new Error('Failed to fetch existing order: ' + fetchError.message);
         }
-
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            paid: true,
-            order: existingCompleteOrder,
-            note: "Order already existed, found in final check"
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          }
-        );
+        
+        if (existingOrderData) {
+          console.log('✅ Found existing order after RPC error:', existingOrderData.id);
+          return new Response(
+            JSON.stringify({ 
+              success: true,
+              paid: true,
+              order: existingOrderData,
+              note: "Order already existed, returning existing record"
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
+        }
+        
+        throw new Error('Failed to create order via RPC: ' + insertError.message);
       }
 
-      // Crear la orden - usar timestamp único para evitar duplicados
-      const orderData = {
-        user_id: userId !== 'guest' ? userId : null,
-        items: itemsWithCustomerInfo,
-        total: total,
-        status: "pendiente",
-        stripe_session_id: sessionId,
-        school_name: school,
-        grade: grade,
-        created_at: new Date().toISOString()
-      };
+      console.log('✅ Order processed successfully via RPC:', orderResult);
 
-      console.log('📝 Order data to be created:', JSON.stringify(orderData, null, 2));
-
-      // USAR TRANSACCIÓN PARA GARANTIZAR ATOMICIDAD
-      console.log('🔄 Attempting to insert order with transaction...');
-      const { data: orderResult, error: orderError } = await supabaseService
+      // Obtener la orden creada
+      const { data: finalOrder, error: finalFetchError } = await supabaseService
         .from("orders")
-        .insert(orderData)
-        .select()
+        .select("*")
+        .eq("stripe_session_id", sessionId)
         .single();
 
-      if (orderError) {
-        console.error('❌ Error inserting order:', orderError);
-        
-        // Si es error de duplicado, buscar la orden existente
-        if (orderError.code === '23505' || orderError.message?.includes('duplicate') || orderError.message?.includes('unique')) {
-          console.log('🔄 Duplicate detected in insert, fetching existing order...');
-          const { data: existingOrderData, error: fetchError } = await supabaseService
-            .from("orders")
-            .select("*")
-            .eq("stripe_session_id", sessionId)
-            .maybeSingle();
-          
-          if (fetchError) {
-            console.error('❌ Error fetching existing order after duplicate:', fetchError);
-            throw new Error('Failed to fetch existing order: ' + fetchError.message);
-          }
-          
-          if (existingOrderData) {
-            console.log('✅ Found existing order after duplicate error:', existingOrderData.id);
-            return new Response(
-              JSON.stringify({ 
-                success: true,
-                paid: true,
-                order: existingOrderData,
-                note: "Order already existed, returning existing record"
-              }),
-              {
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-                status: 200,
-              }
-            );
-          }
-        }
-        
-        throw new Error('Failed to create order: ' + orderError.message);
+      if (finalFetchError) {
+        console.error('❌ Error fetching final order:', finalFetchError);
+        throw new Error('Error fetching created order: ' + finalFetchError.message);
       }
-
-      console.log('✅ Order created successfully:', orderResult.id);
 
       return new Response(
         JSON.stringify({ 
           success: true,
           paid: true,
-          order: orderResult 
+          order: finalOrder 
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
