@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -276,21 +275,48 @@ const OrderManagement = () => {
   };
 
   const getCustomerName = (order: Order) => {
+    console.log('🔍 Extrayendo nombre del cliente para orden:', order.id);
+    console.log('🔍 Items completos de la orden:', JSON.stringify(order.items, null, 2));
+    
     // Buscar información del cliente en los items de la orden
     if (order.items && order.items.length > 0) {
       // Revisar cada item para encontrar información del cliente
       for (const item of order.items) {
         console.log('🔍 Revisando item para info del cliente:', item);
         
-        // Verificar diferentes campos donde puede estar el nombre
-        if (item.customerName) return item.customerName;
-        if (item.fullName) return item.fullName;
-        if (item.billing?.fullName) return item.billing.fullName;
-        if (item.customer?.name) return item.customer.name;
-        if (item.billingInfo?.fullName) return item.billingInfo.fullName;
+        // Buscar en diferentes campos posibles
+        const possibleNameFields = [
+          'customerName', 'fullName', 'name', 'clientName',
+          'billing?.fullName', 'billing?.name', 'billing?.customerName',
+          'customer?.name', 'customer?.fullName',
+          'billingInfo?.fullName', 'billingInfo?.name',
+          'checkoutData?.customerName', 'checkoutData?.fullName',
+          'userData?.name', 'userData?.fullName'
+        ];
+        
+        for (const field of possibleNameFields) {
+          let value;
+          if (field.includes('?.')) {
+            // Manejar campos anidados con optional chaining
+            const parts = field.split('?.');
+            value = item;
+            for (const part of parts) {
+              value = value?.[part];
+              if (!value) break;
+            }
+          } else {
+            value = item[field];
+          }
+          
+          if (value && typeof value === 'string' && value.trim() !== '') {
+            console.log(`✅ Nombre encontrado en ${field}:`, value);
+            return value;
+          }
+        }
       }
     }
     
+    console.log('❌ No se encontró nombre del cliente');
     // Fallback al user_id si no encontramos nombre
     return order.user_id ? `Usuario ${order.user_id.slice(0, 8)}...` : 'Usuario invitado';
   };
@@ -314,37 +340,71 @@ const OrderManagement = () => {
   };
 
   const getDeliveryInfo = (order: Order) => {
-    console.log('🚚 Extrayendo información de entrega de la orden:', order);
+    console.log('🚚 Extrayendo información de entrega de la orden:', order.id);
+    console.log('🚚 Items completos para entrega:', JSON.stringify(order.items, null, 2));
     
     if (order.items && order.items.length > 0) {
       // Buscar en todos los items por información de entrega
       for (const item of order.items) {
         console.log('🔍 Revisando item para info de entrega:', item);
         
-        // Verificar si hay información de entrega directamente en el item
-        if (item.deliveryName || item.deliveryAddress || item.delivery) {
-          const delivery = {
-            deliveryName: item.deliveryName || item.delivery?.name || 'N/A',
-            deliveryAddress: item.deliveryAddress || item.delivery?.address || 'N/A',
-            deliveryCity: item.deliveryCity || item.delivery?.city || 'N/A',
-            deliveryZipCode: item.deliveryZipCode || item.delivery?.zipCode || 'N/A',
-            sameAsDelivery: item.sameAsDelivery || item.delivery?.sameAsBilling || false
-          };
-          console.log('✅ Información de entrega encontrada:', delivery);
-          return delivery;
+        // Lista expandida de campos posibles para entrega
+        const deliveryFields = [
+          'deliveryName', 'deliveryAddress', 'deliveryCity', 'deliveryZipCode',
+          'delivery?.name', 'delivery?.address', 'delivery?.city', 'delivery?.zipCode',
+          'deliveryInfo?.name', 'deliveryInfo?.address', 'deliveryInfo?.city', 'deliveryInfo?.zipCode',
+          'shipping?.name', 'shipping?.address', 'shipping?.city', 'shipping?.zipCode',
+          'shippingInfo?.name', 'shippingInfo?.address', 'shippingInfo?.city', 'shippingInfo?.zipCode',
+          'checkoutData?.deliveryName', 'checkoutData?.deliveryAddress',
+          'userData?.deliveryName', 'userData?.deliveryAddress'
+        ];
+        
+        const delivery: any = {};
+        
+        // Intentar extraer cada campo
+        for (const field of deliveryFields) {
+          let value;
+          if (field.includes('?.')) {
+            const parts = field.split('?.');
+            value = item;
+            for (const part of parts) {
+              value = value?.[part];
+              if (!value) break;
+            }
+          } else {
+            value = item[field];
+          }
+          
+          if (value && typeof value === 'string' && value.trim() !== '') {
+            const cleanField = field.split('?.').pop() || field;
+            delivery[cleanField] = value;
+            console.log(`✅ Campo de entrega encontrado ${field}:`, value);
+          }
         }
         
-        // Verificar en objetos anidados
-        if (item.deliveryInfo) {
-          const delivery = {
-            deliveryName: item.deliveryInfo.name || item.deliveryInfo.deliveryName || 'N/A',
-            deliveryAddress: item.deliveryInfo.address || item.deliveryInfo.deliveryAddress || 'N/A',
-            deliveryCity: item.deliveryInfo.city || item.deliveryInfo.deliveryCity || 'N/A',
-            deliveryZipCode: item.deliveryInfo.zipCode || item.deliveryInfo.deliveryZipCode || 'N/A',
-            sameAsDelivery: item.deliveryInfo.sameAsBilling || item.deliveryInfo.sameAsDelivery || false
+        // Si encontramos al menos un campo de entrega, procesarlo
+        if (Object.keys(delivery).length > 0) {
+          const result = {
+            deliveryName: delivery.name || delivery.deliveryName || 'N/A',
+            deliveryAddress: delivery.address || delivery.deliveryAddress || 'N/A',
+            deliveryCity: delivery.city || delivery.deliveryCity || 'N/A',
+            deliveryZipCode: delivery.zipCode || delivery.deliveryZipCode || 'N/A',
+            sameAsDelivery: item.sameAsDelivery || item.sameAsBilling || false
           };
-          console.log('✅ Información de entrega encontrada en deliveryInfo:', delivery);
-          return delivery;
+          console.log('✅ Información de entrega procesada:', result);
+          return result;
+        }
+        
+        // Verificar si usa la misma dirección que facturación
+        if (item.sameAsDelivery || item.sameAsBilling) {
+          console.log('✅ Usa la misma dirección que facturación');
+          return {
+            deliveryName: 'N/A',
+            deliveryAddress: 'N/A',
+            deliveryCity: 'N/A',
+            deliveryZipCode: 'N/A',
+            sameAsDelivery: true
+          };
         }
       }
     }
@@ -360,53 +420,60 @@ const OrderManagement = () => {
   };
 
   const getBillingInfo = (order: Order) => {
-    console.log('💰 Extrayendo información de facturación de la orden:', order);
+    console.log('💰 Extrayendo información de facturación de la orden:', order.id);
+    console.log('💰 Items completos para facturación:', JSON.stringify(order.items, null, 2));
     
     if (order.items && order.items.length > 0) {
       // Buscar en todos los items por información de facturación
       for (const item of order.items) {
         console.log('🔍 Revisando item para info de facturación:', item);
         
-        // Verificar si hay información de facturación directamente en el item
-        if (item.fullName || item.email || item.billing) {
-          const billing = {
-            fullName: item.fullName || item.billing?.fullName || item.customerName || 'N/A',
-            email: item.email || item.billing?.email || 'N/A',
-            phone: item.phone || item.billing?.phone || 'N/A',
-            address: item.address || item.billing?.address || 'N/A',
-            city: item.city || item.billing?.city || 'N/A',
-            zipCode: item.zipCode || item.billing?.zipCode || 'N/A'
-          };
-          console.log('✅ Información de facturación encontrada:', billing);
-          return billing;
+        // Lista expandida de campos posibles para facturación
+        const billingFields = [
+          'fullName', 'email', 'phone', 'address', 'city', 'zipCode',
+          'customerName', 'customerEmail', 'customerPhone',
+          'billing?.fullName', 'billing?.email', 'billing?.phone', 'billing?.address', 'billing?.city', 'billing?.zipCode',
+          'billingInfo?.fullName', 'billingInfo?.email', 'billingInfo?.phone', 'billingInfo?.address', 'billingInfo?.city', 'billingInfo?.zipCode',
+          'customer?.name', 'customer?.email', 'customer?.phone', 'customer?.address', 'customer?.city', 'customer?.zipCode',
+          'checkoutData?.fullName', 'checkoutData?.email', 'checkoutData?.phone',
+          'userData?.name', 'userData?.email', 'userData?.phone'
+        ];
+        
+        const billing: any = {};
+        
+        // Intentar extraer cada campo
+        for (const field of billingFields) {
+          let value;
+          if (field.includes('?.')) {
+            const parts = field.split('?.');
+            value = item;
+            for (const part of parts) {
+              value = value?.[part];
+              if (!value) break;
+            }
+          } else {
+            value = item[field];
+          }
+          
+          if (value && typeof value === 'string' && value.trim() !== '') {
+            const cleanField = field.split('?.').pop() || field;
+            billing[cleanField] = value;
+            console.log(`✅ Campo de facturación encontrado ${field}:`, value);
+          }
         }
         
-        // Verificar en objetos anidados
-        if (item.billingInfo) {
-          const billing = {
-            fullName: item.billingInfo.fullName || item.billingInfo.name || 'N/A',
-            email: item.billingInfo.email || 'N/A',
-            phone: item.billingInfo.phone || 'N/A',
-            address: item.billingInfo.address || 'N/A',
-            city: item.billingInfo.city || 'N/A',
-            zipCode: item.billingInfo.zipCode || 'N/A'
+        // Si encontramos al menos un campo de facturación, procesarlo
+        if (Object.keys(billing).length > 0) {
+          const result = {
+            fullName: billing.fullName || billing.name || billing.customerName || 'N/A',
+            email: billing.email || billing.customerEmail || 'N/A',
+            phone: billing.phone || billing.customerPhone || 'N/A',
+            address: billing.address || 'N/A',
+            city: billing.city || 'N/A',
+            zipCode: billing.zipCode || 'N/A'
           };
-          console.log('✅ Información de facturación encontrada en billingInfo:', billing);
-          return billing;
-        }
-        
-        // Verificar en customer info
-        if (item.customer) {
-          const billing = {
-            fullName: item.customer.name || item.customer.fullName || 'N/A',
-            email: item.customer.email || 'N/A',
-            phone: item.customer.phone || 'N/A',
-            address: item.customer.address || 'N/A',
-            city: item.customer.city || 'N/A',
-            zipCode: item.customer.zipCode || 'N/A'
-          };
-          console.log('✅ Información de facturación encontrada en customer:', billing);
-          return billing;
+          console.log('✅ Información de facturación procesada:', result);
+          return result;
         }
       }
     }
@@ -779,7 +846,7 @@ const OrderManagement = () => {
                           <option value="pendiente">Pendiente</option>
                           <option value="procesando">Procesando</option>
                           <option value="completada">Completada</option>
-                          <option value="cancelada">Cancelado</option>
+                          <option value="cancelada">Cancelada</option>
                         </select>
                         {updatingOrderId === order.id && (
                           <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
