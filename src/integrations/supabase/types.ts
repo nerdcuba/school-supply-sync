@@ -221,6 +221,48 @@ export type Database = {
         }
         Relationships: []
       }
+      slider_images: {
+        Row: {
+          button_link: string
+          button_style: string
+          button_text_key: string | null
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          is_active: boolean
+          subtitle_key: string
+          title_key: string
+          updated_at: string
+        }
+        Insert: {
+          button_link?: string
+          button_style?: string
+          button_text_key?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          is_active?: boolean
+          subtitle_key: string
+          title_key: string
+          updated_at?: string
+        }
+        Update: {
+          button_link?: string
+          button_style?: string
+          button_text_key?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          subtitle_key?: string
+          title_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       supply_packs: {
         Row: {
           created_at: string

@@ -1,0 +1,143 @@
+
+import { supabase } from '@/integrations/supabase/client';
+
+export interface SliderImage {
+  id: string;
+  title_key: string;
+  subtitle_key: string;
+  button_text_key: string | null;
+  button_link: string;
+  image_url: string;
+  button_style: 'primary' | 'secondary' | 'accent';
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const sliderService = {
+  // Obtener todos los slides activos
+  async getActiveSlides(): Promise<SliderImage[]> {
+    const { data, error } = await supabase
+      .from('slider_images')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order');
+
+    if (error) {
+      console.error('Error fetching slides:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Obtener todos los slides (para admin)
+  async getAllSlides(): Promise<SliderImage[]> {
+    const { data, error } = await supabase
+      .from('slider_images')
+      .select('*')
+      .order('display_order');
+
+    if (error) {
+      console.error('Error fetching all slides:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Crear un nuevo slide
+  async createSlide(slide: Omit<SliderImage, 'id' | 'created_at' | 'updated_at'>): Promise<SliderImage | null> {
+    const { data, error } = await supabase
+      .from('slider_images')
+      .insert([slide])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating slide:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Actualizar un slide
+  async updateSlide(id: string, updates: Partial<Omit<SliderImage, 'id' | 'created_at' | 'updated_at'>>): Promise<SliderImage | null> {
+    const { data, error } = await supabase
+      .from('slider_images')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating slide:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Eliminar un slide
+  async deleteSlide(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('slider_images')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting slide:', error);
+      return false;
+    }
+
+    return true;
+  },
+
+  // Subir imagen al storage
+  async uploadImage(file: File): Promise<string | null> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `slides/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from('slider-images')
+      .upload(filePath, file);
+
+    if (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('slider-images')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  },
+
+  // Eliminar imagen del storage
+  async deleteImage(imageUrl: string): Promise<boolean> {
+    try {
+      // Extraer el path de la URL
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split('/');
+      const filePath = pathParts.slice(-2).join('/'); // slides/filename.ext
+
+      const { error } = await supabase.storage
+        .from('slider-images')
+        .remove([filePath]);
+
+      if (error) {
+        console.error('Error deleting image:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error parsing image URL:', error);
+      return false;
+    }
+  }
+};

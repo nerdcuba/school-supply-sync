@@ -6,104 +6,109 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Save, X, Image } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface Slide {
-  id: string;
-  titleKey: string;
-  subtitleKey: string;
-  buttonTextKey: string;
-  buttonLink: string;
-  bgImage: string;
-  buttonStyle: 'primary' | 'secondary' | 'accent';
-}
+import { sliderService, SliderImage } from '@/services/sliderService';
 
 const SliderManagement = () => {
-  const [slides, setSlides] = useState<Slide[]>([]);
-  const [editingSlide, setEditingSlide] = useState<Slide | null>(null);
+  const [slides, setSlides] = useState<SliderImage[]>([]);
+  const [editingSlide, setEditingSlide] = useState<Partial<SliderImage> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-  // Cargar slides desde localStorage al iniciar
+  // Cargar slides desde Supabase al iniciar
   useEffect(() => {
-    const savedSlides = localStorage.getItem('heroSlides');
-    if (savedSlides) {
-      try {
-        setSlides(JSON.parse(savedSlides));
-      } catch (error) {
-        console.error('Error loading slides:', error);
-        // Si hay error, usar slides por defecto
-        loadDefaultSlides();
-      }
-    } else {
-      loadDefaultSlides();
-    }
+    loadSlides();
   }, []);
 
-  const loadDefaultSlides = () => {
-    const defaultSlides: Slide[] = [
-      {
-        id: '1',
-        titleKey: 'hero.slide1.title',
-        subtitleKey: 'hero.slide1.subtitle',
-        buttonTextKey: 'hero.slide1.button',
-        buttonLink: '/schools',
-        bgImage: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-        buttonStyle: 'secondary'
-      },
-      {
-        id: '2',
-        titleKey: 'hero.slide2.title',
-        subtitleKey: 'hero.slide2.subtitle',
-        buttonTextKey: 'hero.slide2.button',
-        buttonLink: '/schools',
-        bgImage: 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-        buttonStyle: 'accent'
-      },
-      {
-        id: '3',
-        titleKey: 'hero.slide3.title',
-        subtitleKey: 'hero.slide3.subtitle',
-        buttonTextKey: 'hero.slide3.button',
-        buttonLink: '/dashboard',
-        bgImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-        buttonStyle: 'primary'
-      }
-    ];
-    setSlides(defaultSlides);
-    saveSlides(defaultSlides);
-  };
-
-  const saveSlides = (slidesToSave: Slide[]) => {
-    localStorage.setItem('heroSlides', JSON.stringify(slidesToSave));
-    // Disparar evento para actualizar el slider en tiempo real
-    window.dispatchEvent(new CustomEvent('slidesUpdated', { detail: slidesToSave }));
+  const loadSlides = async () => {
+    setIsLoading(true);
+    const slidesData = await sliderService.getAllSlides();
+    setSlides(slidesData);
+    setIsLoading(false);
   };
 
   const handleCreateSlide = () => {
-    const newSlide: Slide = {
-      id: Date.now().toString(),
-      titleKey: '',
-      subtitleKey: '',
-      buttonTextKey: '',
-      buttonLink: '/',
-      bgImage: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-      buttonStyle: 'primary'
+    const newSlide: Partial<SliderImage> = {
+      title_key: '',
+      subtitle_key: '',
+      button_text_key: '',
+      button_link: '/',
+      image_url: '',
+      button_style: 'primary',
+      display_order: slides.length,
+      is_active: true
     };
     setEditingSlide(newSlide);
     setIsCreating(true);
   };
 
-  const handleEditSlide = (slide: Slide) => {
+  const handleEditSlide = (slide: SliderImage) => {
     setEditingSlide({ ...slide });
     setIsCreating(false);
   };
 
-  const handleSaveSlide = () => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona un archivo de imagen válido",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validar tamaño (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "La imagen no puede ser mayor a 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const imageUrl = await sliderService.uploadImage(file);
+      if (imageUrl && editingSlide) {
+        setEditingSlide({
+          ...editingSlide,
+          image_url: imageUrl
+        });
+        toast({
+          title: "Éxito",
+          description: "Imagen subida correctamente"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Error al subir la imagen",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Error al subir la imagen",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSaveSlide = async () => {
     if (!editingSlide) return;
 
-    if (!editingSlide.titleKey.trim() || !editingSlide.subtitleKey.trim()) {
+    if (!editingSlide.title_key?.trim() || !editingSlide.subtitle_key?.trim()) {
       toast({
         title: "Error",
         description: "El título y subtítulo son requeridos",
@@ -112,27 +117,54 @@ const SliderManagement = () => {
       return;
     }
 
-    let updatedSlides;
-    if (isCreating) {
-      updatedSlides = [...slides, editingSlide];
-    } else {
-      updatedSlides = slides.map(slide => 
-        slide.id === editingSlide.id ? editingSlide : slide
-      );
+    if (!editingSlide.image_url?.trim()) {
+      toast({
+        title: "Error",
+        description: "La imagen es requerida",
+        variant: "destructive"
+      });
+      return;
     }
 
-    setSlides(updatedSlides);
-    saveSlides(updatedSlides);
-    setEditingSlide(null);
-    setIsCreating(false);
+    try {
+      if (isCreating) {
+        const createdSlide = await sliderService.createSlide(editingSlide as Omit<SliderImage, 'id' | 'created_at' | 'updated_at'>);
+        if (createdSlide) {
+          setSlides([...slides, createdSlide]);
+          toast({
+            title: "Éxito",
+            description: "Slide creado exitosamente"
+          });
+        }
+      } else {
+        const updatedSlide = await sliderService.updateSlide(editingSlide.id!, editingSlide);
+        if (updatedSlide) {
+          setSlides(slides.map(slide => 
+            slide.id === updatedSlide.id ? updatedSlide : slide
+          ));
+          toast({
+            title: "Éxito",
+            description: "Slide actualizado exitosamente"
+          });
+        }
+      }
 
-    toast({
-      title: "Éxito",
-      description: isCreating ? "Slide creado exitosamente" : "Slide actualizado exitosamente"
-    });
+      setEditingSlide(null);
+      setIsCreating(false);
+      
+      // Disparar evento para actualizar el slider en tiempo real
+      window.dispatchEvent(new CustomEvent('slidesUpdated'));
+    } catch (error) {
+      console.error('Error saving slide:', error);
+      toast({
+        title: "Error",
+        description: "Error al guardar el slide",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteSlide = (slideId: string) => {
+  const handleDeleteSlide = async (slideId: string) => {
     if (slides.length <= 1) {
       toast({
         title: "Error",
@@ -142,20 +174,48 @@ const SliderManagement = () => {
       return;
     }
 
-    const updatedSlides = slides.filter(slide => slide.id !== slideId);
-    setSlides(updatedSlides);
-    saveSlides(updatedSlides);
+    const slideToDelete = slides.find(s => s.id === slideId);
+    if (!slideToDelete) return;
 
-    toast({
-      title: "Éxito",
-      description: "Slide eliminado exitosamente"
-    });
+    try {
+      // Eliminar imagen del storage si es una URL de Supabase
+      if (slideToDelete.image_url.includes('supabase')) {
+        await sliderService.deleteImage(slideToDelete.image_url);
+      }
+
+      const success = await sliderService.deleteSlide(slideId);
+      if (success) {
+        setSlides(slides.filter(slide => slide.id !== slideId));
+        toast({
+          title: "Éxito",
+          description: "Slide eliminado exitosamente"
+        });
+        
+        // Disparar evento para actualizar el slider en tiempo real
+        window.dispatchEvent(new CustomEvent('slidesUpdated'));
+      }
+    } catch (error) {
+      console.error('Error deleting slide:', error);
+      toast({
+        title: "Error",
+        description: "Error al eliminar el slide",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCancel = () => {
     setEditingSlide(null);
     setIsCreating(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -181,10 +241,10 @@ const SliderManagement = () => {
                 <Label htmlFor="title">Título *</Label>
                 <Input
                   id="title"
-                  value={editingSlide.titleKey}
+                  value={editingSlide.title_key || ''}
                   onChange={(e) => setEditingSlide({
                     ...editingSlide,
-                    titleKey: e.target.value
+                    title_key: e.target.value
                   })}
                   placeholder="Ej: Listas Oficiales de Útiles Escolares"
                 />
@@ -194,10 +254,10 @@ const SliderManagement = () => {
                 <Label htmlFor="buttonText">Texto del Botón</Label>
                 <Input
                   id="buttonText"
-                  value={editingSlide.buttonTextKey}
+                  value={editingSlide.button_text_key || ''}
                   onChange={(e) => setEditingSlide({
                     ...editingSlide,
-                    buttonTextKey: e.target.value
+                    button_text_key: e.target.value
                   })}
                   placeholder="Ej: Ver Escuelas"
                 />
@@ -208,10 +268,10 @@ const SliderManagement = () => {
               <Label htmlFor="subtitle">Subtítulo *</Label>
               <Textarea
                 id="subtitle"
-                value={editingSlide.subtitleKey}
+                value={editingSlide.subtitle_key || ''}
                 onChange={(e) => setEditingSlide({
                   ...editingSlide,
-                  subtitleKey: e.target.value
+                  subtitle_key: e.target.value
                 })}
                 placeholder="Ej: Encuentra las listas oficiales de útiles escolares de todas las escuelas de Costa Rica"
                 rows={3}
@@ -223,10 +283,10 @@ const SliderManagement = () => {
                 <Label htmlFor="buttonLink">Enlace del Botón</Label>
                 <Input
                   id="buttonLink"
-                  value={editingSlide.buttonLink}
+                  value={editingSlide.button_link || ''}
                   onChange={(e) => setEditingSlide({
                     ...editingSlide,
-                    buttonLink: e.target.value
+                    button_link: e.target.value
                   })}
                   placeholder="Ej: /schools"
                 />
@@ -235,11 +295,11 @@ const SliderManagement = () => {
               <div>
                 <Label htmlFor="buttonStyle">Estilo del Botón</Label>
                 <Select
-                  value={editingSlide.buttonStyle}
+                  value={editingSlide.button_style || 'primary'}
                   onValueChange={(value: 'primary' | 'secondary' | 'accent') => 
                     setEditingSlide({
                       ...editingSlide,
-                      buttonStyle: value
+                      button_style: value
                     })
                   }
                 >
@@ -255,21 +315,64 @@ const SliderManagement = () => {
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="bgImage">URL de la Imagen de Fondo</Label>
-              <Input
-                id="bgImage"
-                value={editingSlide.bgImage}
-                onChange={(e) => setEditingSlide({
-                  ...editingSlide,
-                  bgImage: e.target.value
-                })}
-                placeholder="https://images.unsplash.com/..."
-              />
-              {editingSlide.bgImage && (
+            {/* Sección de imagen */}
+            <div className="space-y-4">
+              <Label>Imagen de Fondo *</Label>
+              
+              {/* Subir nueva imagen */}
+              <div className="flex items-center gap-4">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isUploading}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <Label htmlFor="image-upload" className="cursor-pointer">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    disabled={isUploading}
+                    asChild
+                  >
+                    <span>
+                      {isUploading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-900 mr-2"></div>
+                          Subiendo...
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={16} className="mr-2" />
+                          Subir Imagen
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                </Label>
+                <span className="text-sm text-gray-500">Máximo 5MB</span>
+              </div>
+
+              {/* URL manual */}
+              <div>
+                <Label htmlFor="imageUrl">O ingresa URL de imagen</Label>
+                <Input
+                  id="imageUrl"
+                  value={editingSlide.image_url || ''}
+                  onChange={(e) => setEditingSlide({
+                    ...editingSlide,
+                    image_url: e.target.value
+                  })}
+                  placeholder="https://..."
+                />
+              </div>
+
+              {/* Preview de la imagen */}
+              {editingSlide.image_url && (
                 <div className="mt-2">
                   <img 
-                    src={editingSlide.bgImage} 
+                    src={editingSlide.image_url} 
                     alt="Preview" 
                     className="w-full h-32 object-cover rounded-md"
                     onError={(e) => {
@@ -303,7 +406,7 @@ const SliderManagement = () => {
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-12 bg-gray-200 rounded overflow-hidden">
                     <img 
-                      src={slide.bgImage} 
+                      src={slide.image_url} 
                       alt={`Slide ${index + 1}`}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -313,20 +416,25 @@ const SliderManagement = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg">
-                      {slide.titleKey || `Slide ${index + 1}`}
+                      {slide.title_key || `Slide ${index + 1}`}
                     </h3>
                     <p className="text-gray-600 text-sm line-clamp-2">
-                      {slide.subtitleKey}
+                      {slide.subtitle_key}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`px-2 py-1 rounded text-xs ${
-                        slide.buttonStyle === 'primary' ? 'bg-blue-100 text-blue-800' :
-                        slide.buttonStyle === 'secondary' ? 'bg-green-100 text-green-800' :
+                        slide.button_style === 'primary' ? 'bg-blue-100 text-blue-800' :
+                        slide.button_style === 'secondary' ? 'bg-green-100 text-green-800' :
                         'bg-orange-100 text-orange-800'
                       }`}>
-                        {slide.buttonStyle}
+                        {slide.button_style}
                       </span>
-                      <span className="text-xs text-gray-500">→ {slide.buttonLink}</span>
+                      <span className="text-xs text-gray-500">→ {slide.button_link}</span>
+                      {!slide.is_active && (
+                        <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800">
+                          Inactivo
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

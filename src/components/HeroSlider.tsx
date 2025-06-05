@@ -2,87 +2,93 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
-
-interface Slide {
-  id: string;
-  titleKey: string;
-  subtitleKey: string;
-  buttonTextKey: string;
-  buttonLink: string;
-  bgImage: string;
-  buttonStyle: 'primary' | 'secondary' | 'accent';
-}
+import { sliderService, SliderImage } from '@/services/sliderService';
 
 const HeroSlider = () => {
   const [current, setCurrent] = useState(0);
-  const [slides, setSlides] = useState<Slide[]>([]);
-  const { t } = useLanguage();
+  const [slides, setSlides] = useState<SliderImage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar slides desde localStorage o usar valores por defecto
+  // Cargar slides desde Supabase al iniciar
   useEffect(() => {
-    const loadSlides = () => {
-      const savedSlides = localStorage.getItem('heroSlides');
-      if (savedSlides) {
-        try {
-          const parsedSlides = JSON.parse(savedSlides);
-          setSlides(parsedSlides);
-        } catch (error) {
-          console.error('Error loading slides:', error);
-          loadDefaultSlides();
-        }
-      } else {
-        loadDefaultSlides();
-      }
-    };
-
-    const loadDefaultSlides = () => {
-      const defaultSlides: Slide[] = [
-        {
-          id: '1',
-          titleKey: 'Listas Oficiales de Útiles Escolares',
-          subtitleKey: 'Encuentra las listas oficiales de útiles escolares de todas las escuelas de Costa Rica',
-          buttonTextKey: 'Ver Escuelas',
-          buttonLink: '/schools',
-          bgImage: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-          buttonStyle: 'secondary'
-        },
-        {
-          id: '2',
-          titleKey: 'Compra Conveniente desde Casa',
-          subtitleKey: 'Ordena todos los útiles necesarios desde la comodidad de tu hogar',
-          buttonTextKey: 'Explorar Productos',
-          buttonLink: '/schools',
-          bgImage: 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-          buttonStyle: 'accent'
-        },
-        {
-          id: '3',
-          titleKey: 'Mantente Organizado',
-          subtitleKey: 'Registra tus compras y accede a tus listas cuando quieras',
-          buttonTextKey: 'Mi Perfil',
-          buttonLink: '/dashboard',
-          bgImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-          buttonStyle: 'primary'
-        }
-      ];
-      setSlides(defaultSlides);
-    };
-
     loadSlides();
 
-    // Escuchar cambios en los slides
-    const handleSlidesUpdate = (event: CustomEvent) => {
+    // Escuchar cambios en los slides desde el admin
+    const handleSlidesUpdate = () => {
       console.log('🔄 Slides actualizados desde admin');
-      setSlides(event.detail);
+      loadSlides();
     };
 
-    window.addEventListener('slidesUpdated', handleSlidesUpdate as EventListener);
+    window.addEventListener('slidesUpdated', handleSlidesUpdate);
 
     return () => {
-      window.removeEventListener('slidesUpdated', handleSlidesUpdate as EventListener);
+      window.removeEventListener('slidesUpdated', handleSlidesUpdate);
     };
   }, []);
+
+  const loadSlides = async () => {
+    setIsLoading(true);
+    try {
+      const slidesData = await sliderService.getActiveSlides();
+      
+      if (slidesData.length === 0) {
+        // Si no hay slides en la BD, usar slides por defecto
+        loadDefaultSlides();
+      } else {
+        setSlides(slidesData);
+      }
+    } catch (error) {
+      console.error('Error loading slides:', error);
+      loadDefaultSlides();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadDefaultSlides = () => {
+    const defaultSlides: SliderImage[] = [
+      {
+        id: '1',
+        title_key: 'Listas Oficiales de Útiles Escolares',
+        subtitle_key: 'Encuentra las listas oficiales de útiles escolares de todas las escuelas de Costa Rica',
+        button_text_key: 'Ver Escuelas',
+        button_link: '/schools',
+        image_url: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+        button_style: 'secondary',
+        display_order: 0,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        title_key: 'Compra Conveniente desde Casa',
+        subtitle_key: 'Ordena todos los útiles necesarios desde la comodidad de tu hogar',
+        button_text_key: 'Explorar Productos',
+        button_link: '/schools',
+        image_url: 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+        button_style: 'accent',
+        display_order: 1,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: '3',
+        title_key: 'Mantente Organizado',
+        subtitle_key: 'Registra tus compras y accede a tus listas cuando quieras',
+        button_text_key: 'Mi Perfil',
+        button_link: '/dashboard',
+        image_url: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+        button_style: 'primary',
+        display_order: 2,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ];
+    setSlides(defaultSlides);
+  };
 
   useEffect(() => {
     if (slides.length === 0) return;
@@ -110,10 +116,18 @@ const HeroSlider = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="h-96 md:h-[400px] w-full bg-gray-200 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-900"></div>
+      </div>
+    );
+  }
+
   if (slides.length === 0) {
     return (
       <div className="h-96 md:h-[400px] w-full bg-gray-200 flex items-center justify-center">
-        <p className="text-gray-500">Cargando slides...</p>
+        <p className="text-gray-500">No hay slides disponibles</p>
       </div>
     );
   }
@@ -130,7 +144,7 @@ const HeroSlider = () => {
           {/* Background Image */}
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${slide.bgImage})` }}
+            style={{ backgroundImage: `url(${slide.image_url})` }}
           >
             {/* Overlay */}
             <div className="absolute inset-0 bg-black bg-opacity-40" />
@@ -140,15 +154,15 @@ const HeroSlider = () => {
           <div className="relative z-10 flex items-center justify-center h-full px-4">
             <div className="text-center text-white max-w-4xl mx-auto">
               <h1 className="text-3xl md:text-5xl font-bold mb-4 text-white animate-fade-in">
-                {slide.titleKey}
+                {slide.title_key}
               </h1>
               <p className="text-lg md:text-xl mb-8 text-gray-200 animate-fade-in">
-                {slide.subtitleKey}
+                {slide.subtitle_key}
               </p>
-              {slide.buttonTextKey && (
-                <Link to={slide.buttonLink}>
-                  <button className={`${getButtonClass(slide.buttonStyle)} animate-fade-in`}>
-                    {slide.buttonTextKey}
+              {slide.button_text_key && (
+                <Link to={slide.button_link}>
+                  <button className={`${getButtonClass(slide.button_style)} animate-fade-in`}>
+                    {slide.button_text_key}
                   </button>
                 </Link>
               )}
