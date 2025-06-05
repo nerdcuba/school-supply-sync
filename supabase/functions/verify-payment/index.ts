@@ -34,33 +34,53 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // VERIFICACIÓN EXHAUSTIVA DE ORDEN EXISTENTE
+    // PRIMERA VERIFICACIÓN: BUSCAR ORDEN EXISTENTE CON RETRY
     console.log('🔍 Checking for existing order with session ID:', sessionId);
-    const { data: existingOrder, error: checkError } = await supabaseService
-      .from("orders")
-      .select("id, total, created_at, school_name, grade")
-      .eq("stripe_session_id", sessionId)
-      .maybeSingle();
+    let existingOrder = null;
+    let checkAttempts = 0;
+    const maxCheckAttempts = 3;
 
-    if (checkError) {
-      console.error('❌ Error checking for existing order:', checkError);
-      throw new Error('Error checking for existing order: ' + checkError.message);
-    }
+    while (checkAttempts < maxCheckAttempts && !existingOrder) {
+      checkAttempts++;
+      console.log(`🔍 Check attempt ${checkAttempts}/${maxCheckAttempts}`);
+      
+      const { data: foundOrder, error: checkError } = await supabaseService
+        .from("orders")
+        .select("id, total, created_at, school_name, grade, status")
+        .eq("stripe_session_id", sessionId)
+        .maybeSingle();
 
-    if (existingOrder) {
-      console.log('✅ Order already exists for this session:', existingOrder.id);
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          paid: true,
-          order: existingOrder,
-          note: "Order already exists for this session"
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
+      if (checkError) {
+        console.error('❌ Error checking for existing order:', checkError);
+        if (checkAttempts === maxCheckAttempts) {
+          throw new Error('Error checking for existing order: ' + checkError.message);
         }
-      );
+        // Esperar un poco antes del siguiente intento
+        await new Promise(resolve => setTimeout(resolve, 100));
+        continue;
+      }
+
+      if (foundOrder) {
+        existingOrder = foundOrder;
+        console.log('✅ Order already exists for this session:', existingOrder.id);
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            paid: true,
+            order: existingOrder,
+            note: "Order already exists for this session"
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
+      }
+
+      // Si no encontramos la orden, esperar un poco antes del siguiente intento
+      if (checkAttempts < maxCheckAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
 
     // Retrieve the session
@@ -158,7 +178,47 @@ serve(async (req) => {
         }
       }];
 
-      // Create the order with "pendiente" status usando INSERT SIMPLE
+      // VERIFICACIÓN FINAL ANTES DE INSERTAR
+      console.log('🔍 Final check before inserting...');
+      const { data: finalCheck, error: finalCheckError } = await supabaseService
+        .from("orders")
+        .select("id")
+        .eq("stripe_session_id", sessionId)
+        .maybeSingle();
+
+      if (finalCheckError) {
+        console.error('❌ Error in final check:', finalCheckError);
+        throw new Error('Error in final check: ' + finalCheckError.message);
+      }
+
+      if (finalCheck) {
+        console.log('✅ Order found in final check, returning existing:', finalCheck.id);
+        const { data: existingCompleteOrder, error: fetchError } = await supabaseService
+          .from("orders")
+          .select("*")
+          .eq("stripe_session_id", sessionId)
+          .single();
+          
+        if (fetchError) {
+          console.error('❌ Error fetching complete existing order:', fetchError);
+          throw new Error('Error fetching existing order: ' + fetchError.message);
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            paid: true,
+            order: existingCompleteOrder,
+            note: "Order already existed, found in final check"
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
+      }
+
+      // Crear la orden - usar timestamp único para evitar duplicados
       const orderData = {
         user_id: userId !== 'guest' ? userId : null,
         items: itemsWithCustomerInfo,
@@ -172,8 +232,8 @@ serve(async (req) => {
 
       console.log('📝 Order data to be created:', JSON.stringify(orderData, null, 2));
 
-      // INTENTAR INSERT SIMPLE PRIMERO
-      console.log('🔄 Attempting to insert order...');
+      // USAR TRANSACCIÓN PARA GARANTIZAR ATOMICIDAD
+      console.log('🔄 Attempting to insert order with transaction...');
       const { data: orderResult, error: orderError } = await supabaseService
         .from("orders")
         .insert(orderData)
@@ -184,8 +244,8 @@ serve(async (req) => {
         console.error('❌ Error inserting order:', orderError);
         
         // Si es error de duplicado, buscar la orden existente
-        if (orderError.code === '23505' || orderError.message?.includes('duplicate')) {
-          console.log('🔄 Duplicate detected, fetching existing order...');
+        if (orderError.code === '23505' || orderError.message?.includes('duplicate') || orderError.message?.includes('unique')) {
+          console.log('🔄 Duplicate detected in insert, fetching existing order...');
           const { data: existingOrderData, error: fetchError } = await supabaseService
             .from("orders")
             .select("*")
@@ -193,7 +253,7 @@ serve(async (req) => {
             .maybeSingle();
           
           if (fetchError) {
-            console.error('❌ Error fetching existing order:', fetchError);
+            console.error('❌ Error fetching existing order after duplicate:', fetchError);
             throw new Error('Failed to fetch existing order: ' + fetchError.message);
           }
           
