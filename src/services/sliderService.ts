@@ -29,7 +29,10 @@ export const sliderService = {
       return [];
     }
 
-    return data || [];
+    return (data || []).map(slide => ({
+      ...slide,
+      button_style: slide.button_style as 'primary' | 'secondary' | 'accent'
+    }));
   },
 
   // Obtener todos los slides (para admin)
@@ -44,7 +47,10 @@ export const sliderService = {
       return [];
     }
 
-    return data || [];
+    return (data || []).map(slide => ({
+      ...slide,
+      button_style: slide.button_style as 'primary' | 'secondary' | 'accent'
+    }));
   },
 
   // Crear un nuevo slide
@@ -60,7 +66,10 @@ export const sliderService = {
       return null;
     }
 
-    return data;
+    return {
+      ...data,
+      button_style: data.button_style as 'primary' | 'secondary' | 'accent'
+    };
   },
 
   // Actualizar un slide
@@ -77,7 +86,10 @@ export const sliderService = {
       return null;
     }
 
-    return data;
+    return {
+      ...data,
+      button_style: data.button_style as 'primary' | 'secondary' | 'accent'
+    };
   },
 
   // Eliminar un slide
