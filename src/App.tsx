@@ -8,6 +8,8 @@ import Navbar from '@/components/Navbar';
 import Index from '@/pages/Index';
 import Schools from '@/pages/Schools';
 import Contact from '@/pages/Contact';
+import Electronics from '@/pages/Electronics';
+import HowItWorks from '@/pages/HowItWorks';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
@@ -28,6 +30,10 @@ function App() {
     setIsCartOpen(true);
   };
 
+  const handleAddToCart = (item: any) => {
+    setCartItems(prevItems => [...prevItems, item]);
+  };
+
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
@@ -43,6 +49,8 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/schools" element={<Schools />} />
+                  <Route path="/electronics" element={<Electronics onAddToCart={handleAddToCart} />} />
+                  <Route path="/how-it-works" element={<HowItWorks />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
