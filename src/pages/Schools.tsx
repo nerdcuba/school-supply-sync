@@ -110,8 +110,8 @@ const Schools = () => {
           </div>
         </div>
 
-        {/* Stats - Now using real data */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
+        {/* Stats - Hidden on mobile, visible on desktop */}
+        <div className="hidden md:grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
           <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
             <div className="text-primary mb-2">
               <BookOpen size={32} className="mx-auto" />
