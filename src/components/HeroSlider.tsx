@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -13,7 +12,6 @@ const HeroSlider = () => {
   useEffect(() => {
     loadSlides();
 
-    // Escuchar cambios en los slides desde el admin
     const handleSlidesUpdate = () => {
       console.log('🔄 Slides actualizados desde admin');
       loadSlides();
@@ -33,14 +31,12 @@ const HeroSlider = () => {
       console.log('📊 Slides cargados:', slidesData);
       
       if (slidesData.length === 0) {
-        // Si no hay slides en la BD, usar slides por defecto
         loadDefaultSlides();
       } else {
-        // Ordenar por display_order para asegurar el orden correcto
         const sortedSlides = slidesData.sort((a, b) => a.display_order - b.display_order);
         setSlides(sortedSlides);
         
-        // Log para debuggear los enlaces
+        // Debug: mostrar cada slide y su enlace
         sortedSlides.forEach((slide, index) => {
           console.log(`🔗 Slide ${index + 1} - Título: "${slide.title_key}" - Enlace: "${slide.button_link}"`);
         });
@@ -138,77 +134,6 @@ const HeroSlider = () => {
   const nextSlide = () => setCurrent((current + 1) % slides.length);
   const prevSlide = () => setCurrent((current - 1 + slides.length) % slides.length);
 
-  const getButtonClass = (style: 'primary' | 'secondary' | 'accent') => {
-    switch (style) {
-      case 'primary':
-        return 'btn-vibrant';
-      case 'secondary':
-        return 'btn-secondary';
-      case 'accent':
-        return 'btn-accent';
-      default:
-        return 'btn-vibrant';
-    }
-  };
-
-  const getTextAlignmentClass = (alignment: 'left' | 'center' | 'right') => {
-    switch (alignment) {
-      case 'left':
-        return 'text-left md:text-left';
-      case 'center':
-        return 'text-center';
-      case 'right':
-        return 'text-right md:text-right';
-      default:
-        return 'text-center';
-    }
-  };
-
-  const getTextPositionClass = (position: 'top' | 'center' | 'bottom') => {
-    switch (position) {
-      case 'top':
-        return 'justify-start pt-8';
-      case 'center':
-        return 'justify-center';
-      case 'bottom':
-        return 'justify-end pb-8';
-      default:
-        return 'justify-center';
-    }
-  };
-
-  const getImageShadowClass = (shadowEnabled: boolean, shadowColor: string) => {
-    if (!shadowEnabled) return '';
-    
-    // Convertir el color hex a rgba para la sombra
-    const hexToRgba = (hex: string, opacity: number = 0.5) => {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(7), 16);
-      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    };
-
-    const shadowColorRgba = hexToRgba(shadowColor, 0.5);
-    return `shadow-2xl`;
-  };
-
-  const getImageShadowStyle = (shadowEnabled: boolean, shadowColor: string) => {
-    if (!shadowEnabled) return {};
-    
-    // Convertir el color hex a rgba para la sombra
-    const hexToRgba = (hex: string, opacity: number = 0.5) => {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    };
-
-    const shadowColorRgba = hexToRgba(shadowColor, 0.5);
-    return {
-      boxShadow: `0 25px 50px -12px ${shadowColorRgba}`
-    };
-  };
-
   if (isLoading) {
     return (
       <div className="h-96 md:h-[500px] w-full bg-gray-200 flex items-center justify-center">
@@ -225,24 +150,18 @@ const HeroSlider = () => {
     );
   }
 
-  const handleButtonClick = (slideIndex: number, buttonLink: string, slideTitle: string) => {
-    console.log(`🖱️ BUTTON CLICK - Slide ${slideIndex + 1}: "${slideTitle}" → Link: "${buttonLink}"`);
-    navigate(buttonLink);
-  };
-
   return (
     <div className="relative h-[480px] md:h-[500px] w-full overflow-hidden">
       {slides.map((slide, index) => (
         <div
-          key={`${slide.id}-${index}`}
+          key={slide.id}
           className={`absolute inset-0 transition-opacity duration-500 ${
             index === current ? 'opacity-100' : 'opacity-0'
           }`}
           style={{ backgroundColor: slide.background_color }}
         >
-          {/* Mobile Layout: Image first, then text */}
+          {/* Mobile Layout */}
           <div className="md:hidden flex flex-col h-full">
-            {/* Image Container - Mobile (top) */}
             <div className="flex-1 flex items-center justify-center p-6">
               <div 
                 className={`w-full h-40 max-w-sm rounded-xl overflow-hidden ${slide.image_shadow_enabled ? 'shadow-2xl' : ''}`}
@@ -261,9 +180,8 @@ const HeroSlider = () => {
               </div>
             </div>
 
-            {/* Text Content Container - Mobile (bottom) */}
-            <div className={`flex-1 flex justify-center px-6 pb-6`}>
-              <div className={`w-full text-center`}>
+            <div className="flex-1 flex justify-center px-6 pb-6">
+              <div className="w-full text-center">
                 <h1 
                   className="text-xl font-bold mb-4 animate-fade-in"
                   style={{ color: slide.title_color }}
@@ -283,7 +201,10 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => handleButtonClick(index, slide.button_link, slide.title_key)}
+                    onClick={() => {
+                      console.log(`🖱️ MOBILE BUTTON CLICK - Navegando a: "${slide.button_link}"`);
+                      navigate(slide.button_link);
+                    }}
                   >
                     {slide.button_text_key}
                   </button>
@@ -292,10 +213,9 @@ const HeroSlider = () => {
             </div>
           </div>
 
-          {/* Desktop Layout: Original side by side layout */}
+          {/* Desktop Layout */}
           <div className="hidden md:flex items-center h-full px-8">
             <div className="container mx-auto flex items-center gap-12">
-              {/* Text Content - Desktop */}
               <div className={`flex-1 ${slide.text_alignment === 'left' ? 'text-left' : slide.text_alignment === 'right' ? 'text-right' : 'text-center'}`}>
                 <h1 
                   className="text-4xl lg:text-5xl font-bold mb-6 animate-fade-in"
@@ -316,14 +236,16 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => handleButtonClick(index, slide.button_link, slide.title_key)}
+                    onClick={() => {
+                      console.log(`🖱️ DESKTOP BUTTON CLICK - Navegando a: "${slide.button_link}"`);
+                      navigate(slide.button_link);
+                    }}
                   >
                     {slide.button_text_key}
                   </button>
                 )}
               </div>
 
-              {/* Image Container - Desktop */}
               <div className="flex-1 flex items-center justify-center">
                 <div 
                   className={`w-full h-80 max-w-lg rounded-xl overflow-hidden ${slide.image_shadow_enabled ? 'shadow-2xl' : ''}`}
