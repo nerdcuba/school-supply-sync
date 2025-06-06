@@ -224,6 +224,7 @@ export type Database = {
       slider_images: {
         Row: {
           background_color: string
+          button_color: string | null
           button_link: string
           button_style: string
           button_text_key: string | null
@@ -234,14 +235,17 @@ export type Database = {
           image_shadow_enabled: boolean | null
           image_url: string
           is_active: boolean
+          subtitle_color: string | null
           subtitle_key: string
           text_alignment: string
           text_position: string
+          title_color: string | null
           title_key: string
           updated_at: string
         }
         Insert: {
           background_color?: string
+          button_color?: string | null
           button_link?: string
           button_style?: string
           button_text_key?: string | null
@@ -252,14 +256,17 @@ export type Database = {
           image_shadow_enabled?: boolean | null
           image_url: string
           is_active?: boolean
+          subtitle_color?: string | null
           subtitle_key: string
           text_alignment?: string
           text_position?: string
+          title_color?: string | null
           title_key: string
           updated_at?: string
         }
         Update: {
           background_color?: string
+          button_color?: string | null
           button_link?: string
           button_style?: string
           button_text_key?: string | null
@@ -270,9 +277,11 @@ export type Database = {
           image_shadow_enabled?: boolean | null
           image_url?: string
           is_active?: boolean
+          subtitle_color?: string | null
           subtitle_key?: string
           text_alignment?: string
           text_position?: string
+          title_color?: string | null
           title_key?: string
           updated_at?: string
         }
