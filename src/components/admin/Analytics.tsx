@@ -9,7 +9,7 @@ import { electronicsService } from '@/services/electronicsService';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import OrdersPieChart from './OrdersPieChart';
 import OrdersTable from './OrdersTable';
-import DateRangeFilter from './DateRangeFilter';
+import FilterPanel from './FilterPanel';
 import { isAfter, isBefore, isEqual, parseISO } from 'date-fns';
 
 const Analytics = () => {
@@ -24,8 +24,14 @@ const Analytics = () => {
   const [allOrders, setAllOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [filters, setFilters] = useState({
+    startDate: null as Date | null,
+    endDate: null as Date | null,
+    school: '',
+    status: '',
+    orderId: ''
+  });
+  const [availableSchools, setAvailableSchools] = useState<string[]>([]);
 
   // Configurar realtime para actualizar automáticamente cuando cambien las órdenes
   useRealtimeOrders({
@@ -41,11 +47,11 @@ const Analytics = () => {
     loadAnalytics();
   }, []);
 
-  // Filter orders when date range changes
+  // Filter orders when filters change
   useEffect(() => {
-    console.log('📅 Filtrando órdenes por fecha...', { startDate, endDate, totalOrders: allOrders.length });
-    filterOrdersByDate();
-  }, [allOrders, startDate, endDate]);
+    console.log('📅 Aplicando filtros...', filters);
+    applyFilters();
+  }, [allOrders, filters]);
 
   const loadAnalytics = async () => {
     try {
@@ -65,6 +71,13 @@ const Analytics = () => {
       });
       setAllOrders(allOrdersData);
       setFilteredOrders(allOrdersData);
+
+      // Extraer escuelas únicas para el filtro
+      const schools = [...new Set(allOrdersData.map((order: any) => {
+        const details = getOrderDetails(order);
+        return details.school;
+      }).filter(Boolean))].sort();
+      setAvailableSchools(schools);
     } catch (error) {
       console.error('❌ Error loading analytics:', error);
     } finally {
@@ -72,35 +85,61 @@ const Analytics = () => {
     }
   };
 
-  const filterOrdersByDate = () => {
-    if (!startDate && !endDate) {
-      setFilteredOrders(allOrders);
-      return;
+  const applyFilters = () => {
+    let filtered = [...allOrders];
+
+    // Filtrar por fechas
+    if (filters.startDate || filters.endDate) {
+      filtered = filtered.filter((order: any) => {
+        const orderDate = parseISO(order.created_at);
+        
+        if (filters.startDate && filters.endDate) {
+          return (isEqual(orderDate, filters.startDate) || isAfter(orderDate, filters.startDate)) &&
+                 (isEqual(orderDate, filters.endDate) || isBefore(orderDate, filters.endDate));
+        } else if (filters.startDate) {
+          return isEqual(orderDate, filters.startDate) || isAfter(orderDate, filters.startDate);
+        } else if (filters.endDate) {
+          return isEqual(orderDate, filters.endDate) || isBefore(orderDate, filters.endDate);
+        }
+        
+        return true;
+      });
     }
 
-    const filtered = allOrders.filter((order: any) => {
-      const orderDate = parseISO(order.created_at);
-      
-      if (startDate && endDate) {
-        return (isEqual(orderDate, startDate) || isAfter(orderDate, startDate)) &&
-               (isEqual(orderDate, endDate) || isBefore(orderDate, endDate));
-      } else if (startDate) {
-        return isEqual(orderDate, startDate) || isAfter(orderDate, startDate);
-      } else if (endDate) {
-        return isEqual(orderDate, endDate) || isBefore(orderDate, endDate);
-      }
-      
-      return true;
-    });
+    // Filtrar por escuela
+    if (filters.school) {
+      filtered = filtered.filter((order: any) => {
+        const details = getOrderDetails(order);
+        return details.school.toLowerCase().includes(filters.school.toLowerCase());
+      });
+    }
 
-    console.log('🔍 Órdenes filtradas:', { original: allOrders.length, filtered: filtered.length });
+    // Filtrar por estado
+    if (filters.status) {
+      filtered = filtered.filter((order: any) => {
+        const status = normalizeStatus(order.status || 'pending');
+        return status === filters.status;
+      });
+    }
+
+    // Filtrar por ID de orden
+    if (filters.orderId) {
+      filtered = filtered.filter((order: any) => {
+        return order.id.toLowerCase().includes(filters.orderId.toLowerCase());
+      });
+    }
+
+    console.log('🔍 Órdenes filtradas:', { 
+      original: allOrders.length, 
+      filtered: filtered.length,
+      filters 
+    });
     setFilteredOrders(filtered);
   };
 
-  const handleDateRangeChange = (newStartDate: Date | null, newEndDate: Date | null) => {
-    console.log('📅 Cambio de rango de fechas:', { newStartDate, newEndDate });
-    setStartDate(newStartDate);
-    setEndDate(newEndDate);
+  const handleFiltersChange = (newFilters: typeof filters) => {
+    console.log('📅 Cambio de filtros:', newFilters);
+    setFilters(newFilters);
   };
 
   // Función mejorada para normalizar estados
@@ -209,6 +248,8 @@ const Analytics = () => {
     stats 
   });
 
+  const hasActiveFilters = filters.startDate || filters.endDate || filters.school || filters.status || filters.orderId;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -227,7 +268,7 @@ const Analytics = () => {
             <div className="text-2xl font-bold">{filteredOrders.length}</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              {startDate || endDate ? 'Filtradas' : 'Órdenes procesadas'}
+              {hasActiveFilters ? 'Filtradas' : 'Órdenes procesadas'}
             </div>
           </CardContent>
         </Card>
@@ -285,17 +326,17 @@ const Analytics = () => {
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              {startDate || endDate ? 'Período filtrado' : `Promedio: $${stats.avgOrderValue.toFixed(2)}`}
+              {hasActiveFilters ? 'Período filtrado' : `Promedio: $${stats.avgOrderValue.toFixed(2)}`}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Date Range Filter */}
-      <DateRangeFilter 
-        onDateRangeChange={handleDateRangeChange}
-        startDate={startDate}
-        endDate={endDate}
+      {/* Filter Panel */}
+      <FilterPanel 
+        onFiltersChange={handleFiltersChange}
+        filters={filters}
+        schools={availableSchools}
       />
 
       {/* Charts and Tables Row */}
@@ -304,7 +345,9 @@ const Analytics = () => {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Resumen del Período</CardTitle>
+              <CardTitle>
+                {hasActiveFilters ? 'Resumen Filtrado' : 'Resumen General'}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

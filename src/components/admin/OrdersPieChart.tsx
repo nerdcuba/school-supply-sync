@@ -17,7 +17,10 @@ const OrdersPieChart = ({ orders }: OrdersPieChartProps) => {
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
-            <p className="text-gray-500">No hay órdenes para mostrar</p>
+            <div className="text-center">
+              <p className="text-gray-500 text-lg mb-2">No hay órdenes para mostrar</p>
+              <p className="text-gray-400 text-sm">Ajusta los filtros para ver datos</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -74,7 +77,10 @@ const OrdersPieChart = ({ orders }: OrdersPieChartProps) => {
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
-            <p className="text-gray-500">Todas las órdenes tienen el mismo estado</p>
+            <div className="text-center">
+              <p className="text-gray-500 text-lg mb-2">Todas las órdenes tienen el mismo estado</p>
+              <p className="text-gray-400 text-sm">o no se encontraron órdenes con los filtros aplicados</p>
+            </div>
           </div>
         </CardContent>
       </Card>
