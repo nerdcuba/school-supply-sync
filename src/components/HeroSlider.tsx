@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -9,7 +8,6 @@ const HeroSlider = () => {
   const [slides, setSlides] = useState<SliderImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar slides desde Supabase al iniciar
   useEffect(() => {
     loadSlides();
 
@@ -60,6 +58,8 @@ const HeroSlider = () => {
         text_position: 'center',
         display_order: 0,
         is_active: true,
+        image_shadow_enabled: true,
+        image_shadow_color: '#000000',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -76,6 +76,8 @@ const HeroSlider = () => {
         text_position: 'center',
         display_order: 1,
         is_active: true,
+        image_shadow_enabled: true,
+        image_shadow_color: '#000000',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -92,6 +94,8 @@ const HeroSlider = () => {
         text_position: 'center',
         display_order: 2,
         is_active: true,
+        image_shadow_enabled: true,
+        image_shadow_color: '#000000',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -151,6 +155,38 @@ const HeroSlider = () => {
     }
   };
 
+  const getImageShadowClass = (shadowEnabled: boolean, shadowColor: string) => {
+    if (!shadowEnabled) return '';
+    
+    // Convertir el color hex a rgba para la sombra
+    const hexToRgba = (hex: string, opacity: number = 0.5) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    };
+
+    const shadowColorRgba = hexToRgba(shadowColor, 0.5);
+    return `shadow-2xl`;
+  };
+
+  const getImageShadowStyle = (shadowEnabled: boolean, shadowColor: string) => {
+    if (!shadowEnabled) return {};
+    
+    // Convertir el color hex a rgba para la sombra
+    const hexToRgba = (hex: string, opacity: number = 0.5) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    };
+
+    const shadowColorRgba = hexToRgba(shadowColor, 0.5);
+    return {
+      boxShadow: `0 25px 50px -12px ${shadowColorRgba}`
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="h-96 md:h-[500px] w-full bg-gray-200 flex items-center justify-center">
@@ -181,7 +217,10 @@ const HeroSlider = () => {
           <div className="md:hidden flex flex-col h-full">
             {/* Image Container - Mobile (top) */}
             <div className="flex-1 flex items-center justify-center p-6">
-              <div className="w-full h-40 max-w-sm rounded-xl overflow-hidden shadow-lg">
+              <div 
+                className={`w-full h-40 max-w-sm rounded-xl overflow-hidden ${getImageShadowClass(slide.image_shadow_enabled, slide.image_shadow_color)}`}
+                style={getImageShadowStyle(slide.image_shadow_enabled, slide.image_shadow_color)}
+              >
                 <img 
                   src={slide.image_url} 
                   alt={slide.title_key}
@@ -235,7 +274,10 @@ const HeroSlider = () => {
 
               {/* Image Container - Desktop */}
               <div className="flex-1 flex items-center justify-center">
-                <div className="w-full h-80 max-w-lg rounded-xl overflow-hidden shadow-2xl">
+                <div 
+                  className={`w-full h-80 max-w-lg rounded-xl overflow-hidden ${getImageShadowClass(slide.image_shadow_enabled, slide.image_shadow_color)}`}
+                  style={getImageShadowStyle(slide.image_shadow_enabled, slide.image_shadow_color)}
+                >
                   <img 
                     src={slide.image_url} 
                     alt={slide.title_key}

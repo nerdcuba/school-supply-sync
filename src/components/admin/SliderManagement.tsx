@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Plus, Edit, Trash2, Save, X, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sliderService, SliderImage } from '@/services/sliderService';
@@ -17,7 +18,6 @@ const SliderManagement = () => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-  // Cargar slides desde Supabase al iniciar
   useEffect(() => {
     loadSlides();
   }, []);
@@ -41,7 +41,9 @@ const SliderManagement = () => {
       text_alignment: 'center',
       text_position: 'center',
       display_order: slides.length,
-      is_active: true
+      is_active: true,
+      image_shadow_enabled: true,
+      image_shadow_color: '#000000'
     };
     setEditingSlide(newSlide);
     setIsCreating(true);
@@ -390,6 +392,48 @@ const SliderManagement = () => {
               </div>
             </div>
 
+            {/* Sección de sombra de imagen */}
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="imageShadow"
+                  checked={editingSlide.image_shadow_enabled || false}
+                  onCheckedChange={(checked) => setEditingSlide({
+                    ...editingSlide,
+                    image_shadow_enabled: checked
+                  })}
+                />
+                <Label htmlFor="imageShadow">Habilitar sombra en la imagen</Label>
+              </div>
+
+              {editingSlide.image_shadow_enabled && (
+                <div>
+                  <Label htmlFor="shadowColor">Color de la Sombra</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="shadowColor"
+                      type="color"
+                      value={editingSlide.image_shadow_color || '#000000'}
+                      onChange={(e) => setEditingSlide({
+                        ...editingSlide,
+                        image_shadow_color: e.target.value
+                      })}
+                      className="w-20 h-10"
+                    />
+                    <Input
+                      value={editingSlide.image_shadow_color || '#000000'}
+                      onChange={(e) => setEditingSlide({
+                        ...editingSlide,
+                        image_shadow_color: e.target.value
+                      })}
+                      placeholder="#000000"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Sección de imagen */}
             <div className="space-y-4">
               <Label>Imagen *</Label>
@@ -452,11 +496,16 @@ const SliderManagement = () => {
                       <h3 className="font-bold text-lg">{editingSlide.title_key || 'Título del slide'}</h3>
                       <p className="text-sm opacity-90">{editingSlide.subtitle_key || 'Subtítulo del slide'}</p>
                     </div>
-                    <div className="w-32 h-24">
+                    <div 
+                      className={`w-32 h-24 rounded overflow-hidden ${editingSlide.image_shadow_enabled ? 'shadow-2xl' : ''}`}
+                      style={editingSlide.image_shadow_enabled ? {
+                        boxShadow: `0 25px 50px -12px ${editingSlide.image_shadow_color}80`
+                      } : {}}
+                    >
                       <img 
                         src={editingSlide.image_url} 
                         alt="Preview" 
-                        className="w-full h-full object-cover rounded"
+                        className="w-full h-full object-cover"
                         onError={(e) => {
                           e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
                         }}
@@ -525,6 +574,11 @@ const SliderManagement = () => {
                       <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
                         {slide.text_alignment} / {slide.text_position}
                       </span>
+                      {slide.image_shadow_enabled && (
+                        <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+                          Sombra
+                        </span>
+                      )}
                       <span className="text-xs text-gray-500">→ {slide.button_link}</span>
                       {!slide.is_active && (
                         <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800">

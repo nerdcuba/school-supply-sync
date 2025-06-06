@@ -13,6 +13,8 @@ export interface SliderImage {
   text_position: 'top' | 'center' | 'bottom';
   display_order: number;
   is_active: boolean;
+  image_shadow_enabled: boolean;
+  image_shadow_color: string;
   created_at: string;
   updated_at: string;
 }
@@ -36,7 +38,9 @@ export const sliderService = {
       background_color: slide.background_color || '#1E90FF',
       button_style: slide.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: slide.text_alignment as 'left' | 'center' | 'right',
-      text_position: slide.text_position as 'top' | 'center' | 'bottom'
+      text_position: slide.text_position as 'top' | 'center' | 'bottom',
+      image_shadow_enabled: slide.image_shadow_enabled || false,
+      image_shadow_color: slide.image_shadow_color || '#000000'
     }));
   },
 
@@ -57,7 +61,9 @@ export const sliderService = {
       background_color: slide.background_color || '#1E90FF',
       button_style: slide.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: slide.text_alignment as 'left' | 'center' | 'right',
-      text_position: slide.text_position as 'top' | 'center' | 'bottom'
+      text_position: slide.text_position as 'top' | 'center' | 'bottom',
+      image_shadow_enabled: slide.image_shadow_enabled || false,
+      image_shadow_color: slide.image_shadow_color || '#000000'
     }));
   },
 
@@ -79,7 +85,9 @@ export const sliderService = {
       background_color: data.background_color || '#1E90FF',
       button_style: data.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: data.text_alignment as 'left' | 'center' | 'right',
-      text_position: data.text_position as 'top' | 'center' | 'bottom'
+      text_position: data.text_position as 'top' | 'center' | 'bottom',
+      image_shadow_enabled: data.image_shadow_enabled || false,
+      image_shadow_color: data.image_shadow_color || '#000000'
     };
   },
 
@@ -102,7 +110,9 @@ export const sliderService = {
       background_color: data.background_color || '#1E90FF',
       button_style: data.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: data.text_alignment as 'left' | 'center' | 'right',
-      text_position: data.text_position as 'top' | 'center' | 'bottom'
+      text_position: data.text_position as 'top' | 'center' | 'bottom',
+      image_shadow_enabled: data.image_shadow_enabled || false,
+      image_shadow_color: data.image_shadow_color || '#000000'
     };
   },
 
