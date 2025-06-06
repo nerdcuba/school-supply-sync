@@ -168,7 +168,7 @@ const HeroSlider = () => {
   }
 
   return (
-    <div className="relative h-96 md:h-[500px] w-full overflow-hidden">
+    <div className="relative h-[450px] md:h-[500px] w-full overflow-hidden">
       {slides.map((slide, index) => (
         <div
           key={slide.id}
@@ -193,8 +193,8 @@ const HeroSlider = () => {
               </div>
             </div>
 
-            {/* Text Content Container - Mobile (bottom) with more padding for indicators */}
-            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-6 pb-16`}>
+            {/* Text Content Container - Mobile (bottom) with space for indicators */}
+            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-6 pb-6`}>
               <div className={`text-white w-full ${getTextAlignmentClass(slide.text_alignment)}`}>
                 <h1 className="text-xl font-bold mb-4 text-white animate-fade-in">
                   {slide.title_key}
@@ -266,8 +266,8 @@ const HeroSlider = () => {
         <ChevronRight size={24} className="text-white" />
       </button>
 
-      {/* Indicators - Much lower on mobile, normal on desktop */}
-      <div className="absolute -bottom-1 md:bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
+      {/* Indicators - Positioned well below content on mobile */}
+      <div className="absolute bottom-4 md:bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
         {slides.map((_, index) => (
           <button
             key={index}
