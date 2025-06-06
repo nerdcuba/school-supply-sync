@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -135,13 +134,12 @@ const HeroSlider = () => {
   const nextSlide = () => setCurrent((current + 1) % slides.length);
   const prevSlide = () => setCurrent((current - 1 + slides.length) % slides.length);
 
-  // Crear una función específica para cada slide que capture su enlace
-  const createButtonHandler = (slideLink: string, slideTitle: string, isMobile: boolean) => {
-    return () => {
-      const deviceType = isMobile ? '📱 MOBILE' : '💻 DESKTOP';
-      console.log(`${deviceType} CLICK: Navegando a "${slideLink}" desde slide "${slideTitle}"`);
-      navigate(slideLink);
-    };
+  // Función de navegación directa para cada botón
+  const handleButtonClick = (slideLink: string, slideTitle: string, index: number, isMobile: boolean) => {
+    const deviceType = isMobile ? '📱 MOBILE' : '💻 DESKTOP';
+    console.log(`${deviceType} CLICK DIRECTO: Slide ${index + 1} "${slideTitle}" -> "${slideLink}"`);
+    console.log('🎯 NAVEGANDO AHORA A:', slideLink);
+    navigate(slideLink);
   };
 
   if (isLoading) {
@@ -211,7 +209,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={createButtonHandler(slide.button_link, slide.title_key, true)}
+                    onClick={() => handleButtonClick(slide.button_link, slide.title_key, index, true)}
                   >
                     {slide.button_text_key}
                   </button>
@@ -243,7 +241,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={createButtonHandler(slide.button_link, slide.title_key, false)}
+                    onClick={() => handleButtonClick(slide.button_link, slide.title_key, index, false)}
                   >
                     {slide.button_text_key}
                   </button>
