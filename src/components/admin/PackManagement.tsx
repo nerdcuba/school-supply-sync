@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Package, Plus, Pencil, Trash2, Search, Upload } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { adminSupplyPackService, AdminSupplyPack, SupplyItem } from '@/services/adminSupplyPackService';
 import { schoolService, School } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +21,11 @@ const PackManagement = () => {
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   const [newPack, setNewPack] = useState<Omit<AdminSupplyPack, 'id' | 'created_at' | 'updated_at'>>({
     name: '',
     schoolId: '',
@@ -36,12 +42,10 @@ const PackManagement = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openCSVDialog, setOpenCSVDialog] = useState(false);
 
-  // Cargar paquetes y escuelas desde Supabase
   useEffect(() => {
     loadPacks();
     loadSchools();
 
-    // Configurar actualización en tiempo real
     const channel = supabase
       .channel('admin_supply_packs-realtime')
       .on('postgres_changes', {
@@ -86,14 +90,33 @@ const PackManagement = () => {
     }
   };
 
-  // Filtrar paquetes según término de búsqueda
+  // Filter packs based on search term
   const filteredPacks = packs.filter(pack => 
     pack.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     pack.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     pack.grade.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Agregar nuevo paquete
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredPacks.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPacks = filteredPacks.slice(startIndex, endIndex);
+
+  // Reset to first page when search term or items per page changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value));
+    setCurrentPage(1);
+  };
+
   const handleAddPack = async () => {
     // Validación básica
     if (!newPack.name || !newPack.schoolId || !newPack.grade || !newPack.price) {
@@ -139,7 +162,6 @@ const PackManagement = () => {
     }
   };
 
-  // Actualizar paquete existente
   const handleUpdatePack = async () => {
     if (!editingPack) return;
 
@@ -200,7 +222,6 @@ const PackManagement = () => {
     }
   };
 
-  // Eliminar paquete
   const handleDeletePack = async () => {
     if (!deletingPack) return;
     
@@ -222,7 +243,6 @@ const PackManagement = () => {
     }
   };
 
-  // Manejar carga de CSV
   const handleCSVUpload = async (items: SupplyItem[]) => {
     if (!csvUploadPack) return;
 
@@ -353,7 +373,7 @@ const PackManagement = () => {
         </Dialog>
       </div>
 
-      {/* Barra de búsqueda mejorada */}
+      {/* Search bar */}
       <div className="flex items-center space-x-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -376,15 +396,31 @@ const PackManagement = () => {
         )}
       </div>
 
-      {/* Mostrar resultados de búsqueda */}
-      {searchTerm && (
+      {/* Results summary and pagination controls */}
+      <div className="flex justify-between items-center">
         <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-          Mostrando {filteredPacks.length} de {packs.length} paquetes
+          Mostrando {startIndex + 1}-{Math.min(endIndex, filteredPacks.length)} de {filteredPacks.length} paquetes
           {searchTerm && ` para "${searchTerm}"`}
         </div>
-      )}
+        
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="items-per-page" className="text-sm">Mostrar:</Label>
+          <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-sm text-gray-600">por página</span>
+        </div>
+      </div>
 
-      {/* Listado de paquetes */}
+      {/* Packs table */}
       {packs.length === 0 ? (
         <Card className="text-center p-10">
           <CardContent className="pt-10">
@@ -410,7 +446,7 @@ const PackManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPacks.map((pack) => (
+                {paginatedPacks.map((pack) => (
                   <TableRow key={pack.id}>
                     <TableCell className="font-medium">{pack.name}</TableCell>
                     <TableCell>{pack.schoolName}</TableCell>
@@ -456,6 +492,41 @@ const PackManagement = () => {
             </Table>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    onClick={() => handlePageChange(page)}
+                    isActive={currentPage === page}
+                    className="cursor-pointer"
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
       )}
 
       {/* Diálogo de edición */}
