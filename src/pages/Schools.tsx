@@ -1,23 +1,15 @@
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { secureSchoolService } from '@/services/secureSchoolService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Phone, GraduationCap, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const Schools = () => {
-  const [cartItems, setCartItems] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const { t } = useLanguage();
-
-  const handleOpenCart = () => {
-    setIsCartOpen(true);
-  };
 
   const { data: schools, isLoading, error } = useQuery({
     queryKey: ['schools'],
@@ -27,10 +19,6 @@ const Schools = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar 
-          cartItemsCount={cartItems.length} 
-          onOpenCart={handleOpenCart} 
-        />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-64">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
@@ -44,10 +32,6 @@ const Schools = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar 
-          cartItemsCount={cartItems.length} 
-          onOpenCart={handleOpenCart} 
-        />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-red-600">
             Error al cargar las escuelas. Por favor intenta de nuevo.
@@ -60,11 +44,6 @@ const Schools = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar 
-        cartItemsCount={cartItems.length} 
-        onOpenCart={handleOpenCart} 
-      />
-      
       <main className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary mb-4">

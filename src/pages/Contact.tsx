@@ -7,19 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const Contact = () => {
-  const [cartItems, setCartItems] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
-
-  const handleOpenCart = () => {
-    setIsCartOpen(true);
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,11 +32,6 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar 
-        cartItemsCount={cartItems.length} 
-        onOpenCart={handleOpenCart} 
-      />
-      
       <main className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary mb-4">

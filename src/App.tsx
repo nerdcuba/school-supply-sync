@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AuthProvider } from '@/hooks/useAuth';
+import { useState } from 'react';
+import Navbar from '@/components/Navbar';
 import Index from '@/pages/Index';
 import Schools from '@/pages/Schools';
 import Contact from '@/pages/Contact';
@@ -19,6 +21,13 @@ import { SecureAdminProvider } from '@/contexts/SecureAdminContext';
 const queryClient = new QueryClient();
 
 function App() {
+  const [cartItems, setCartItems] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const handleOpenCart = () => {
+    setIsCartOpen(true);
+  };
+
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
@@ -26,6 +35,10 @@ function App() {
           <AuthProvider>
             <SecureAdminProvider>
               <div className="min-h-screen bg-background">
+                <Navbar 
+                  cartItemsCount={cartItems.length} 
+                  onOpenCart={handleOpenCart} 
+                />
                 <Toaster />
                 <Routes>
                   <Route path="/" element={<Index />} />
