@@ -28,12 +28,17 @@ const HeroSlider = () => {
     setIsLoading(true);
     try {
       const slidesData = await sliderService.getActiveSlides();
+      console.log('📊 Slides cargados:', slidesData);
       
       if (slidesData.length === 0) {
         // Si no hay slides en la BD, usar slides por defecto
         loadDefaultSlides();
       } else {
         setSlides(slidesData);
+        // Log para debuggear los enlaces
+        slidesData.forEach((slide, index) => {
+          console.log(`🔗 Slide ${index + 1} - Enlace: "${slide.button_link}"`);
+        });
       }
     } catch (error) {
       console.error('Error loading slides:', error);
@@ -199,6 +204,14 @@ const HeroSlider = () => {
     };
   };
 
+  const handleButtonClick = (slide: SliderImage) => {
+    console.log('🖱️ Click en botón del slide:', {
+      title: slide.title_key,
+      link: slide.button_link,
+      buttonText: slide.button_text_key
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="h-96 md:h-[500px] w-full bg-gray-200 flex items-center justify-center">
@@ -259,8 +272,11 @@ const HeroSlider = () => {
                 >
                   {slide.subtitle_key}
                 </p>
-                {slide.button_text_key && (
-                  <Link to={slide.button_link}>
+                {slide.button_text_key && slide.button_link && (
+                  <Link 
+                    to={slide.button_link}
+                    onClick={() => handleButtonClick(slide)}
+                  >
                     <button 
                       className="animate-fade-in text-sm px-4 py-2 rounded-md font-medium transition-all hover:opacity-90"
                       style={{ 
@@ -293,8 +309,11 @@ const HeroSlider = () => {
                 >
                   {slide.subtitle_key}
                 </p>
-                {slide.button_text_key && (
-                  <Link to={slide.button_link}>
+                {slide.button_text_key && slide.button_link && (
+                  <Link 
+                    to={slide.button_link}
+                    onClick={() => handleButtonClick(slide)}
+                  >
                     <button 
                       className="animate-fade-in px-6 py-3 rounded-md font-medium transition-all hover:opacity-90"
                       style={{ 
