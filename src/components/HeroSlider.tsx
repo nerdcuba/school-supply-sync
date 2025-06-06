@@ -168,7 +168,7 @@ const HeroSlider = () => {
   }
 
   return (
-    <div className="relative h-[450px] md:h-[500px] w-full overflow-hidden">
+    <div className="relative h-[480px] md:h-[500px] w-full overflow-hidden">
       {slides.map((slide, index) => (
         <div
           key={slide.id}
@@ -266,8 +266,8 @@ const HeroSlider = () => {
         <ChevronRight size={24} className="text-white" />
       </button>
 
-      {/* Indicators - Positioned well below content on mobile */}
-      <div className="absolute bottom-4 md:bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
+      {/* Indicators - Positioned lower on mobile with increased container height */}
+      <div className="absolute bottom-2 md:bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
         {slides.map((_, index) => (
           <button
             key={index}
