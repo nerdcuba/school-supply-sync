@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -134,6 +135,15 @@ const HeroSlider = () => {
   const nextSlide = () => setCurrent((current + 1) % slides.length);
   const prevSlide = () => setCurrent((current - 1 + slides.length) % slides.length);
 
+  // Crear una función específica para cada slide que capture su enlace
+  const createButtonHandler = (slideLink: string, slideTitle: string, isMobile: boolean) => {
+    return () => {
+      const deviceType = isMobile ? '📱 MOBILE' : '💻 DESKTOP';
+      console.log(`${deviceType} CLICK: Navegando a "${slideLink}" desde slide "${slideTitle}"`);
+      navigate(slideLink);
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="h-96 md:h-[500px] w-full bg-gray-200 flex items-center justify-center">
@@ -201,10 +211,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => {
-                      console.log(`📱 MOBILE CLICK: ${slide.button_link}`);
-                      navigate(slide.button_link);
-                    }}
+                    onClick={createButtonHandler(slide.button_link, slide.title_key, true)}
                   >
                     {slide.button_text_key}
                   </button>
@@ -236,10 +243,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => {
-                      console.log(`💻 DESKTOP CLICK: ${slide.button_link}`);
-                      navigate(slide.button_link);
-                    }}
+                    onClick={createButtonHandler(slide.button_link, slide.title_key, false)}
                   >
                     {slide.button_text_key}
                   </button>
