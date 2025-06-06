@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -256,7 +257,7 @@ const HeroSlider = () => {
                   <img 
                     src={slide.image_url} 
                     alt={slide.title_key}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-center"
                     onError={(e) => {
                       e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
                     }}
