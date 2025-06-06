@@ -32,9 +32,11 @@ const FilterPanel = ({ onFiltersChange, filters, schools }: FilterPanelProps) =>
   const [isEndDateOpen, setIsEndDateOpen] = useState(false);
 
   const handleFilterChange = (key: string, value: any) => {
+    // Convert "all" values back to empty strings for the filter logic
+    const processedValue = value === "all" ? "" : value;
     onFiltersChange({
       ...filters,
-      [key]: value
+      [key]: processedValue
     });
   };
 
@@ -113,12 +115,12 @@ const FilterPanel = ({ onFiltersChange, filters, schools }: FilterPanelProps) =>
           {/* Escuela */}
           <div>
             <label className="text-sm font-medium mb-2 block">Escuela</label>
-            <Select value={filters.school} onValueChange={(value) => handleFilterChange('school', value)}>
+            <Select value={filters.school || "all"} onValueChange={(value) => handleFilterChange('school', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas las escuelas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas las escuelas</SelectItem>
+                <SelectItem value="all">Todas las escuelas</SelectItem>
                 {schools.map((school) => (
                   <SelectItem key={school} value={school}>
                     {school}
@@ -131,12 +133,12 @@ const FilterPanel = ({ onFiltersChange, filters, schools }: FilterPanelProps) =>
           {/* Estado */}
           <div>
             <label className="text-sm font-medium mb-2 block">Estado</label>
-            <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+            <Select value={filters.status || "all"} onValueChange={(value) => handleFilterChange('status', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos los estados" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los estados</SelectItem>
+                <SelectItem value="all">Todos los estados</SelectItem>
                 <SelectItem value="pending">Pendiente</SelectItem>
                 <SelectItem value="processing">Procesando</SelectItem>
                 <SelectItem value="completed">Completado</SelectItem>
