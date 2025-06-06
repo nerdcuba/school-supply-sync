@@ -1,336 +1,157 @@
 
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, MapPin, Users, BookOpen, Phone } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { defaultSchoolImages } from "@/utils/defaultSchoolImages";
-import { schoolService, School } from "@/services/schoolService";
-import { toast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { secureSchoolService } from '@/services/secureSchoolService';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MapPin, Phone, GraduationCap, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const Schools = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [schools, setSchools] = useState<School[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showAll, setShowAll] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const { t } = useLanguage();
 
-  const schoolsPerPage = 9;
-
-  // Load schools from Supabase
-  useEffect(() => {
-    const loadSchools = async () => {
-      try {
-        const data = await schoolService.getAll();
-        setSchools(data);
-      } catch (error) {
-        console.error('Error loading schools:', error);
-        toast({
-          title: t('common.error'),
-          description: "No se pudieron cargar las escuelas",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSchools();
-  }, []);
-
-  const filteredSchools = schools.filter(school =>
-    school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    school.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredSchools.length / schoolsPerPage);
-  const startIndex = (currentPage - 1) * schoolsPerPage;
-  const endIndex = startIndex + schoolsPerPage;
-
-  // Show schools based on pagination or show all
-  const displaySchools = showAll ? filteredSchools : filteredSchools.slice(startIndex, endIndex);
-
-  // Calculate total enrollment from all schools
-  const totalEnrollment = schools.reduce((sum, school) => sum + (school.enrollment || 0), 0);
-
-  // Reset pagination when search term changes
-  useEffect(() => {
-    setCurrentPage(1);
-    setShowAll(false);
-  }, [searchTerm]);
-
-  const handleViewAllSchools = () => {
-    setShowAll(true);
-    setSearchTerm("");
-    setCurrentPage(1);
+  const handleOpenCart = () => {
+    setIsCartOpen(true);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    setShowAll(false);
-  };
+  const { data: schools, isLoading, error } = useQuery({
+    queryKey: ['schools'],
+    queryFn: secureSchoolService.getActiveSchools,
+  });
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-lg">{t('schools.loadingSchools')}</div>
+      <div className="min-h-screen bg-background">
+        <Navbar 
+          cartItemsCount={cartItems.length} 
+          onOpenCart={handleOpenCart} 
+        />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-64">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar 
+          cartItemsCount={cartItems.length} 
+          onOpenCart={handleOpenCart} 
+        />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center text-red-600">
+            Error al cargar las escuelas. Por favor intenta de nuevo.
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">
+      <Navbar 
+        cartItemsCount={cartItems.length} 
+        onOpenCart={handleOpenCart} 
+      />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-primary mb-4">
             {t('schools.title')}
           </h1>
-          <p className="text-xl text-textPrimary max-w-3xl mx-auto mb-8">
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             {t('schools.subtitle')}
           </p>
-          
-          {/* Search */}
-          <div className="max-w-xl mx-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <Input
-                placeholder={t('schools.search')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 py-3 text-lg border-2 border-primary focus:border-primary"
-              />
-            </div>
-          </div>
         </div>
 
-        {/* Stats - Hidden on mobile, visible on desktop */}
-        <div className="hidden md:grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
-          <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
-            <div className="text-primary mb-2">
-              <BookOpen size={32} className="mx-auto" />
-            </div>
-            <h3 className="text-2xl font-bold text-textPrimary mb-2">{schools.length}</h3>
-            <p className="text-textPrimary">{t('schools.select')}</p>
-          </div>
-          <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
-            <div className="text-secondary mb-2">
-              <Users size={32} className="mx-auto" />
-            </div>
-            <h3 className="text-2xl font-bold text-textPrimary mb-2">
-              {totalEnrollment > 0 ? totalEnrollment.toLocaleString() : '0'}
-            </h3>
-            <p className="text-textPrimary">{t('schools.students')}</p>
-          </div>
-          <div className="bg-white rounded-lg p-6 shadow-lg text-center border border-primary">
-            <div className="text-accent mb-2">
-              <MapPin size={32} className="mx-auto" />
-            </div>
-            <h3 className="text-2xl font-bold text-textPrimary mb-2">Miami-Dade</h3>
-            <p className="text-textPrimary">{t('schools.countyCovered')}</p>
-          </div>
-        </div>
-
-        {/* Schools Grid */}
-        {displaySchools.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displaySchools.map((school, index) => (
-                <Card
-                  key={school.id}
-                  className="relative overflow-hidden group transform transition-all duration-200 ease-out hover:scale-105 hover:shadow-xl"
-                >
-                  {/* School Image */}
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src={defaultSchoolImages[index % defaultSchoolImages.length]}
-                      alt={school.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-                    
-                    {/* School Badge */}
-                    <Badge className="absolute top-2 left-2 bg-primary text-white">
-                      {t('schools.school')}
-                    </Badge>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {schools?.map((school) => (
+            <Card key={school.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <GraduationCap className="mr-2 text-primary" size={24} />
+                  {school.name}
+                </CardTitle>
+                {school.grades && (
+                  <CardDescription>{school.grades}</CardDescription>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-start">
+                  <MapPin className="mr-2 mt-1 text-gray-500" size={16} />
+                  <span className="text-sm text-gray-600">{school.address}</span>
+                </div>
+                
+                {school.phone && (
+                  <div className="flex items-center">
+                    <Phone className="mr-2 text-gray-500" size={16} />
+                    <span className="text-sm text-gray-600">{school.phone}</span>
                   </div>
+                )}
 
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start mb-2">
-                      <Badge variant="secondary">Miami-Dade</Badge>
-                      <div className="flex items-center space-x-1">
-                        <BookOpen className="w-4 h-4 text-gray-600" />
-                        <span className="text-sm text-gray-600">
-                          {school.grades || 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                    <CardTitle className="text-lg text-blue-900 font-bold line-clamp-2">
-                      {school.name}
-                    </CardTitle>
-                  </CardHeader>
+                {school.principal && (
+                  <div className="text-sm">
+                    <span className="font-medium">Director:</span> {school.principal}
+                  </div>
+                )}
 
-                  <CardContent className="pt-0">
-                    <div className="flex items-start space-x-2 text-textPrimary mb-3">
-                      <MapPin size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
-                      <p className="text-sm line-clamp-2">{school.address}</p>
-                    </div>
+                {school.enrollment && (
+                  <div className="text-sm">
+                    <span className="font-medium">Estudiantes:</span> {school.enrollment.toLocaleString()}
+                  </div>
+                )}
 
-                    {/* School Info - Updated to show real data */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-sm text-textPrimary">
-                        <Phone size={14} className="mr-2 text-gray-400" />
-                        <span>{school.phone}</span>
-                      </div>
-                      <div className="flex items-center text-sm text-textPrimary">
-                        <Users size={14} className="mr-2 text-gray-400" />
-                        <span>{school.enrollment ? school.enrollment.toLocaleString() : '0'} estudiantes</span>
-                      </div>
-                      <div className="flex items-center text-sm text-textPrimary">
-                        <BookOpen size={14} className="mr-2 text-gray-400" />
-                        <span>Grados: {school.grades || 'N/A'}</span>
-                      </div>
-                    </div>
-
-                    {/* View Supplies Button */}
-                    <Link to={`/school/${school.id}`}>
-                      <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                        <BookOpen size={16} className="mr-2" />
-                        {t('schools.viewSupplies')}
+                <div className="pt-4 space-y-2">
+                  <Link to={`/school-supplies?school=${school.id}`}>
+                    <Button className="w-full">
+                      Ver Lista de Útiles
+                    </Button>
+                  </Link>
+                  
+                  {school.website && (
+                    <a 
+                      href={school.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <Button variant="outline" className="w-full">
+                        <ExternalLink className="mr-2" size={16} />
+                        Sitio Web
                       </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Pagination - only show if not showing all and there are multiple pages */}
-            {!showAll && totalPages > 1 && (
-              <div className="mt-8">
-                <Pagination>
-                  <PaginationContent>
-                    {currentPage > 1 && (
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          className="cursor-pointer"
-                        />
-                      </PaginationItem>
-                    )}
-                    
-                    {[...Array(totalPages)].map((_, i) => (
-                      <PaginationItem key={i + 1}>
-                        <PaginationLink
-                          onClick={() => handlePageChange(i + 1)}
-                          isActive={currentPage === i + 1}
-                          className="cursor-pointer"
-                        >
-                          {i + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    
-                    {currentPage < totalPages && (
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          className="cursor-pointer"
-                        />
-                      </PaginationItem>
-                    )}
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
-
-            {/* Show more button - only show if not showing all and there are more than 9 schools */}
-            {!showAll && filteredSchools.length > schoolsPerPage && (
-              <div className="text-center mt-8">
-                <p className="text-textPrimary mb-4">
-                  {t('schools.showing')} {displaySchools.length} {t('schools.of')} {filteredSchools.length} {t('schools.showingSchools')}
-                </p>
-                <Button
-                  onClick={handleViewAllSchools}
-                  variant="outline"
-                  className="border-primary text-primary hover:bg-primary hover:text-white"
-                >
-                  {t('schools.viewAllSchools')}
-                </Button>
-              </div>
-            )}
-
-            {/* Show fewer button - only show if showing all */}
-            {showAll && filteredSchools.length > schoolsPerPage && (
-              <div className="text-center mt-8">
-                <p className="text-textPrimary mb-4">
-                  Mostrando todas las {filteredSchools.length} escuelas
-                </p>
-                <Button
-                  onClick={() => {
-                    setShowAll(false);
-                    setCurrentPage(1);
-                  }}
-                  variant="outline"
-                  className="border-primary text-primary hover:bg-primary hover:text-white"
-                >
-                  Mostrar menos escuelas
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
-          /* No Schools */
-          <div className="text-center py-12">
-            <BookOpen size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold text-textPrimary mb-2">
-              {t('schools.noSchoolsRegistered')}
-            </h3>
-            <p className="text-textPrimary mb-4">
-              {t('schools.noSchoolsDesc')}
-            </p>
-          </div>
-        )}
-
-        {/* No Results */}
-        {schools.length > 0 && filteredSchools.length === 0 && (
-          <div className="text-center py-12">
-            <Search size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold text-textPrimary mb-2">
-              {t('schools.notFound')}
-            </h3>
-            <p className="text-textPrimary mb-4">
-              {t('schools.notFoundDesc')}
-            </p>
-            <Button
-              onClick={() => setSearchTerm("")}
-              variant="outline"
-            >
-              {t('schools.clearSearch')}
-            </Button>
-          </div>
-        )}
-
-        {/* CTA Section */}
-        <div className="bg-white rounded-lg p-8 shadow-lg mt-12 text-center border border-primary">
-          <h2 className="text-2xl font-bold text-textPrimary mb-4">
-            {t('schools.cantFindSchool')}
-          </h2>
-          <p className="text-textPrimary mb-6">
-            {t('schools.cantFindSchoolDesc')}
-          </p>
-          <Link to="/contact">
-            <Button className="btn-secondary">
-              {t('schools.requestNewSchool')}
-            </Button>
-          </Link>
+                    </a>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </div>
+
+        {schools?.length === 0 && (
+          <div className="text-center py-12">
+            <GraduationCap className="mx-auto mb-4 text-gray-400" size={64} />
+            <h3 className="text-xl font-medium text-gray-600 mb-2">
+              No hay escuelas disponibles
+            </h3>
+            <p className="text-gray-500">
+              Próximamente tendremos más escuelas asociadas.
+            </p>
+          </div>
+        )}
+      </main>
+
+      <Footer />
     </div>
   );
 };

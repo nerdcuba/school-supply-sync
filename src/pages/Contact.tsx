@@ -1,118 +1,108 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, MapPin, Clock } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Mail, Phone, MapPin, Clock } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const Contact = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: ""
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    // Simulate form submission
-    setTimeout(() => {
-      toast({
-        title: t('messages.welcome'),
-        description: t('contact.send'),
-      });
-      setFormData({ name: "", email: "", subject: "", message: "" });
-      setIsLoading(false);
-    }, 1000);
+  const handleOpenCart = () => {
+    setIsCartOpen(true);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    // Simulate form submission
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    toast({
+      title: "Mensaje enviado",
+      description: "Gracias por contactarnos. Te responderemos pronto.",
+    });
+
+    setIsSubmitting(false);
+    (e.target as HTMLFormElement).reset();
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <div className="container mx-auto px-4 py-16">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+    <div className="min-h-screen bg-background">
+      <Navbar 
+        cartItemsCount={cartItems.length} 
+        onOpenCart={handleOpenCart} 
+      />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-primary mb-4">
             {t('contact.title')}
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             {t('contact.subtitle')}
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-8">
           {/* Contact Form */}
           <Card>
             <CardHeader>
-              <CardTitle>{t('contact.sendMessage')}</CardTitle>
+              <CardTitle>Envíanos un mensaje</CardTitle>
               <CardDescription>
-                {t('contact.sendMessageDesc')}
+                Completa el formulario y nos pondremos en contacto contigo.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <Label htmlFor="name">{t('contact.name')}</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">Nombre</Label>
+                    <Input id="firstName" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Apellido</Label>
+                    <Input id="lastName" required />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" required />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Teléfono</Label>
+                  <Input id="phone" type="tel" />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Asunto</Label>
+                  <Input id="subject" required />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="message">Mensaje</Label>
+                  <Textarea 
+                    id="message" 
+                    rows={5} 
+                    required 
+                    placeholder="Cuéntanos cómo podemos ayudarte..."
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="email">{t('auth.email')}</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="subject">{t('contact.subject')}</Label>
-                  <Input
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="message">{t('contact.message')}</Label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    rows={4}
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? t('common.loading') : t('contact.send')}
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Enviando..." : "Enviar Mensaje"}
                 </Button>
               </form>
             </CardContent>
@@ -122,57 +112,63 @@ const Contact = () => {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t('contact.contactInfo')}</CardTitle>
+                <CardTitle>Información de contacto</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
-                  <Mail className="text-blue-600" size={20} />
+                  <Mail className="text-primary" size={20} />
                   <div>
-                    <p className="font-medium">{t('contact.email')}</p>
+                    <p className="font-medium">Email</p>
                     <p className="text-gray-600">info@planaheadsolutions.com</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <Phone className="text-blue-600" size={20} />
+                  <Phone className="text-primary" size={20} />
                   <div>
-                    <p className="font-medium">{t('contact.phone')}</p>
+                    <p className="font-medium">Teléfono</p>
                     <p className="text-gray-600">(555) 123-4567</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <MapPin className="text-blue-600" size={20} />
+                  <MapPin className="text-primary" size={20} />
                   <div>
-                    <p className="font-medium">{t('contact.location')}</p>
-                    <p className="text-gray-600">Miami, Florida</p>
+                    <p className="font-medium">Dirección</p>
+                    <p className="text-gray-600">Miami, FL</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <Clock className="text-blue-600" size={20} />
+                  <Clock className="text-primary" size={20} />
                   <div>
-                    <p className="font-medium">{t('contact.schedule')}</p>
-                    <p className="text-gray-600">{t('contact.scheduleTime')}</p>
+                    <p className="font-medium">Horarios</p>
+                    <p className="text-gray-600">Lun - Vie: 9:00 AM - 6:00 PM</p>
+                    <p className="text-gray-600">Sáb: 10:00 AM - 4:00 PM</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-blue-600 text-white">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-4">{t('contact.needHelp')}</h3>
-                <p className="mb-4">
-                  {t('contact.urgentQuestion')}
+            <Card>
+              <CardHeader>
+                <CardTitle>¿Necesitas ayuda inmediata?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Si tienes una pregunta urgente sobre tu pedido o necesitas asistencia inmediata, no dudes en llamarnos directamente.
                 </p>
-                <Button variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
-                  {t('contact.callNow')}
+                <Button className="w-full">
+                  <Phone className="mr-2" size={16} />
+                  Llamar ahora
                 </Button>
               </CardContent>
             </Card>
           </div>
         </div>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 };
