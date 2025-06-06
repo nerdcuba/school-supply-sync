@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -205,13 +206,6 @@ const HeroSlider = () => {
     };
   };
 
-  // Función para manejar la navegación - CORREGIDA
-  const handleSlideNavigation = (buttonLink: string, slideId: string, slideTitle: string, isMobile: boolean = false) => {
-    console.log(`${isMobile ? '📱 MOBILE' : '💻 DESKTOP'} CLICK - Slide ID:`, slideId, 'Link:', buttonLink, 'Title:', slideTitle);
-    console.log('🎯 Navegando a:', buttonLink);
-    navigate(buttonLink);
-  };
-
   if (isLoading) {
     return (
       <div className="h-96 md:h-[500px] w-full bg-gray-200 flex items-center justify-center">
@@ -279,7 +273,10 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => handleSlideNavigation(slide.button_link, slide.id, slide.title_key, true)}
+                    onClick={() => {
+                      console.log(`📱 MOBILE CLICK - Slide: "${slide.title_key}" Link: "${slide.button_link}"`);
+                      navigate(slide.button_link);
+                    }}
                   >
                     {slide.button_text_key}
                   </button>
@@ -312,7 +309,10 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => handleSlideNavigation(slide.button_link, slide.id, slide.title_key, false)}
+                    onClick={() => {
+                      console.log(`💻 DESKTOP CLICK - Slide: "${slide.title_key}" Link: "${slide.button_link}"`);
+                      navigate(slide.button_link);
+                    }}
                   >
                     {slide.button_text_key}
                   </button>
