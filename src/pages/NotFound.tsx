@@ -34,6 +34,13 @@ const NotFound = () => {
               Ver {t('nav.schools')}
             </Button>
           </Link>
+          
+          <Link to="/electronics">
+            <Button variant="outline" className="w-full sm:w-auto ml-0 sm:ml-4">
+              <ArrowLeft size={20} className="mr-2" />
+              Ver Electrónicos
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

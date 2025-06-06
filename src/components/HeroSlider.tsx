@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { sliderService, SliderImage } from '@/services/sliderService';
 
@@ -7,6 +7,7 @@ const HeroSlider = () => {
   const [current, setCurrent] = useState(0);
   const [slides, setSlides] = useState<SliderImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadSlides();
@@ -204,12 +205,23 @@ const HeroSlider = () => {
     };
   };
 
-  const handleButtonClick = (slide: SliderImage) => {
+  const handleButtonClick = (slide: SliderImage, event: React.MouseEvent) => {
+    event.preventDefault();
     console.log('🖱️ Click en botón del slide:', {
       title: slide.title_key,
       link: slide.button_link,
       buttonText: slide.button_text_key
     });
+
+    // Normalizar el enlace - convertir /electronicos a /electronics
+    let targetLink = slide.button_link;
+    if (targetLink === '/electronicos') {
+      targetLink = '/electronics';
+      console.log('🔄 Convirtiendo enlace de /electronicos a /electronics');
+    }
+
+    console.log('🎯 Navegando a:', targetLink);
+    navigate(targetLink);
   };
 
   if (isLoading) {
@@ -273,20 +285,16 @@ const HeroSlider = () => {
                   {slide.subtitle_key}
                 </p>
                 {slide.button_text_key && slide.button_link && (
-                  <Link 
-                    to={slide.button_link}
-                    onClick={() => handleButtonClick(slide)}
+                  <button 
+                    className="animate-fade-in text-sm px-4 py-2 rounded-md font-medium transition-all hover:opacity-90"
+                    style={{ 
+                      color: slide.button_color,
+                      backgroundColor: slide.button_background_color
+                    }}
+                    onClick={(e) => handleButtonClick(slide, e)}
                   >
-                    <button 
-                      className="animate-fade-in text-sm px-4 py-2 rounded-md font-medium transition-all hover:opacity-90"
-                      style={{ 
-                        color: slide.button_color,
-                        backgroundColor: slide.button_background_color
-                      }}
-                    >
-                      {slide.button_text_key}
-                    </button>
-                  </Link>
+                    {slide.button_text_key}
+                  </button>
                 )}
               </div>
             </div>
@@ -310,20 +318,16 @@ const HeroSlider = () => {
                   {slide.subtitle_key}
                 </p>
                 {slide.button_text_key && slide.button_link && (
-                  <Link 
-                    to={slide.button_link}
-                    onClick={() => handleButtonClick(slide)}
+                  <button 
+                    className="animate-fade-in px-6 py-3 rounded-md font-medium transition-all hover:opacity-90"
+                    style={{ 
+                      color: slide.button_color,
+                      backgroundColor: slide.button_background_color
+                    }}
+                    onClick={(e) => handleButtonClick(slide, e)}
                   >
-                    <button 
-                      className="animate-fade-in px-6 py-3 rounded-md font-medium transition-all hover:opacity-90"
-                      style={{ 
-                        color: slide.button_color,
-                        backgroundColor: slide.button_background_color
-                      }}
-                    >
-                      {slide.button_text_key}
-                    </button>
-                  </Link>
+                    {slide.button_text_key}
+                  </button>
                 )}
               </div>
 
