@@ -127,11 +127,11 @@ const HeroSlider = () => {
   const getTextAlignmentClass = (alignment: 'left' | 'center' | 'right') => {
     switch (alignment) {
       case 'left':
-        return 'text-left';
+        return 'text-left md:text-left';
       case 'center':
         return 'text-center';
       case 'right':
-        return 'text-right';
+        return 'text-right md:text-right';
       default:
         return 'text-center';
     }
@@ -140,19 +140,19 @@ const HeroSlider = () => {
   const getTextPositionClass = (position: 'top' | 'center' | 'bottom') => {
     switch (position) {
       case 'top':
-        return 'items-start pt-8';
+        return 'justify-start pt-8';
       case 'center':
-        return 'items-center';
+        return 'justify-center';
       case 'bottom':
-        return 'items-end pb-8';
+        return 'justify-end pb-8';
       default:
-        return 'items-center';
+        return 'justify-center';
     }
   };
 
   if (isLoading) {
     return (
-      <div className="h-96 md:h-[400px] w-full bg-gray-200 flex items-center justify-center">
+      <div className="h-96 md:h-[500px] w-full bg-gray-200 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-900"></div>
       </div>
     );
@@ -160,14 +160,14 @@ const HeroSlider = () => {
 
   if (slides.length === 0) {
     return (
-      <div className="h-96 md:h-[400px] w-full bg-gray-200 flex items-center justify-center">
+      <div className="h-96 md:h-[500px] w-full bg-gray-200 flex items-center justify-center">
         <p className="text-gray-500">No hay slides disponibles</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-96 md:h-[400px] w-full overflow-hidden">
+    <div className="relative h-96 md:h-[500px] w-full overflow-hidden">
       {slides.map((slide, index) => (
         <div
           key={slide.id}
@@ -176,15 +176,51 @@ const HeroSlider = () => {
           }`}
           style={{ backgroundColor: slide.background_color }}
         >
-          {/* Flex Container */}
-          <div className={`relative z-10 flex flex-col md:flex-row h-full ${getTextPositionClass(slide.text_position)}`}>
-            {/* Text Content Container */}
-            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-4 md:px-8`}>
-              <div className={`text-white max-w-2xl ${getTextAlignmentClass(slide.text_alignment)}`}>
-                <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-4 text-white animate-fade-in">
+          {/* Mobile Layout: Image first, then text */}
+          <div className="md:hidden flex flex-col h-full">
+            {/* Image Container - Mobile (top) */}
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="w-full h-40 max-w-sm rounded-xl overflow-hidden shadow-lg">
+                <img 
+                  src={slide.image_url} 
+                  alt={slide.title_key}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Text Content Container - Mobile (bottom) */}
+            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-6 pb-6`}>
+              <div className={`text-white w-full ${getTextAlignmentClass(slide.text_alignment)}`}>
+                <h1 className="text-xl md:text-2xl font-bold mb-3 text-white animate-fade-in">
                   {slide.title_key}
                 </h1>
-                <p className="text-base md:text-lg lg:text-xl mb-6 md:mb-8 text-gray-100 animate-fade-in">
+                <p className="text-sm md:text-base mb-4 text-gray-100 animate-fade-in leading-relaxed">
+                  {slide.subtitle_key}
+                </p>
+                {slide.button_text_key && (
+                  <Link to={slide.button_link}>
+                    <button className={`${getButtonClass(slide.button_style)} animate-fade-in text-sm px-4 py-2`}>
+                      {slide.button_text_key}
+                    </button>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout: Side by side */}
+          <div className="hidden md:flex flex-row h-full gap-8 p-8">
+            {/* Text Content Container - Desktop */}
+            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)}`}>
+              <div className={`text-white max-w-2xl ${getTextAlignmentClass(slide.text_alignment)}`}>
+                <h1 className="text-3xl lg:text-5xl font-bold mb-6 text-white animate-fade-in">
+                  {slide.title_key}
+                </h1>
+                <p className="text-lg lg:text-xl mb-8 text-gray-100 animate-fade-in leading-relaxed">
                   {slide.subtitle_key}
                 </p>
                 {slide.button_text_key && (
@@ -197,9 +233,9 @@ const HeroSlider = () => {
               </div>
             </div>
 
-            {/* Image Container */}
-            <div className="flex-1 flex items-center justify-center p-4 md:p-8">
-              <div className="w-full h-48 md:h-full max-w-md rounded-lg overflow-hidden shadow-lg">
+            {/* Image Container - Desktop */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full h-80 max-w-lg rounded-xl overflow-hidden shadow-2xl">
                 <img 
                   src={slide.image_url} 
                   alt={slide.title_key}
