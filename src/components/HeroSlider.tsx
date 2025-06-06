@@ -170,7 +170,7 @@ const HeroSlider = () => {
           <div className="md:hidden flex flex-col h-full">
             <div className="flex-1 flex items-center justify-center p-6">
               <div 
-                className={`w-full h-40 max-w-sm rounded-xl overflow-hidden ${slide.image_shadow_enabled ? 'shadow-2xl' : ''}`}
+                className={`w-full h-48 max-w-sm rounded-xl overflow-hidden ${slide.image_shadow_enabled ? 'shadow-2xl' : ''}`}
                 style={slide.image_shadow_enabled ? {
                   boxShadow: `0 25px 50px -12px ${slide.image_shadow_color}80`
                 } : {}}
@@ -178,7 +178,7 @@ const HeroSlider = () => {
                 <img 
                   src={slide.image_url} 
                   alt={slide.title_key}
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-contain"
                   onError={(e) => {
                     e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
                   }}
