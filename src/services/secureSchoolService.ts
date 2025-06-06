@@ -13,6 +13,8 @@ export interface SecureSchool {
   grades?: string;
   enrollment?: number;
   is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export const secureSchoolService = {

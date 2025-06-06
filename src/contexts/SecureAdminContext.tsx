@@ -1,249 +1,258 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { adminAuthService } from '@/services/adminAuthService';
-import { loginRateLimiter } from '@/utils/inputValidation';
+import { toast } from '@/hooks/use-toast';
 
 interface SecureAdminContextType {
   isAdminAuthenticated: boolean;
+  loading: boolean;
+  user: User | null;
+  session: Session | null;
   adminLogin: (email: string, password: string) => Promise<boolean>;
   adminLogout: () => Promise<void>;
-  loading: boolean;
-  sessionTimeout: number | null;
+  checkAdminAccess: () => Promise<boolean>;
 }
 
 const SecureAdminContext = createContext<SecureAdminContextType | undefined>(undefined);
 
-export const SecureAdminProvider = ({ children }: { children: ReactNode }) => {
+interface SecureAdminProviderProps {
+  children: ReactNode;
+}
+
+export const SecureAdminProvider = ({ children }: SecureAdminProviderProps) => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [sessionTimeout, setSessionTimeout] = useState<number | null>(null);
-  const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [sessionTimeout, setSessionTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const { session, isAdmin } = await adminAuthService.getAdminSession();
-        
-        if (session && isAdmin) {
-          setIsAdminAuthenticated(true);
-          setupSessionTimeout(session);
-        } else {
-          setIsAdminAuthenticated(false);
-        }
-      } catch (error) {
-        console.error('Error in admin authentication check:', error);
-        setIsAdminAuthenticated(false);
-      } finally {
-        setLoading(false);
-      }
-    };
+  console.log('🔐 SecureAdminProvider - Context initialized');
 
-    const setupSessionTimeout = (session: any) => {
-      if (session.expires_at) {
-        const expiresAt = new Date(session.expires_at * 1000);
-        const now = new Date();
-        const timeUntilExpiry = expiresAt.getTime() - now.getTime();
-        
-        if (timeUntilExpiry > 0) {
-          const timeoutId = setTimeout(() => {
-            toast({
-              title: "Sesión expirada",
-              description: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
-              variant: "destructive",
-            });
-            adminLogout();
-          }, timeUntilExpiry);
-          
-          setSessionTimeout(timeoutId);
-        }
-      }
-    };
+  // Session timeout duration (30 minutes)
+  const SESSION_TIMEOUT = 30 * 60 * 1000;
 
-    checkAdminStatus();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔄 Secure admin auth state change:', event);
-        
-        if (event === 'SIGNED_OUT') {
-          setIsAdminAuthenticated(false);
-          if (sessionTimeout) {
-            clearTimeout(sessionTimeout);
-            setSessionTimeout(null);
-          }
-        } else if (event === 'SIGNED_IN' && session) {
-          setTimeout(checkAdminStatus, 100);
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-      if (sessionTimeout) {
-        clearTimeout(sessionTimeout);
-      }
-    };
-  }, [sessionTimeout, toast]);
-
-  const adminLogin = async (email: string, password: string): Promise<boolean> => {
-    // Rate limiting check
-    const userIdentifier = email.toLowerCase();
+  const startSessionTimeout = () => {
+    if (sessionTimeout) {
+      clearTimeout(sessionTimeout);
+    }
     
-    if (!loginRateLimiter.checkLimit(userIdentifier)) {
-      const remainingTime = Math.ceil(loginRateLimiter.getRemainingTime(userIdentifier) / 1000 / 60);
+    const timeout = setTimeout(() => {
+      console.log('⏱️ Session timeout reached, logging out');
+      adminLogout();
       toast({
-        title: "Demasiados intentos",
-        description: `Has excedido el límite de intentos. Intenta nuevamente en ${remainingTime} minutos.`,
+        title: "Sesión expirada",
+        description: "Tu sesión ha expirado por seguridad. Por favor, inicia sesión nuevamente.",
         variant: "destructive",
       });
+    }, SESSION_TIMEOUT);
+    
+    setSessionTimeout(timeout);
+  };
+
+  const resetSessionTimeout = () => {
+    if (sessionTimeout) {
+      clearTimeout(sessionTimeout);
+    }
+    startSessionTimeout();
+  };
+
+  const checkAdminAccess = async (): Promise<boolean> => {
+    try {
+      console.log('🔍 Checking admin access...');
+      const { session: currentSession, isAdmin } = await adminAuthService.getAdminSession();
+      
+      if (currentSession && isAdmin) {
+        console.log('✅ Admin access confirmed');
+        setUser(currentSession.user);
+        setSession(currentSession);
+        setIsAdminAuthenticated(true);
+        startSessionTimeout();
+        return true;
+      } else {
+        console.log('❌ Admin access denied');
+        setUser(null);
+        setSession(null);
+        setIsAdminAuthenticated(false);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error checking admin access:', error);
+      setUser(null);
+      setSession(null);
+      setIsAdminAuthenticated(false);
       return false;
     }
+  };
 
+  const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log('🔐 Attempting secure admin login...');
-      
-      // Validate input
-      if (!email || !password) {
-        toast({
-          title: "Error de validación",
-          description: "Email y contraseña son requeridos",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      if (password.length < 6) {
-        toast({
-          title: "Error de validación",
-          description: "La contraseña debe tener al menos 6 caracteres",
-          variant: "destructive",
-        });
-        return false;
-      }
+      console.log('🔐 Attempting admin login for:', email);
+      setLoading(true);
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.toLowerCase().trim(),
-        password
+        email,
+        password,
       });
 
       if (error) {
-        console.error('❌ Secure admin login error:', error);
-        
-        // Don't reveal specific error details for security
+        console.error('❌ Login error:', error.message);
         toast({
           title: "Error de inicio de sesión",
-          description: "Credenciales incorrectas",
+          description: error.message,
           variant: "destructive",
         });
         return false;
       }
 
-      if (!data.session) {
-        toast({
-          title: "Error",
-          description: "No se pudo establecer la sesión",
-          variant: "destructive",
-        });
-        return false;
+      if (data.user && data.session) {
+        console.log('✅ User authenticated, verifying admin role...');
+        const isAdmin = await adminAuthService.verifyAdminRole();
+        
+        if (isAdmin) {
+          console.log('✅ Admin role confirmed');
+          setUser(data.user);
+          setSession(data.session);
+          setIsAdminAuthenticated(true);
+          startSessionTimeout();
+          
+          toast({
+            title: "Bienvenido, Administrador",
+            description: "Has iniciado sesión correctamente.",
+          });
+          return true;
+        } else {
+          console.log('❌ User is not admin');
+          await supabase.auth.signOut();
+          toast({
+            title: "Acceso denegado",
+            description: "No tienes permisos de administrador.",
+            variant: "destructive",
+          });
+          return false;
+        }
       }
 
-      // Verify admin status server-side
-      const isAdmin = await adminAuthService.verifyAdminRole();
-      
-      if (!isAdmin) {
-        console.error('❌ User is not admin');
-        toast({
-          title: "Acceso denegado",
-          description: "No tienes permisos de administrador",
-          variant: "destructive",
-        });
-        await supabase.auth.signOut();
-        setIsAdminAuthenticated(false);
-        return false;
-      }
-
-      setIsAdminAuthenticated(true);
-      setupSessionTimeout(data.session);
-      
-      console.log('✅ Secure admin login successful');
-      toast({
-        title: "¡Bienvenido!",
-        description: "Has iniciado sesión como administrador",
-      });
-      return true;
+      return false;
     } catch (error) {
-      console.error('❌ Secure admin login error:', error);
+      console.error('❌ Login error:', error);
       toast({
-        title: "Error del sistema",
-        description: "Ha ocurrido un error inesperado",
+        title: "Error",
+        description: "Ha ocurrido un error durante el inicio de sesión.",
         variant: "destructive",
       });
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   const adminLogout = async (): Promise<void> => {
     try {
-      await supabase.auth.signOut();
-      setIsAdminAuthenticated(false);
+      console.log('🚪 Admin logout initiated');
       
       if (sessionTimeout) {
         clearTimeout(sessionTimeout);
         setSessionTimeout(null);
       }
       
-      console.log('👋 Secure admin logout completed');
-      toast({
-        title: "Sesión finalizada",
-        description: "Has cerrado sesión correctamente",
-      });
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setIsAdminAuthenticated(false);
+      
+      console.log('✅ Admin logout completed');
     } catch (error) {
-      console.error('❌ Secure admin logout error:', error);
+      console.error('❌ Logout error:', error);
     }
   };
 
-  const setupSessionTimeout = (session: any) => {
-    if (sessionTimeout) {
-      clearTimeout(sessionTimeout);
-    }
+  // Initialize authentication state
+  useEffect(() => {
+    console.log('🔄 SecureAdminProvider - Setting up auth listener');
     
-    if (session.expires_at) {
-      const expiresAt = new Date(session.expires_at * 1000);
-      const now = new Date();
-      const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+    const initializeAuth = async () => {
+      setLoading(true);
+      await checkAdminAccess();
+      setLoading(false);
+    };
+
+    initializeAuth();
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log('🔄 Auth state changed:', event, currentSession?.user?.email);
       
-      // Set timeout for 5 minutes before actual expiry to give warning
-      const warningTime = Math.max(0, timeUntilExpiry - 5 * 60 * 1000);
-      
-      if (warningTime > 0) {
-        const timeoutId = setTimeout(() => {
-          toast({
-            title: "Sesión por expirar",
-            description: "Tu sesión expirará en 5 minutos",
-          });
-        }, warningTime);
-        
-        setSessionTimeout(timeoutId);
+      if (event === 'SIGNED_OUT' || !currentSession) {
+        console.log('🚪 User signed out or no session');
+        setUser(null);
+        setSession(null);
+        setIsAdminAuthenticated(false);
+        if (sessionTimeout) {
+          clearTimeout(sessionTimeout);
+          setSessionTimeout(null);
+        }
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('🔐 User signed in or token refreshed');
+        // Don't automatically set as admin - let the login function handle admin verification
+        if (currentSession) {
+          setUser(currentSession.user);
+          setSession(currentSession);
+          resetSessionTimeout();
+        }
       }
-    }
+    });
+
+    return () => {
+      console.log('🧹 SecureAdminProvider - Cleaning up auth listener');
+      subscription.unsubscribe();
+      if (sessionTimeout) {
+        clearTimeout(sessionTimeout);
+      }
+    };
+  }, []);
+
+  // Reset timeout on user activity
+  useEffect(() => {
+    if (!isAdminAuthenticated) return;
+
+    const handleActivity = () => {
+      resetSessionTimeout();
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => {
+      document.addEventListener(event, handleActivity, true);
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleActivity, true);
+      });
+    };
+  }, [isAdminAuthenticated]);
+
+  const contextValue: SecureAdminContextType = {
+    isAdminAuthenticated,
+    loading,
+    user,
+    session,
+    adminLogin,
+    adminLogout,
+    checkAdminAccess,
   };
 
   return (
-    <SecureAdminContext.Provider value={{ 
-      isAdminAuthenticated, 
-      adminLogin, 
-      adminLogout,
-      loading,
-      sessionTimeout
-    }}>
+    <SecureAdminContext.Provider value={contextValue}>
       {children}
     </SecureAdminContext.Provider>
   );
 };
 
-export const useSecureAdmin = () => {
+export const useSecureAdmin = (): SecureAdminContextType => {
   const context = useContext(SecureAdminContext);
   if (context === undefined) {
     throw new Error('useSecureAdmin must be used within a SecureAdminProvider');
