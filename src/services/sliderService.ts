@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SliderImage {
@@ -9,6 +8,8 @@ export interface SliderImage {
   button_link: string;
   image_url: string;
   button_style: 'primary' | 'secondary' | 'accent';
+  text_alignment: 'left' | 'center' | 'right';
+  text_position: 'top' | 'center' | 'bottom';
   display_order: number;
   is_active: boolean;
   created_at: string;
@@ -31,7 +32,9 @@ export const sliderService = {
 
     return (data || []).map(slide => ({
       ...slide,
-      button_style: slide.button_style as 'primary' | 'secondary' | 'accent'
+      button_style: slide.button_style as 'primary' | 'secondary' | 'accent',
+      text_alignment: slide.text_alignment as 'left' | 'center' | 'right',
+      text_position: slide.text_position as 'top' | 'center' | 'bottom'
     }));
   },
 
@@ -49,7 +52,9 @@ export const sliderService = {
 
     return (data || []).map(slide => ({
       ...slide,
-      button_style: slide.button_style as 'primary' | 'secondary' | 'accent'
+      button_style: slide.button_style as 'primary' | 'secondary' | 'accent',
+      text_alignment: slide.text_alignment as 'left' | 'center' | 'right',
+      text_position: slide.text_position as 'top' | 'center' | 'bottom'
     }));
   },
 
@@ -68,7 +73,9 @@ export const sliderService = {
 
     return {
       ...data,
-      button_style: data.button_style as 'primary' | 'secondary' | 'accent'
+      button_style: data.button_style as 'primary' | 'secondary' | 'accent',
+      text_alignment: data.text_alignment as 'left' | 'center' | 'right',
+      text_position: data.text_position as 'top' | 'center' | 'bottom'
     };
   },
 
@@ -88,7 +95,9 @@ export const sliderService = {
 
     return {
       ...data,
-      button_style: data.button_style as 'primary' | 'secondary' | 'accent'
+      button_style: data.button_style as 'primary' | 'secondary' | 'accent',
+      text_alignment: data.text_alignment as 'left' | 'center' | 'right',
+      text_position: data.text_position as 'top' | 'center' | 'bottom'
     };
   },
 

@@ -38,6 +38,8 @@ const SliderManagement = () => {
       button_link: '/',
       image_url: '',
       button_style: 'primary',
+      text_alignment: 'center',
+      text_position: 'center',
       display_order: slides.length,
       is_active: true
     };
@@ -315,6 +317,53 @@ const SliderManagement = () => {
               </div>
             </div>
 
+            {/* Nueva sección de alineación y posición del texto */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="textAlignment">Alineación del Texto</Label>
+                <Select
+                  value={editingSlide.text_alignment || 'center'}
+                  onValueChange={(value: 'left' | 'center' | 'right') => 
+                    setEditingSlide({
+                      ...editingSlide,
+                      text_alignment: value
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left">Izquierda</SelectItem>
+                    <SelectItem value="center">Centro</SelectItem>
+                    <SelectItem value="right">Derecha</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="textPosition">Posición Vertical del Texto</Label>
+                <Select
+                  value={editingSlide.text_position || 'center'}
+                  onValueChange={(value: 'top' | 'center' | 'bottom') => 
+                    setEditingSlide({
+                      ...editingSlide,
+                      text_position: value
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="top">Arriba</SelectItem>
+                    <SelectItem value="center">Centro</SelectItem>
+                    <SelectItem value="bottom">Abajo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {/* Sección de imagen */}
             <div className="space-y-4">
               <Label>Imagen de Fondo *</Label>
@@ -428,6 +477,9 @@ const SliderManagement = () => {
                         'bg-orange-100 text-orange-800'
                       }`}>
                         {slide.button_style}
+                      </span>
+                      <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                        {slide.text_alignment} / {slide.text_position}
                       </span>
                       <span className="text-xs text-gray-500">→ {slide.button_link}</span>
                       {!slide.is_active && (

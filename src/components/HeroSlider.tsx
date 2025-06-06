@@ -55,6 +55,8 @@ const HeroSlider = () => {
         button_link: '/schools',
         image_url: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
         button_style: 'secondary',
+        text_alignment: 'center',
+        text_position: 'center',
         display_order: 0,
         is_active: true,
         created_at: new Date().toISOString(),
@@ -68,6 +70,8 @@ const HeroSlider = () => {
         button_link: '/schools',
         image_url: 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
         button_style: 'accent',
+        text_alignment: 'left',
+        text_position: 'center',
         display_order: 1,
         is_active: true,
         created_at: new Date().toISOString(),
@@ -81,6 +85,8 @@ const HeroSlider = () => {
         button_link: '/dashboard',
         image_url: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
         button_style: 'primary',
+        text_alignment: 'right',
+        text_position: 'center',
         display_order: 2,
         is_active: true,
         created_at: new Date().toISOString(),
@@ -113,6 +119,45 @@ const HeroSlider = () => {
         return 'btn-accent';
       default:
         return 'btn-vibrant';
+    }
+  };
+
+  const getTextAlignmentClass = (alignment: 'left' | 'center' | 'right') => {
+    switch (alignment) {
+      case 'left':
+        return 'text-left';
+      case 'center':
+        return 'text-center';
+      case 'right':
+        return 'text-right';
+      default:
+        return 'text-center';
+    }
+  };
+
+  const getTextPositionClass = (position: 'top' | 'center' | 'bottom') => {
+    switch (position) {
+      case 'top':
+        return 'items-start pt-16';
+      case 'center':
+        return 'items-center';
+      case 'bottom':
+        return 'items-end pb-16';
+      default:
+        return 'items-center';
+    }
+  };
+
+  const getContentJustification = (alignment: 'left' | 'center' | 'right') => {
+    switch (alignment) {
+      case 'left':
+        return 'justify-start pl-8 md:pl-16';
+      case 'center':
+        return 'justify-center';
+      case 'right':
+        return 'justify-end pr-8 md:pr-16';
+      default:
+        return 'justify-center';
     }
   };
 
@@ -151,8 +196,8 @@ const HeroSlider = () => {
           </div>
 
           {/* Content */}
-          <div className="relative z-10 flex items-center justify-center h-full px-4">
-            <div className="text-center text-white max-w-4xl mx-auto">
+          <div className={`relative z-10 flex h-full px-4 ${getTextPositionClass(slide.text_position)} ${getContentJustification(slide.text_alignment)}`}>
+            <div className={`text-white max-w-4xl ${getTextAlignmentClass(slide.text_alignment)}`}>
               <h1 className="text-3xl md:text-5xl font-bold mb-4 text-white animate-fade-in">
                 {slide.title_key}
               </h1>
