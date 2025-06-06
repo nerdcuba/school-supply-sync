@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -193,12 +194,12 @@ const HeroSlider = () => {
             </div>
 
             {/* Text Content Container - Mobile (bottom) */}
-            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-6 pb-6`}>
+            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-6 pb-8`}>
               <div className={`text-white w-full ${getTextAlignmentClass(slide.text_alignment)}`}>
-                <h1 className="text-xl md:text-2xl font-bold mb-3 text-white animate-fade-in">
+                <h1 className="text-xl font-bold mb-4 text-white animate-fade-in">
                   {slide.title_key}
                 </h1>
-                <p className="text-sm md:text-base mb-4 text-gray-100 animate-fade-in leading-relaxed">
+                <p className="text-sm mb-6 text-gray-100 animate-fade-in leading-relaxed">
                   {slide.subtitle_key}
                 </p>
                 {slide.button_text_key && (
@@ -212,12 +213,12 @@ const HeroSlider = () => {
             </div>
           </div>
 
-          {/* Desktop Layout: Side by side */}
-          <div className="hidden md:flex flex-row h-full gap-8 p-8">
-            {/* Text Content Container - Desktop */}
-            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)}`}>
-              <div className={`text-white max-w-2xl ${getTextAlignmentClass(slide.text_alignment)}`}>
-                <h1 className="text-3xl lg:text-5xl font-bold mb-6 text-white animate-fade-in">
+          {/* Desktop Layout: Original side by side layout */}
+          <div className="hidden md:flex items-center h-full px-8">
+            <div className="container mx-auto flex items-center gap-12">
+              {/* Text Content - Desktop */}
+              <div className={`flex-1 ${getTextAlignmentClass(slide.text_alignment)}`}>
+                <h1 className="text-4xl lg:text-5xl font-bold mb-6 text-white animate-fade-in">
                   {slide.title_key}
                 </h1>
                 <p className="text-lg lg:text-xl mb-8 text-gray-100 animate-fade-in leading-relaxed">
@@ -231,19 +232,19 @@ const HeroSlider = () => {
                   </Link>
                 )}
               </div>
-            </div>
 
-            {/* Image Container - Desktop */}
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-full h-80 max-w-lg rounded-xl overflow-hidden shadow-2xl">
-                <img 
-                  src={slide.image_url} 
-                  alt={slide.title_key}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
-                  }}
-                />
+              {/* Image Container - Desktop */}
+              <div className="flex-1 flex items-center justify-center">
+                <div className="w-full h-80 max-w-lg rounded-xl overflow-hidden shadow-2xl">
+                  <img 
+                    src={slide.image_url} 
+                    alt={slide.title_key}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
