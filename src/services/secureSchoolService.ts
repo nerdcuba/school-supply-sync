@@ -85,8 +85,9 @@ export const secureSchoolService = {
 
   async updateSchool(id: string, updates: Partial<SecureSchool>): Promise<SecureSchool> {
     return adminAuthService.executeAdminOperation(async () => {
-      // Validate input
-      const validatedData = validationSchemas.school.partial().parse(updates);
+      // Validate input using partial schema
+      const partialSchema = validationSchemas.school.partial();
+      const validatedData = partialSchema.parse(updates);
       
       // Sanitize input
       const sanitizedData: Partial<SecureSchool> = {};
@@ -97,7 +98,7 @@ export const secureSchoolService = {
       if (validatedData.website) sanitizedData.website = sanitizeInput.sanitizeUrl(validatedData.website);
       if (validatedData.grades) sanitizedData.grades = sanitizeInput.sanitizeString(validatedData.grades);
       if (validatedData.enrollment !== undefined) sanitizedData.enrollment = validatedData.enrollment;
-      if (validatedData.is_active !== undefined) sanitizedData.is_active = validatedData.is_active;
+      if (updates.is_active !== undefined) sanitizedData.is_active = updates.is_active;
 
       const { data, error } = await supabase
         .from('schools')
