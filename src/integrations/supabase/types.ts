@@ -223,6 +223,7 @@ export type Database = {
       }
       slider_images: {
         Row: {
+          background_color: string
           button_link: string
           button_style: string
           button_text_key: string | null
@@ -238,6 +239,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          background_color?: string
           button_link?: string
           button_style?: string
           button_text_key?: string | null
@@ -253,6 +255,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          background_color?: string
           button_link?: string
           button_style?: string
           button_text_key?: string | null
