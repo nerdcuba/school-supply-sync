@@ -135,6 +135,12 @@ const HeroSlider = () => {
   const nextSlide = () => setCurrent((current + 1) % slides.length);
   const prevSlide = () => setCurrent((current - 1 + slides.length) % slides.length);
 
+  // Función específica para manejar navegación con el enlace correcto
+  const handleNavigation = (linkUrl: string, slideTitle: string) => {
+    console.log(`🚀 CLICK DETECTADO - Slide: "${slideTitle}" -> Navegando a: "${linkUrl}"`);
+    navigate(linkUrl);
+  };
+
   if (isLoading) {
     return (
       <div className="h-96 md:h-[500px] w-full bg-gray-200 flex items-center justify-center">
@@ -202,10 +208,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => {
-                      console.log(`🔥 NAVEGANDO A: ${slide.button_link}`);
-                      navigate(slide.button_link);
-                    }}
+                    onClick={() => handleNavigation(slide.button_link, slide.title_key)}
                   >
                     {slide.button_text_key}
                   </button>
@@ -237,10 +240,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => {
-                      console.log(`🔥 NAVEGANDO A: ${slide.button_link}`);
-                      navigate(slide.button_link);
-                    }}
+                    onClick={() => handleNavigation(slide.button_link, slide.title_key)}
                   >
                     {slide.button_text_key}
                   </button>
