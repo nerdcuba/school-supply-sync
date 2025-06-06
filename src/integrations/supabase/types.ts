@@ -224,6 +224,7 @@ export type Database = {
       slider_images: {
         Row: {
           background_color: string
+          button_background_color: string | null
           button_color: string | null
           button_link: string
           button_style: string
@@ -245,6 +246,7 @@ export type Database = {
         }
         Insert: {
           background_color?: string
+          button_background_color?: string | null
           button_color?: string | null
           button_link?: string
           button_style?: string
@@ -266,6 +268,7 @@ export type Database = {
         }
         Update: {
           background_color?: string
+          button_background_color?: string | null
           button_color?: string | null
           button_link?: string
           button_style?: string
