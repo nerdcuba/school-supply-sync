@@ -134,14 +134,6 @@ const HeroSlider = () => {
   const nextSlide = () => setCurrent((current + 1) % slides.length);
   const prevSlide = () => setCurrent((current - 1 + slides.length) % slides.length);
 
-  // Función de navegación directa para cada botón
-  const handleButtonClick = (slideLink: string, slideTitle: string, index: number, isMobile: boolean) => {
-    const deviceType = isMobile ? '📱 MOBILE' : '💻 DESKTOP';
-    console.log(`${deviceType} CLICK DIRECTO: Slide ${index + 1} "${slideTitle}" -> "${slideLink}"`);
-    console.log('🎯 NAVEGANDO AHORA A:', slideLink);
-    navigate(slideLink);
-  };
-
   if (isLoading) {
     return (
       <div className="h-96 md:h-[500px] w-full bg-gray-200 flex items-center justify-center">
@@ -209,7 +201,12 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => handleButtonClick(slide.button_link, slide.title_key, index, true)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log(`📱 MOBILE CLICK: Slide ${index + 1} "${slide.title_key}" navegando a: ${slide.button_link}`);
+                      navigate(slide.button_link);
+                    }}
                   >
                     {slide.button_text_key}
                   </button>
@@ -241,7 +238,12 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => handleButtonClick(slide.button_link, slide.title_key, index, false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log(`💻 DESKTOP CLICK: Slide ${index + 1} "${slide.title_key}" navegando a: ${slide.button_link}`);
+                      navigate(slide.button_link);
+                    }}
                   >
                     {slide.button_text_key}
                   </button>
