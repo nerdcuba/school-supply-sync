@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Edit, Trash2, Save, X, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, Upload, ArrowUp, ArrowDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sliderService, SliderImage } from '@/services/sliderService';
 
@@ -25,7 +25,28 @@ const SliderManagement = () => {
   const loadSlides = async () => {
     setIsLoading(true);
     const slidesData = await sliderService.getAllSlides();
-    setSlides(slidesData);
+    
+    // Corregir automáticamente los display_order duplicados
+    const correctedSlides = slidesData.map((slide, index) => ({
+      ...slide,
+      display_order: index
+    }));
+    
+    // Si hay diferencias, actualizar en la base de datos
+    const needsUpdate = slidesData.some((slide, index) => slide.display_order !== index);
+    if (needsUpdate) {
+      console.log('🔧 Corrigiendo órdenes de visualización duplicados...');
+      for (let i = 0; i < correctedSlides.length; i++) {
+        const slide = correctedSlides[i];
+        if (slide.display_order !== i) {
+          await sliderService.updateSlide(slide.id, { display_order: i });
+        }
+      }
+      // Disparar evento para actualizar el slider
+      window.dispatchEvent(new CustomEvent('slidesUpdated'));
+    }
+    
+    setSlides(correctedSlides);
     setIsLoading(false);
   };
 
@@ -56,6 +77,44 @@ const SliderManagement = () => {
   const handleEditSlide = (slide: SliderImage) => {
     setEditingSlide({ ...slide });
     setIsCreating(false);
+  };
+
+  const moveSlide = async (slideId: string, direction: 'up' | 'down') => {
+    const currentIndex = slides.findIndex(s => s.id === slideId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= slides.length) return;
+
+    const newSlides = [...slides];
+    [newSlides[currentIndex], newSlides[newIndex]] = [newSlides[newIndex], newSlides[currentIndex]];
+    
+    // Actualizar display_order en la base de datos
+    try {
+      await sliderService.updateSlide(newSlides[currentIndex].id, { display_order: currentIndex });
+      await sliderService.updateSlide(newSlides[newIndex].id, { display_order: newIndex });
+      
+      // Actualizar estado local
+      newSlides[currentIndex].display_order = currentIndex;
+      newSlides[newIndex].display_order = newIndex;
+      
+      setSlides(newSlides);
+      
+      // Disparar evento para actualizar el slider
+      window.dispatchEvent(new CustomEvent('slidesUpdated'));
+      
+      toast({
+        title: "Éxito",
+        description: "Orden actualizado correctamente"
+      });
+    } catch (error) {
+      console.error('Error updating slide order:', error);
+      toast({
+        title: "Error",
+        description: "Error al actualizar el orden",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -286,7 +345,38 @@ const SliderManagement = () => {
               />
             </div>
 
-            {/* Sección de colores de texto */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="buttonLink">Enlace del Botón</Label>
+                <Input
+                  id="buttonLink"
+                  value={editingSlide.button_link || ''}
+                  onChange={(e) => setEditingSlide({
+                    ...editingSlide,
+                    button_link: e.target.value
+                  })}
+                  placeholder="Ej: /schools"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="displayOrder">Orden de Visualización *</Label>
+                <Input
+                  id="displayOrder"
+                  type="number"
+                  min="0"
+                  value={editingSlide.display_order || 0}
+                  onChange={(e) => setEditingSlide({
+                    ...editingSlide,
+                    display_order: parseInt(e.target.value) || 0
+                  })}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            
+            
             <div className="space-y-4 border-t pt-4">
               <h3 className="text-lg font-semibold">Colores de Texto</h3>
               
@@ -368,7 +458,6 @@ const SliderManagement = () => {
               </div>
             </div>
 
-            {/* Sección de color de fondo */}
             <div>
               <Label htmlFor="backgroundColor">Color de Fondo del Slide *</Label>
               <div className="flex items-center gap-4">
@@ -394,7 +483,6 @@ const SliderManagement = () => {
               </div>
             </div>
 
-            {/* Sección de color de fondo del botón */}
             <div>
               <Label htmlFor="buttonBackgroundColor">Color de Fondo del Botón *</Label>
               <div className="flex items-center gap-4">
@@ -422,19 +510,6 @@ const SliderManagement = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="buttonLink">Enlace del Botón</Label>
-                <Input
-                  id="buttonLink"
-                  value={editingSlide.button_link || ''}
-                  onChange={(e) => setEditingSlide({
-                    ...editingSlide,
-                    button_link: e.target.value
-                  })}
-                  placeholder="Ej: /schools"
-                />
-              </div>
-
-              <div>
                 <Label htmlFor="buttonStyle">Estilo del Botón (informativo)</Label>
                 <Select
                   value={editingSlide.button_style || 'primary'}
@@ -455,10 +530,7 @@ const SliderManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* Sección de alineación y posición del texto */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="textAlignment">Alineación del Texto</Label>
                 <Select
@@ -480,31 +552,30 @@ const SliderManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div>
-                <Label htmlFor="textPosition">Posición Vertical del Texto</Label>
-                <Select
-                  value={editingSlide.text_position || 'center'}
-                  onValueChange={(value: 'top' | 'center' | 'bottom') => 
-                    setEditingSlide({
-                      ...editingSlide,
-                      text_position: value
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="top">Arriba</SelectItem>
-                    <SelectItem value="center">Centro</SelectItem>
-                    <SelectItem value="bottom">Abajo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
-            {/* Sección de sombra de imagen */}
+            <div>
+              <Label htmlFor="textPosition">Posición Vertical del Texto</Label>
+              <Select
+                value={editingSlide.text_position || 'center'}
+                onValueChange={(value: 'top' | 'center' | 'bottom') => 
+                  setEditingSlide({
+                    ...editingSlide,
+                    text_position: value
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top">Arriba</SelectItem>
+                  <SelectItem value="center">Centro</SelectItem>
+                  <SelectItem value="bottom">Abajo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-4 border-t pt-4">
               <div className="flex items-center space-x-2">
                 <Switch
@@ -546,11 +617,9 @@ const SliderManagement = () => {
               )}
             </div>
 
-            {/* Sección de imagen */}
             <div className="space-y-4">
               <Label>Imagen *</Label>
               
-              {/* Subir nueva imagen */}
               <div className="flex items-center gap-4">
                 <Input
                   type="file"
@@ -585,7 +654,6 @@ const SliderManagement = () => {
                 <span className="text-sm text-gray-500">Máximo 5MB</span>
               </div>
 
-              {/* URL manual */}
               <div>
                 <Label htmlFor="imageUrl">O ingresa URL de imagen</Label>
                 <Input
@@ -599,7 +667,6 @@ const SliderManagement = () => {
                 />
               </div>
 
-              {/* Preview de la imagen y color */}
               {editingSlide.image_url && (
                 <div className="mt-2 p-4 rounded-md" style={{ backgroundColor: editingSlide.background_color || '#1E90FF' }}>
                   <p className="text-white text-sm mb-2">Vista previa del diseño:</p>
@@ -663,13 +730,36 @@ const SliderManagement = () => {
         </Card>
       )}
 
-      {/* Lista de slides existentes */}
+      {/* Lista de slides existentes con controles de orden */}
       <div className="grid gap-4">
         {slides.map((slide, index) => (
           <Card key={slide.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
+                  <div className="flex flex-col items-center gap-1">
+                    <Button
+                      onClick={() => moveSlide(slide.id, 'up')}
+                      variant="outline"
+                      size="sm"
+                      disabled={index === 0}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ArrowUp size={12} />
+                    </Button>
+                    <span className="text-xs font-semibold bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                      {index + 1}
+                    </span>
+                    <Button
+                      onClick={() => moveSlide(slide.id, 'down')}
+                      variant="outline"
+                      size="sm"
+                      disabled={index === slides.length - 1}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ArrowDown size={12} />
+                    </Button>
+                  </div>
                   <div 
                     className="w-16 h-12 rounded overflow-hidden flex items-center justify-center"
                     style={{ backgroundColor: slide.background_color }}
