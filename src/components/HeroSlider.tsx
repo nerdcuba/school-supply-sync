@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { sliderService, SliderImage } from '@/services/sliderService';
@@ -205,20 +205,19 @@ const HeroSlider = () => {
     };
   };
 
-  // Crear una función separada para cada slide para evitar problemas de closure
-  const createButtonClickHandler = (slideData: SliderImage) => {
+  // Usar useCallback para crear handlers únicos para cada slide
+  const createSlideButtonHandler = useCallback((slideId: string, slideLink: string, slideTitle: string) => {
     return (event: React.MouseEvent) => {
       event.preventDefault();
       
       console.log('🖱️ Click en botón del slide:', {
-        slideId: slideData.id,
-        title: slideData.title_key,
-        originalLink: slideData.button_link,
-        buttonText: slideData.button_text_key
+        slideId,
+        title: slideTitle,
+        originalLink: slideLink,
       });
 
       // Normalizar el enlace - convertir /electronicos a /electronics
-      let targetLink = slideData.button_link;
+      let targetLink = slideLink;
       if (targetLink === '/electronicos') {
         targetLink = '/electronics';
         console.log('🔄 Convirtiendo enlace de /electronicos a /electronics');
@@ -227,7 +226,7 @@ const HeroSlider = () => {
       console.log('🎯 Navegando a:', targetLink);
       navigate(targetLink);
     };
-  };
+  }, [navigate]);
 
   if (isLoading) {
     return (
@@ -296,7 +295,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={createButtonClickHandler(slide)}
+                    onClick={createSlideButtonHandler(slide.id, slide.button_link, slide.title_key)}
                   >
                     {slide.button_text_key}
                   </button>
@@ -329,7 +328,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={createButtonClickHandler(slide)}
+                    onClick={createSlideButtonHandler(slide.id, slide.button_link, slide.title_key)}
                   >
                     {slide.button_text_key}
                   </button>
