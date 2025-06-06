@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SliderImage {
@@ -24,8 +25,59 @@ export interface SliderImage {
 }
 
 export const sliderService = {
+  // Corregir órdenes duplicados
+  async fixDisplayOrders(): Promise<void> {
+    console.log('🔧 Corrigiendo órdenes de display duplicados...');
+    
+    // Obtener todos los slides activos
+    const { data: slides } = await supabase
+      .from('slider_images')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at');
+
+    if (!slides || slides.length === 0) return;
+
+    // Asignar nuevos órdenes basados en IDs específicos conocidos
+    const updates = [];
+    
+    for (let i = 0; i < slides.length; i++) {
+      const slide = slides[i];
+      let newOrder = i;
+      
+      // Asignar órdenes específicos basados en el título para garantizar consistencia
+      if (slide.title_key === 'Listas Oficiales de Útiles Escolares') {
+        newOrder = 0;
+      } else if (slide.title_key === 'Electrónicos Escolares de Alta Calidad') {
+        newOrder = 1;
+      } else if (slide.title_key === '¿No encuentras tu Escuela?') {
+        newOrder = 2;
+      }
+      
+      if (slide.display_order !== newOrder) {
+        updates.push({
+          id: slide.id,
+          display_order: newOrder
+        });
+      }
+    }
+
+    // Ejecutar las actualizaciones
+    for (const update of updates) {
+      await supabase
+        .from('slider_images')
+        .update({ display_order: update.display_order, updated_at: new Date().toISOString() })
+        .eq('id', update.id);
+      
+      console.log(`✅ Slide ${update.id} actualizado a display_order: ${update.display_order}`);
+    }
+  },
+
   // Obtener todos los slides activos
   async getActiveSlides(): Promise<SliderImage[]> {
+    // Primero corregir los órdenes duplicados
+    await this.fixDisplayOrders();
+    
     const { data, error } = await supabase
       .from('slider_images')
       .select('*')
@@ -79,7 +131,6 @@ export const sliderService = {
     }));
   },
 
-  // Crear un nuevo slide
   async createSlide(slide: Omit<SliderImage, 'id' | 'created_at' | 'updated_at'>): Promise<SliderImage | null> {
     const { data, error } = await supabase
       .from('slider_images')
@@ -107,7 +158,6 @@ export const sliderService = {
     };
   },
 
-  // Actualizar un slide
   async updateSlide(id: string, updates: Partial<Omit<SliderImage, 'id' | 'created_at' | 'updated_at'>>): Promise<SliderImage | null> {
     const { data, error } = await supabase
       .from('slider_images')
@@ -150,7 +200,6 @@ export const sliderService = {
     return true;
   },
 
-  // Subir imagen al storage
   async uploadImage(file: File): Promise<string | null> {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
@@ -172,13 +221,11 @@ export const sliderService = {
     return publicUrl;
   },
 
-  // Eliminar imagen del storage
   async deleteImage(imageUrl: string): Promise<boolean> {
     try {
-      // Extraer el path de la URL
       const url = new URL(imageUrl);
       const pathParts = url.pathname.split('/');
-      const filePath = pathParts.slice(-2).join('/'); // slides/filename.ext
+      const filePath = pathParts.slice(-2).join('/');
 
       const { error } = await supabase.storage
         .from('slider-images')
