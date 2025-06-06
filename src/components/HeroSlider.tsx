@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -195,7 +193,7 @@ const HeroSlider = () => {
             </div>
 
             {/* Text Content Container - Mobile (bottom) with extra bottom padding for indicators */}
-            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-6 pb-16`}>
+            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-6 pb-20`}>
               <div className={`text-white w-full ${getTextAlignmentClass(slide.text_alignment)}`}>
                 <h1 className="text-xl font-bold mb-4 text-white animate-fade-in">
                   {slide.title_key}
@@ -286,4 +284,3 @@ const HeroSlider = () => {
 };
 
 export default HeroSlider;
-
