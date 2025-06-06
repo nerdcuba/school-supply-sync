@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SliderImage {
@@ -8,6 +7,7 @@ export interface SliderImage {
   button_text_key: string | null;
   button_link: string;
   image_url: string;
+  background_color: string;
   button_style: 'primary' | 'secondary' | 'accent';
   text_alignment: 'left' | 'center' | 'right';
   text_position: 'top' | 'center' | 'bottom';
@@ -33,6 +33,7 @@ export const sliderService = {
 
     return (data || []).map(slide => ({
       ...slide,
+      background_color: slide.background_color || '#1E90FF',
       button_style: slide.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: slide.text_alignment as 'left' | 'center' | 'right',
       text_position: slide.text_position as 'top' | 'center' | 'bottom'
@@ -53,6 +54,7 @@ export const sliderService = {
 
     return (data || []).map(slide => ({
       ...slide,
+      background_color: slide.background_color || '#1E90FF',
       button_style: slide.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: slide.text_alignment as 'left' | 'center' | 'right',
       text_position: slide.text_position as 'top' | 'center' | 'bottom'
@@ -74,6 +76,7 @@ export const sliderService = {
 
     return {
       ...data,
+      background_color: data.background_color || '#1E90FF',
       button_style: data.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: data.text_alignment as 'left' | 'center' | 'right',
       text_position: data.text_position as 'top' | 'center' | 'bottom'
@@ -96,13 +99,13 @@ export const sliderService = {
 
     return {
       ...data,
+      background_color: data.background_color || '#1E90FF',
       button_style: data.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: data.text_alignment as 'left' | 'center' | 'right',
       text_position: data.text_position as 'top' | 'center' | 'bottom'
     };
   },
 
-  // Eliminar un slide
   async deleteSlide(id: string): Promise<boolean> {
     const { error } = await supabase
       .from('slider_images')

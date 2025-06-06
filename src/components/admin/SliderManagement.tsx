@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sliderService, SliderImage } from '@/services/sliderService';
 
@@ -37,6 +36,7 @@ const SliderManagement = () => {
       button_text_key: '',
       button_link: '/',
       image_url: '',
+      background_color: '#1E90FF',
       button_style: 'primary',
       text_alignment: 'center',
       text_position: 'center',
@@ -280,6 +280,32 @@ const SliderManagement = () => {
               />
             </div>
 
+            {/* Sección de color de fondo */}
+            <div>
+              <Label htmlFor="backgroundColor">Color de Fondo *</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  id="backgroundColor"
+                  type="color"
+                  value={editingSlide.background_color || '#1E90FF'}
+                  onChange={(e) => setEditingSlide({
+                    ...editingSlide,
+                    background_color: e.target.value
+                  })}
+                  className="w-20 h-10"
+                />
+                <Input
+                  value={editingSlide.background_color || '#1E90FF'}
+                  onChange={(e) => setEditingSlide({
+                    ...editingSlide,
+                    background_color: e.target.value
+                  })}
+                  placeholder="#1E90FF"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="buttonLink">Enlace del Botón</Label>
@@ -317,7 +343,7 @@ const SliderManagement = () => {
               </div>
             </div>
 
-            {/* Nueva sección de alineación y posición del texto */}
+            {/* Sección de alineación y posición del texto */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="textAlignment">Alineación del Texto</Label>
@@ -366,7 +392,7 @@ const SliderManagement = () => {
 
             {/* Sección de imagen */}
             <div className="space-y-4">
-              <Label>Imagen de Fondo *</Label>
+              <Label>Imagen *</Label>
               
               {/* Subir nueva imagen */}
               <div className="flex items-center gap-4">
@@ -417,17 +443,26 @@ const SliderManagement = () => {
                 />
               </div>
 
-              {/* Preview de la imagen */}
+              {/* Preview de la imagen y color */}
               {editingSlide.image_url && (
-                <div className="mt-2">
-                  <img 
-                    src={editingSlide.image_url} 
-                    alt="Preview" 
-                    className="w-full h-32 object-cover rounded-md"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
-                    }}
-                  />
+                <div className="mt-2 p-4 rounded-md" style={{ backgroundColor: editingSlide.background_color || '#1E90FF' }}>
+                  <p className="text-white text-sm mb-2">Vista previa del diseño:</p>
+                  <div className="flex flex-col md:flex-row gap-4 items-center">
+                    <div className="flex-1 text-white">
+                      <h3 className="font-bold text-lg">{editingSlide.title_key || 'Título del slide'}</h3>
+                      <p className="text-sm opacity-90">{editingSlide.subtitle_key || 'Subtítulo del slide'}</p>
+                    </div>
+                    <div className="w-32 h-24">
+                      <img 
+                        src={editingSlide.image_url} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover rounded"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -453,11 +488,14 @@ const SliderManagement = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-12 bg-gray-200 rounded overflow-hidden">
+                  <div 
+                    className="w-16 h-12 rounded overflow-hidden flex items-center justify-center"
+                    style={{ backgroundColor: slide.background_color }}
+                  >
                     <img 
                       src={slide.image_url} 
                       alt={`Slide ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-8 h-8 object-cover rounded"
                       onError={(e) => {
                         e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
                       }}
@@ -471,6 +509,12 @@ const SliderManagement = () => {
                       {slide.subtitle_key}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
+                      <span 
+                        className="px-2 py-1 rounded text-xs text-white"
+                        style={{ backgroundColor: slide.background_color }}
+                      >
+                        {slide.background_color}
+                      </span>
                       <span className={`px-2 py-1 rounded text-xs ${
                         slide.button_style === 'primary' ? 'bg-blue-100 text-blue-800' :
                         slide.button_style === 'secondary' ? 'bg-green-100 text-green-800' :
