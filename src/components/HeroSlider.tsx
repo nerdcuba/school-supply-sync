@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { sliderService, SliderImage } from '@/services/sliderService';
 
@@ -38,7 +38,7 @@ const HeroSlider = () => {
         setSlides(slidesData);
         // Log para debuggear los enlaces
         slidesData.forEach((slide, index) => {
-          console.log(`🔗 Slide ${index + 1} - Enlace: "${slide.button_link}"`);
+          console.log(`🔗 Slide ${index + 1} - ID: "${slide.id}" - Título: "${slide.title_key}" - Enlace: "${slide.button_link}"`);
         });
       }
     } catch (error) {
@@ -205,23 +205,28 @@ const HeroSlider = () => {
     };
   };
 
-  const handleButtonClick = (slide: SliderImage, event: React.MouseEvent) => {
-    event.preventDefault();
-    console.log('🖱️ Click en botón del slide:', {
-      title: slide.title_key,
-      link: slide.button_link,
-      buttonText: slide.button_text_key
-    });
+  // Crear una función separada para cada slide para evitar problemas de closure
+  const createButtonClickHandler = (slideData: SliderImage) => {
+    return (event: React.MouseEvent) => {
+      event.preventDefault();
+      
+      console.log('🖱️ Click en botón del slide:', {
+        slideId: slideData.id,
+        title: slideData.title_key,
+        originalLink: slideData.button_link,
+        buttonText: slideData.button_text_key
+      });
 
-    // Normalizar el enlace - convertir /electronicos a /electronics
-    let targetLink = slide.button_link;
-    if (targetLink === '/electronicos') {
-      targetLink = '/electronics';
-      console.log('🔄 Convirtiendo enlace de /electronicos a /electronics');
-    }
+      // Normalizar el enlace - convertir /electronicos a /electronics
+      let targetLink = slideData.button_link;
+      if (targetLink === '/electronicos') {
+        targetLink = '/electronics';
+        console.log('🔄 Convirtiendo enlace de /electronicos a /electronics');
+      }
 
-    console.log('🎯 Navegando a:', targetLink);
-    navigate(targetLink);
+      console.log('🎯 Navegando a:', targetLink);
+      navigate(targetLink);
+    };
   };
 
   if (isLoading) {
@@ -291,7 +296,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={(e) => handleButtonClick(slide, e)}
+                    onClick={createButtonClickHandler(slide)}
                   >
                     {slide.button_text_key}
                   </button>
@@ -324,7 +329,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={(e) => handleButtonClick(slide, e)}
+                    onClick={createButtonClickHandler(slide)}
                   >
                     {slide.button_text_key}
                   </button>
