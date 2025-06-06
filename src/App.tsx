@@ -10,6 +10,7 @@ import Schools from '@/pages/Schools';
 import Contact from '@/pages/Contact';
 import Electronics from '@/pages/Electronics';
 import HowItWorks from '@/pages/HowItWorks';
+import SchoolSupplies from '@/pages/SchoolSupplies';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
@@ -49,6 +50,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/schools" element={<Schools />} />
+                  <Route path="/school-supplies" element={<SchoolSupplies />} />
                   <Route path="/electronics" element={<Electronics onAddToCart={handleAddToCart} />} />
                   <Route path="/how-it-works" element={<HowItWorks />} />
                   <Route path="/contact" element={<Contact />} />
