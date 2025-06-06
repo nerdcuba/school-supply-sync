@@ -22,7 +22,7 @@ export const sliderService = {
   async getActiveSlides(): Promise<SliderImage[]> {
     const { data, error } = await supabase
       .from('slider_images')
-      .select('id, title_key, subtitle_key, button_text_key, button_link, image_url, button_style, text_alignment, text_position, display_order, is_active, created_at, updated_at')
+      .select('*')
       .eq('is_active', true)
       .order('display_order');
 
@@ -43,7 +43,7 @@ export const sliderService = {
   async getAllSlides(): Promise<SliderImage[]> {
     const { data, error } = await supabase
       .from('slider_images')
-      .select('id, title_key, subtitle_key, button_text_key, button_link, image_url, button_style, text_alignment, text_position, display_order, is_active, created_at, updated_at')
+      .select('*')
       .order('display_order');
 
     if (error) {
@@ -64,7 +64,7 @@ export const sliderService = {
     const { data, error } = await supabase
       .from('slider_images')
       .insert([slide])
-      .select('id, title_key, subtitle_key, button_text_key, button_link, image_url, button_style, text_alignment, text_position, display_order, is_active, created_at, updated_at')
+      .select('*')
       .single();
 
     if (error) {
@@ -86,7 +86,7 @@ export const sliderService = {
       .from('slider_images')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .select('id, title_key, subtitle_key, button_text_key, button_link, image_url, button_style, text_alignment, text_position, display_order, is_active, created_at, updated_at')
+      .select('*')
       .single();
 
     if (error) {

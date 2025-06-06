@@ -232,6 +232,8 @@ export type Database = {
           image_url: string
           is_active: boolean
           subtitle_key: string
+          text_alignment: string
+          text_position: string
           title_key: string
           updated_at: string
         }
@@ -245,6 +247,8 @@ export type Database = {
           image_url: string
           is_active?: boolean
           subtitle_key: string
+          text_alignment?: string
+          text_position?: string
           title_key: string
           updated_at?: string
         }
@@ -258,6 +262,8 @@ export type Database = {
           image_url?: string
           is_active?: boolean
           subtitle_key?: string
+          text_alignment?: string
+          text_position?: string
           title_key?: string
           updated_at?: string
         }
