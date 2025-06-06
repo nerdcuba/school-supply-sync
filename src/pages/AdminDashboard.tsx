@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { useAdmin } from '@/contexts/AdminContext';
+import { useSecureAdmin } from '@/contexts/SecureAdminContext';
 import { LogOut, LayoutDashboard, School, Package, Users, Settings, Shield, Laptop, ShoppingCart, Image } from 'lucide-react';
 import SchoolManagement from '@/components/admin/SchoolManagement';
 import PackManagement from '@/components/admin/PackManagement';
@@ -16,7 +16,7 @@ import SliderManagement from '@/components/admin/SliderManagement';
 import { Toaster } from '@/components/ui/toaster';
 
 const AdminDashboard = () => {
-  const { isAdminAuthenticated, adminLogout, loading } = useAdmin();
+  const { isAdminAuthenticated, adminLogout, loading } = useSecureAdmin();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('analytics');
 
