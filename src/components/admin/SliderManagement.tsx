@@ -9,15 +9,6 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Edit, Trash2, Save, X, Upload, ArrowUp, ArrowDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sliderService, SliderImage } from '@/services/sliderService';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
 
 const SliderManagement = () => {
   const [slides, setSlides] = useState<SliderImage[]>([]);
@@ -25,8 +16,6 @@ const SliderManagement = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -285,28 +274,6 @@ const SliderManagement = () => {
   const handleCancel = () => {
     setEditingSlide(null);
     setIsCreating(false);
-  };
-
-  // Cálculos de paginación
-  const totalPages = Math.ceil(slides.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentSlides = slides.slice(startIndex, endIndex);
-
-  // Resetear página actual si es necesario
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
-    }
-  }, [totalPages, currentPage]);
-
-  const handleItemsPerPageChange = (newItemsPerPage: string) => {
-    setItemsPerPage(parseInt(newItemsPerPage));
-    setCurrentPage(1);
-  };
-
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
   if (isLoading) {
@@ -763,194 +730,111 @@ const SliderManagement = () => {
         </Card>
       )}
 
-      {/* Controles de paginación */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white rounded-lg p-4 shadow-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Mostrar:</span>
-          <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-            <SelectTrigger className="w-20">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="text-sm text-gray-600">
-            de {slides.length} slides
-          </span>
-        </div>
-        
-        <div className="text-sm text-gray-600">
-          Página {currentPage} de {totalPages}
-        </div>
-      </div>
-
       {/* Lista de slides existentes con controles de orden */}
       <div className="grid gap-4">
-        {currentSlides.map((slide, index) => {
-          const globalIndex = startIndex + index;
-          return (
-            <Card key={slide.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex flex-col items-center gap-1">
-                      <Button
-                        onClick={() => moveSlide(slide.id, 'up')}
-                        variant="outline"
-                        size="sm"
-                        disabled={globalIndex === 0}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ArrowUp size={12} />
-                      </Button>
-                      <span className="text-xs font-semibold bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                        {globalIndex + 1}
-                      </span>
-                      <Button
-                        onClick={() => moveSlide(slide.id, 'down')}
-                        variant="outline"
-                        size="sm"
-                        disabled={globalIndex === slides.length - 1}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ArrowDown size={12} />
-                      </Button>
-                    </div>
-                    <div 
-                      className="w-16 h-12 rounded overflow-hidden flex items-center justify-center"
-                      style={{ backgroundColor: slide.background_color }}
+        {slides.map((slide, index) => (
+          <Card key={slide.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex flex-col items-center gap-1">
+                    <Button
+                      onClick={() => moveSlide(slide.id, 'up')}
+                      variant="outline"
+                      size="sm"
+                      disabled={index === 0}
+                      className="h-8 w-8 p-0"
                     >
-                      <img 
-                        src={slide.image_url} 
-                        alt={`Slide ${globalIndex + 1}`}
-                        className="w-8 h-8 object-cover rounded"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">
-                        {slide.title_key || `Slide ${globalIndex + 1}`}
-                      </h3>
-                      <p className="text-gray-600 text-sm line-clamp-2">
-                        {slide.subtitle_key}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span 
-                          className="px-2 py-1 rounded text-xs text-white"
-                          style={{ backgroundColor: slide.background_color }}
-                        >
-                          Fondo: {slide.background_color}
-                        </span>
-                        <span 
-                          className="px-2 py-1 rounded text-xs"
-                          style={{ 
-                            backgroundColor: slide.button_background_color,
-                            color: slide.button_color
-                          }}
-                        >
-                          Botón
-                        </span>
-                        <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
-                          {slide.text_alignment} / {slide.text_position}
-                        </span>
-                        {slide.image_shadow_enabled && (
-                          <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
-                            Sombra
-                          </span>
-                        )}
-                        <span className="text-xs text-gray-500">→ {slide.button_link}</span>
-                        {!slide.is_active && (
-                          <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800">
-                            Inactivo
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                      <ArrowUp size={12} />
+                    </Button>
+                    <span className="text-xs font-semibold bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                      {index + 1}
+                    </span>
+                    <Button
+                      onClick={() => moveSlide(slide.id, 'down')}
+                      variant="outline"
+                      size="sm"
+                      disabled={index === slides.length - 1}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ArrowDown size={12} />
+                    </Button>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleEditSlide(slide)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <Edit size={16} />
-                    </Button>
-                    <Button
-                      onClick={() => handleDeleteSlide(slide.id)}
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
+                  <div 
+                    className="w-16 h-12 rounded overflow-hidden flex items-center justify-center"
+                    style={{ backgroundColor: slide.background_color }}
+                  >
+                    <img 
+                      src={slide.image_url} 
+                      alt={`Slide ${index + 1}`}
+                      className="w-8 h-8 object-cover rounded"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">
+                      {slide.title_key || `Slide ${index + 1}`}
+                    </h3>
+                    <p className="text-gray-600 text-sm line-clamp-2">
+                      {slide.subtitle_key}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span 
+                        className="px-2 py-1 rounded text-xs text-white"
+                        style={{ backgroundColor: slide.background_color }}
+                      >
+                        Fondo: {slide.background_color}
+                      </span>
+                      <span 
+                        className="px-2 py-1 rounded text-xs"
+                        style={{ 
+                          backgroundColor: slide.button_background_color,
+                          color: slide.button_color
+                        }}
+                      >
+                        Botón
+                      </span>
+                      <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                        {slide.text_alignment} / {slide.text_position}
+                      </span>
+                      {slide.image_shadow_enabled && (
+                        <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+                          Sombra
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-500">→ {slide.button_link}</span>
+                      {!slide.is_active && (
+                        <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800">
+                          Inactivo
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleEditSlide(slide)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Edit size={16} />
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteSlide(slide.id)}
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-
-      {/* Componente de paginación */}
-      {totalPages > 1 && (
-        <div className="flex justify-center">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => goToPage(currentPage - 1)}
-                  className={currentPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-              
-              {/* Páginas */}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNumber;
-                if (totalPages <= 5) {
-                  pageNumber = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNumber = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNumber = totalPages - 4 + i;
-                } else {
-                  pageNumber = currentPage - 2 + i;
-                }
-                
-                return (
-                  <PaginationItem key={pageNumber}>
-                    <PaginationLink
-                      onClick={() => goToPage(pageNumber)}
-                      isActive={currentPage === pageNumber}
-                      className="cursor-pointer"
-                    >
-                      {pageNumber}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
-              
-              {totalPages > 5 && currentPage < totalPages - 2 && (
-                <PaginationItem>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              )}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => goToPage(currentPage + 1)}
-                  className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
     </div>
   );
 };
