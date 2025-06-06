@@ -18,6 +18,7 @@ export interface SliderImage {
   title_color: string;
   subtitle_color: string;
   button_color: string;
+  button_background_color: string;
   created_at: string;
   updated_at: string;
 }
@@ -46,7 +47,8 @@ export const sliderService = {
       image_shadow_color: slide.image_shadow_color || '#000000',
       title_color: slide.title_color || '#FFFFFF',
       subtitle_color: slide.subtitle_color || '#F3F4F6',
-      button_color: slide.button_color || '#FFFFFF'
+      button_color: slide.button_color || '#FFFFFF',
+      button_background_color: slide.button_background_color || '#3B82F6'
     }));
   },
 
@@ -72,7 +74,8 @@ export const sliderService = {
       image_shadow_color: slide.image_shadow_color || '#000000',
       title_color: slide.title_color || '#FFFFFF',
       subtitle_color: slide.subtitle_color || '#F3F4F6',
-      button_color: slide.button_color || '#FFFFFF'
+      button_color: slide.button_color || '#FFFFFF',
+      button_background_color: slide.button_background_color || '#3B82F6'
     }));
   },
 
@@ -99,7 +102,8 @@ export const sliderService = {
       image_shadow_color: data.image_shadow_color || '#000000',
       title_color: data.title_color || '#FFFFFF',
       subtitle_color: data.subtitle_color || '#F3F4F6',
-      button_color: data.button_color || '#FFFFFF'
+      button_color: data.button_color || '#FFFFFF',
+      button_background_color: data.button_background_color || '#3B82F6'
     };
   },
 
@@ -127,7 +131,8 @@ export const sliderService = {
       image_shadow_color: data.image_shadow_color || '#000000',
       title_color: data.title_color || '#FFFFFF',
       subtitle_color: data.subtitle_color || '#F3F4F6',
-      button_color: data.button_color || '#FFFFFF'
+      button_color: data.button_color || '#FFFFFF',
+      button_background_color: data.button_background_color || '#3B82F6'
     };
   },
 

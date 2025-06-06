@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -64,6 +63,7 @@ const HeroSlider = () => {
         title_color: '#FFFFFF',
         subtitle_color: '#F3F4F6',
         button_color: '#FFFFFF',
+        button_background_color: '#3B82F6',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -85,6 +85,7 @@ const HeroSlider = () => {
         title_color: '#FFFFFF',
         subtitle_color: '#F3F4F6',
         button_color: '#FFFFFF',
+        button_background_color: '#F97316',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -106,6 +107,7 @@ const HeroSlider = () => {
         title_color: '#FFFFFF',
         subtitle_color: '#F3F4F6',
         button_color: '#FFFFFF',
+        button_background_color: '#10B981',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -260,8 +262,11 @@ const HeroSlider = () => {
                 {slide.button_text_key && (
                   <Link to={slide.button_link}>
                     <button 
-                      className={`${getButtonClass(slide.button_style)} animate-fade-in text-sm px-4 py-2`}
-                      style={{ color: slide.button_color }}
+                      className="animate-fade-in text-sm px-4 py-2 rounded-md font-medium transition-all hover:opacity-90"
+                      style={{ 
+                        color: slide.button_color,
+                        backgroundColor: slide.button_background_color
+                      }}
                     >
                       {slide.button_text_key}
                     </button>
@@ -291,8 +296,11 @@ const HeroSlider = () => {
                 {slide.button_text_key && (
                   <Link to={slide.button_link}>
                     <button 
-                      className={`${getButtonClass(slide.button_style)} animate-fade-in`}
-                      style={{ color: slide.button_color }}
+                      className="animate-fade-in px-6 py-3 rounded-md font-medium transition-all hover:opacity-90"
+                      style={{ 
+                        color: slide.button_color,
+                        backgroundColor: slide.button_background_color
+                      }}
                     >
                       {slide.button_text_key}
                     </button>

@@ -46,7 +46,8 @@ const SliderManagement = () => {
       image_shadow_color: '#000000',
       title_color: '#FFFFFF',
       subtitle_color: '#F3F4F6',
-      button_color: '#FFFFFF'
+      button_color: '#FFFFFF',
+      button_background_color: '#3B82F6'
     };
     setEditingSlide(newSlide);
     setIsCreating(true);
@@ -341,10 +342,10 @@ const SliderManagement = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="buttonColor">Color del Botón</Label>
+                  <Label htmlFor="buttonTextColor">Color del Texto del Botón</Label>
                   <div className="flex items-center gap-4">
                     <Input
-                      id="buttonColor"
+                      id="buttonTextColor"
                       type="color"
                       value={editingSlide.button_color || '#FFFFFF'}
                       onChange={(e) => setEditingSlide({
@@ -369,7 +370,7 @@ const SliderManagement = () => {
 
             {/* Sección de color de fondo */}
             <div>
-              <Label htmlFor="backgroundColor">Color de Fondo *</Label>
+              <Label htmlFor="backgroundColor">Color de Fondo del Slide *</Label>
               <div className="flex items-center gap-4">
                 <Input
                   id="backgroundColor"
@@ -393,6 +394,32 @@ const SliderManagement = () => {
               </div>
             </div>
 
+            {/* Sección de color de fondo del botón */}
+            <div>
+              <Label htmlFor="buttonBackgroundColor">Color de Fondo del Botón *</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  id="buttonBackgroundColor"
+                  type="color"
+                  value={editingSlide.button_background_color || '#3B82F6'}
+                  onChange={(e) => setEditingSlide({
+                    ...editingSlide,
+                    button_background_color: e.target.value
+                  })}
+                  className="w-20 h-10"
+                />
+                <Input
+                  value={editingSlide.button_background_color || '#3B82F6'}
+                  onChange={(e) => setEditingSlide({
+                    ...editingSlide,
+                    button_background_color: e.target.value
+                  })}
+                  placeholder="#3B82F6"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="buttonLink">Enlace del Botón</Label>
@@ -408,7 +435,7 @@ const SliderManagement = () => {
               </div>
 
               <div>
-                <Label htmlFor="buttonStyle">Estilo del Botón</Label>
+                <Label htmlFor="buttonStyle">Estilo del Botón (informativo)</Label>
                 <Select
                   value={editingSlide.button_style || 'primary'}
                   onValueChange={(value: 'primary' | 'secondary' | 'accent') => 
@@ -422,9 +449,9 @@ const SliderManagement = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="primary">Primario (Azul)</SelectItem>
-                    <SelectItem value="secondary">Secundario (Verde)</SelectItem>
-                    <SelectItem value="accent">Acento (Naranja)</SelectItem>
+                    <SelectItem value="primary">Primario</SelectItem>
+                    <SelectItem value="secondary">Secundario</SelectItem>
+                    <SelectItem value="accent">Acento</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -592,10 +619,10 @@ const SliderManagement = () => {
                       </p>
                       {editingSlide.button_text_key && (
                         <button 
-                          className="mt-2 px-3 py-1 rounded text-sm bg-opacity-80 hover:bg-opacity-100 transition-all"
+                          className="mt-2 px-3 py-1 rounded text-sm transition-all"
                           style={{ 
                             color: editingSlide.button_color || '#FFFFFF',
-                            backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                            backgroundColor: editingSlide.button_background_color || '#3B82F6'
                           }}
                         >
                           {editingSlide.button_text_key}
@@ -668,14 +695,16 @@ const SliderManagement = () => {
                         className="px-2 py-1 rounded text-xs text-white"
                         style={{ backgroundColor: slide.background_color }}
                       >
-                        {slide.background_color}
+                        Fondo: {slide.background_color}
                       </span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        slide.button_style === 'primary' ? 'bg-blue-100 text-blue-800' :
-                        slide.button_style === 'secondary' ? 'bg-green-100 text-green-800' :
-                        'bg-orange-100 text-orange-800'
-                      }`}>
-                        {slide.button_style}
+                      <span 
+                        className="px-2 py-1 rounded text-xs"
+                        style={{ 
+                          backgroundColor: slide.button_background_color,
+                          color: slide.button_color
+                        }}
+                      >
+                        Botón
                       </span>
                       <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
                         {slide.text_alignment} / {slide.text_position}
