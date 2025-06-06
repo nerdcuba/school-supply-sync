@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -206,19 +205,11 @@ const HeroSlider = () => {
     };
   };
 
-  // Función para manejar la navegación
+  // Función para manejar la navegación - CORREGIDA
   const handleSlideNavigation = (buttonLink: string, slideId: string, slideTitle: string, isMobile: boolean = false) => {
     console.log(`${isMobile ? '📱 MOBILE' : '💻 DESKTOP'} CLICK - Slide ID:`, slideId, 'Link:', buttonLink, 'Title:', slideTitle);
-    
-    // Normalizar el enlace - convertir /electronicos a /electronics
-    let targetLink = buttonLink;
-    if (targetLink === '/electronicos') {
-      targetLink = '/electronics';
-      console.log('🔄 Convirtiendo enlace de /electronicos a /electronics');
-    }
-
-    console.log('🎯 Navegando a:', targetLink);
-    navigate(targetLink);
+    console.log('🎯 Navegando a:', buttonLink);
+    navigate(buttonLink);
   };
 
   if (isLoading) {
