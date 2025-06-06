@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAdmin } from '@/contexts/AdminContext';
+import { useSecureAdmin } from '@/contexts/SecureAdminContext';
 import { toast } from '@/hooks/use-toast';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 
@@ -14,7 +14,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { adminLogin } = useAdmin();
+  const { adminLogin } = useSecureAdmin();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
