@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -60,6 +61,9 @@ const HeroSlider = () => {
         is_active: true,
         image_shadow_enabled: true,
         image_shadow_color: '#000000',
+        title_color: '#FFFFFF',
+        subtitle_color: '#F3F4F6',
+        button_color: '#FFFFFF',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -78,6 +82,9 @@ const HeroSlider = () => {
         is_active: true,
         image_shadow_enabled: true,
         image_shadow_color: '#000000',
+        title_color: '#FFFFFF',
+        subtitle_color: '#F3F4F6',
+        button_color: '#FFFFFF',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -96,6 +103,9 @@ const HeroSlider = () => {
         is_active: true,
         image_shadow_enabled: true,
         image_shadow_color: '#000000',
+        title_color: '#FFFFFF',
+        subtitle_color: '#F3F4F6',
+        button_color: '#FFFFFF',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -162,7 +172,7 @@ const HeroSlider = () => {
     const hexToRgba = (hex: string, opacity: number = 0.5) => {
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
+      const b = parseInt(hex.slice(7), 16);
       return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     };
 
@@ -234,16 +244,25 @@ const HeroSlider = () => {
 
             {/* Text Content Container - Mobile (bottom) with space for indicators */}
             <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-6 pb-6`}>
-              <div className={`text-white w-full ${getTextAlignmentClass(slide.text_alignment)}`}>
-                <h1 className="text-xl font-bold mb-4 text-white animate-fade-in">
+              <div className={`w-full ${getTextAlignmentClass(slide.text_alignment)}`}>
+                <h1 
+                  className="text-xl font-bold mb-4 animate-fade-in"
+                  style={{ color: slide.title_color }}
+                >
                   {slide.title_key}
                 </h1>
-                <p className="text-sm mb-6 text-gray-100 animate-fade-in leading-relaxed">
+                <p 
+                  className="text-sm mb-6 animate-fade-in leading-relaxed"
+                  style={{ color: slide.subtitle_color }}
+                >
                   {slide.subtitle_key}
                 </p>
                 {slide.button_text_key && (
                   <Link to={slide.button_link}>
-                    <button className={`${getButtonClass(slide.button_style)} animate-fade-in text-sm px-4 py-2`}>
+                    <button 
+                      className={`${getButtonClass(slide.button_style)} animate-fade-in text-sm px-4 py-2`}
+                      style={{ color: slide.button_color }}
+                    >
                       {slide.button_text_key}
                     </button>
                   </Link>
@@ -257,15 +276,24 @@ const HeroSlider = () => {
             <div className="container mx-auto flex items-center gap-12">
               {/* Text Content - Desktop */}
               <div className={`flex-1 ${getTextAlignmentClass(slide.text_alignment)}`}>
-                <h1 className="text-4xl lg:text-5xl font-bold mb-6 text-white animate-fade-in">
+                <h1 
+                  className="text-4xl lg:text-5xl font-bold mb-6 animate-fade-in"
+                  style={{ color: slide.title_color }}
+                >
                   {slide.title_key}
                 </h1>
-                <p className="text-lg lg:text-xl mb-8 text-gray-100 animate-fade-in leading-relaxed">
+                <p 
+                  className="text-lg lg:text-xl mb-8 animate-fade-in leading-relaxed"
+                  style={{ color: slide.subtitle_color }}
+                >
                   {slide.subtitle_key}
                 </p>
                 {slide.button_text_key && (
                   <Link to={slide.button_link}>
-                    <button className={`${getButtonClass(slide.button_style)} animate-fade-in`}>
+                    <button 
+                      className={`${getButtonClass(slide.button_style)} animate-fade-in`}
+                      style={{ color: slide.button_color }}
+                    >
                       {slide.button_text_key}
                     </button>
                   </Link>

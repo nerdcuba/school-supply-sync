@@ -230,6 +230,8 @@ export type Database = {
           created_at: string
           display_order: number
           id: string
+          image_shadow_color: string | null
+          image_shadow_enabled: boolean | null
           image_url: string
           is_active: boolean
           subtitle_key: string
@@ -246,6 +248,8 @@ export type Database = {
           created_at?: string
           display_order?: number
           id?: string
+          image_shadow_color?: string | null
+          image_shadow_enabled?: boolean | null
           image_url: string
           is_active?: boolean
           subtitle_key: string
@@ -262,6 +266,8 @@ export type Database = {
           created_at?: string
           display_order?: number
           id?: string
+          image_shadow_color?: string | null
+          image_shadow_enabled?: boolean | null
           image_url?: string
           is_active?: boolean
           subtitle_key?: string

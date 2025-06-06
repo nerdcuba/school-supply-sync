@@ -43,7 +43,10 @@ const SliderManagement = () => {
       display_order: slides.length,
       is_active: true,
       image_shadow_enabled: true,
-      image_shadow_color: '#000000'
+      image_shadow_color: '#000000',
+      title_color: '#FFFFFF',
+      subtitle_color: '#F3F4F6',
+      button_color: '#FFFFFF'
     };
     setEditingSlide(newSlide);
     setIsCreating(true);
@@ -282,6 +285,88 @@ const SliderManagement = () => {
               />
             </div>
 
+            {/* Sección de colores de texto */}
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="text-lg font-semibold">Colores de Texto</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="titleColor">Color del Título</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="titleColor"
+                      type="color"
+                      value={editingSlide.title_color || '#FFFFFF'}
+                      onChange={(e) => setEditingSlide({
+                        ...editingSlide,
+                        title_color: e.target.value
+                      })}
+                      className="w-20 h-10"
+                    />
+                    <Input
+                      value={editingSlide.title_color || '#FFFFFF'}
+                      onChange={(e) => setEditingSlide({
+                        ...editingSlide,
+                        title_color: e.target.value
+                      })}
+                      placeholder="#FFFFFF"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="subtitleColor">Color del Subtítulo</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="subtitleColor"
+                      type="color"
+                      value={editingSlide.subtitle_color || '#F3F4F6'}
+                      onChange={(e) => setEditingSlide({
+                        ...editingSlide,
+                        subtitle_color: e.target.value
+                      })}
+                      className="w-20 h-10"
+                    />
+                    <Input
+                      value={editingSlide.subtitle_color || '#F3F4F6'}
+                      onChange={(e) => setEditingSlide({
+                        ...editingSlide,
+                        subtitle_color: e.target.value
+                      })}
+                      placeholder="#F3F4F6"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="buttonColor">Color del Botón</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="buttonColor"
+                      type="color"
+                      value={editingSlide.button_color || '#FFFFFF'}
+                      onChange={(e) => setEditingSlide({
+                        ...editingSlide,
+                        button_color: e.target.value
+                      })}
+                      className="w-20 h-10"
+                    />
+                    <Input
+                      value={editingSlide.button_color || '#FFFFFF'}
+                      onChange={(e) => setEditingSlide({
+                        ...editingSlide,
+                        button_color: e.target.value
+                      })}
+                      placeholder="#FFFFFF"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Sección de color de fondo */}
             <div>
               <Label htmlFor="backgroundColor">Color de Fondo *</Label>
@@ -492,9 +577,30 @@ const SliderManagement = () => {
                 <div className="mt-2 p-4 rounded-md" style={{ backgroundColor: editingSlide.background_color || '#1E90FF' }}>
                   <p className="text-white text-sm mb-2">Vista previa del diseño:</p>
                   <div className="flex flex-col md:flex-row gap-4 items-center">
-                    <div className="flex-1 text-white">
-                      <h3 className="font-bold text-lg">{editingSlide.title_key || 'Título del slide'}</h3>
-                      <p className="text-sm opacity-90">{editingSlide.subtitle_key || 'Subtítulo del slide'}</p>
+                    <div className="flex-1">
+                      <h3 
+                        className="font-bold text-lg"
+                        style={{ color: editingSlide.title_color || '#FFFFFF' }}
+                      >
+                        {editingSlide.title_key || 'Título del slide'}
+                      </h3>
+                      <p 
+                        className="text-sm opacity-90"
+                        style={{ color: editingSlide.subtitle_color || '#F3F4F6' }}
+                      >
+                        {editingSlide.subtitle_key || 'Subtítulo del slide'}
+                      </p>
+                      {editingSlide.button_text_key && (
+                        <button 
+                          className="mt-2 px-3 py-1 rounded text-sm bg-opacity-80 hover:bg-opacity-100 transition-all"
+                          style={{ 
+                            color: editingSlide.button_color || '#FFFFFF',
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                          }}
+                        >
+                          {editingSlide.button_text_key}
+                        </button>
+                      )}
                     </div>
                     <div 
                       className={`w-32 h-24 rounded overflow-hidden ${editingSlide.image_shadow_enabled ? 'shadow-2xl' : ''}`}

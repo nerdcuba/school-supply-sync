@@ -15,6 +15,9 @@ export interface SliderImage {
   is_active: boolean;
   image_shadow_enabled: boolean;
   image_shadow_color: string;
+  title_color: string;
+  subtitle_color: string;
+  button_color: string;
   created_at: string;
   updated_at: string;
 }
@@ -39,8 +42,11 @@ export const sliderService = {
       button_style: slide.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: slide.text_alignment as 'left' | 'center' | 'right',
       text_position: slide.text_position as 'top' | 'center' | 'bottom',
-      image_shadow_enabled: slide.image_shadow_enabled || false,
-      image_shadow_color: slide.image_shadow_color || '#000000'
+      image_shadow_enabled: slide.image_shadow_enabled ?? true,
+      image_shadow_color: slide.image_shadow_color || '#000000',
+      title_color: slide.title_color || '#FFFFFF',
+      subtitle_color: slide.subtitle_color || '#F3F4F6',
+      button_color: slide.button_color || '#FFFFFF'
     }));
   },
 
@@ -62,8 +68,11 @@ export const sliderService = {
       button_style: slide.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: slide.text_alignment as 'left' | 'center' | 'right',
       text_position: slide.text_position as 'top' | 'center' | 'bottom',
-      image_shadow_enabled: slide.image_shadow_enabled || false,
-      image_shadow_color: slide.image_shadow_color || '#000000'
+      image_shadow_enabled: slide.image_shadow_enabled ?? true,
+      image_shadow_color: slide.image_shadow_color || '#000000',
+      title_color: slide.title_color || '#FFFFFF',
+      subtitle_color: slide.subtitle_color || '#F3F4F6',
+      button_color: slide.button_color || '#FFFFFF'
     }));
   },
 
@@ -86,8 +95,11 @@ export const sliderService = {
       button_style: data.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: data.text_alignment as 'left' | 'center' | 'right',
       text_position: data.text_position as 'top' | 'center' | 'bottom',
-      image_shadow_enabled: data.image_shadow_enabled || false,
-      image_shadow_color: data.image_shadow_color || '#000000'
+      image_shadow_enabled: data.image_shadow_enabled ?? true,
+      image_shadow_color: data.image_shadow_color || '#000000',
+      title_color: data.title_color || '#FFFFFF',
+      subtitle_color: data.subtitle_color || '#F3F4F6',
+      button_color: data.button_color || '#FFFFFF'
     };
   },
 
@@ -111,8 +123,11 @@ export const sliderService = {
       button_style: data.button_style as 'primary' | 'secondary' | 'accent',
       text_alignment: data.text_alignment as 'left' | 'center' | 'right',
       text_position: data.text_position as 'top' | 'center' | 'bottom',
-      image_shadow_enabled: data.image_shadow_enabled || false,
-      image_shadow_color: data.image_shadow_color || '#000000'
+      image_shadow_enabled: data.image_shadow_enabled ?? true,
+      image_shadow_color: data.image_shadow_color || '#000000',
+      title_color: data.title_color || '#FFFFFF',
+      subtitle_color: data.subtitle_color || '#F3F4F6',
+      button_color: data.button_color || '#FFFFFF'
     };
   },
 
