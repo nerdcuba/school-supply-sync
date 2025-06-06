@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { sliderService, SliderImage } from '@/services/sliderService';
@@ -205,28 +205,25 @@ const HeroSlider = () => {
     };
   };
 
-  // Usar useCallback para crear handlers únicos para cada slide
-  const createSlideButtonHandler = useCallback((slideId: string, slideLink: string, slideTitle: string) => {
-    return (event: React.MouseEvent) => {
-      event.preventDefault();
-      
-      console.log('🖱️ Click en botón del slide:', {
-        slideId,
-        title: slideTitle,
-        originalLink: slideLink,
-      });
+  // Función directa para manejar clicks - sin useCallback
+  const handleSlideButtonClick = (slideId: string, slideLink: string, slideTitle: string) => {
+    console.log('🖱️ NUEVO HANDLER - Click en botón del slide:', {
+      slideId,
+      title: slideTitle,
+      originalLink: slideLink,
+      timestamp: new Date().toISOString()
+    });
 
-      // Normalizar el enlace - convertir /electronicos a /electronics
-      let targetLink = slideLink;
-      if (targetLink === '/electronicos') {
-        targetLink = '/electronics';
-        console.log('🔄 Convirtiendo enlace de /electronicos a /electronics');
-      }
+    // Normalizar el enlace - convertir /electronicos a /electronics
+    let targetLink = slideLink;
+    if (targetLink === '/electronicos') {
+      targetLink = '/electronics';
+      console.log('🔄 Convirtiendo enlace de /electronicos a /electronics');
+    }
 
-      console.log('🎯 Navegando a:', targetLink);
-      navigate(targetLink);
-    };
-  }, [navigate]);
+    console.log('🎯 Navegando a:', targetLink);
+    navigate(targetLink);
+  };
 
   if (isLoading) {
     return (
@@ -295,7 +292,10 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={createSlideButtonHandler(slide.id, slide.button_link, slide.title_key)}
+                    onClick={() => {
+                      console.log('📱 MOBILE CLICK - Slide:', slide.id, 'Link:', slide.button_link);
+                      handleSlideButtonClick(slide.id, slide.button_link, slide.title_key);
+                    }}
                   >
                     {slide.button_text_key}
                   </button>
@@ -328,7 +328,10 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={createSlideButtonHandler(slide.id, slide.button_link, slide.title_key)}
+                    onClick={() => {
+                      console.log('💻 DESKTOP CLICK - Slide:', slide.id, 'Link:', slide.button_link);
+                      handleSlideButtonClick(slide.id, slide.button_link, slide.title_key);
+                    }}
                   >
                     {slide.button_text_key}
                   </button>
