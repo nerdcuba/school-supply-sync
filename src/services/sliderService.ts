@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SliderImage {
@@ -25,59 +24,8 @@ export interface SliderImage {
 }
 
 export const sliderService = {
-  // Corregir órdenes duplicados
-  async fixDisplayOrders(): Promise<void> {
-    console.log('🔧 Corrigiendo órdenes de display duplicados...');
-    
-    // Obtener todos los slides activos
-    const { data: slides } = await supabase
-      .from('slider_images')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at');
-
-    if (!slides || slides.length === 0) return;
-
-    // Asignar nuevos órdenes basados en IDs específicos conocidos
-    const updates = [];
-    
-    for (let i = 0; i < slides.length; i++) {
-      const slide = slides[i];
-      let newOrder = i;
-      
-      // Asignar órdenes específicos basados en el título para garantizar consistencia
-      if (slide.title_key === 'Listas Oficiales de Útiles Escolares') {
-        newOrder = 0;
-      } else if (slide.title_key === 'Electrónicos Escolares de Alta Calidad') {
-        newOrder = 1;
-      } else if (slide.title_key === '¿No encuentras tu Escuela?') {
-        newOrder = 2;
-      }
-      
-      if (slide.display_order !== newOrder) {
-        updates.push({
-          id: slide.id,
-          display_order: newOrder
-        });
-      }
-    }
-
-    // Ejecutar las actualizaciones
-    for (const update of updates) {
-      await supabase
-        .from('slider_images')
-        .update({ display_order: update.display_order, updated_at: new Date().toISOString() })
-        .eq('id', update.id);
-      
-      console.log(`✅ Slide ${update.id} actualizado a display_order: ${update.display_order}`);
-    }
-  },
-
   // Obtener todos los slides activos
   async getActiveSlides(): Promise<SliderImage[]> {
-    // Primero corregir los órdenes duplicados
-    await this.fixDisplayOrders();
-    
     const { data, error } = await supabase
       .from('slider_images')
       .select('*')

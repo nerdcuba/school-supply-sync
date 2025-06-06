@@ -36,10 +36,13 @@ const HeroSlider = () => {
         // Si no hay slides en la BD, usar slides por defecto
         loadDefaultSlides();
       } else {
-        setSlides(slidesData);
+        // Ordenar por display_order para asegurar el orden correcto
+        const sortedSlides = slidesData.sort((a, b) => a.display_order - b.display_order);
+        setSlides(sortedSlides);
+        
         // Log para debuggear los enlaces
-        slidesData.forEach((slide, index) => {
-          console.log(`🔗 Slide ${index + 1} - ID: "${slide.id}" - Título: "${slide.title_key}" - Enlace: "${slide.button_link}"`);
+        sortedSlides.forEach((slide, index) => {
+          console.log(`🔗 Slide ${index + 1} - Título: "${slide.title_key}" - Enlace: "${slide.button_link}"`);
         });
       }
     } catch (error) {
@@ -222,11 +225,16 @@ const HeroSlider = () => {
     );
   }
 
+  const handleButtonClick = (slideIndex: number, buttonLink: string, slideTitle: string) => {
+    console.log(`🖱️ BUTTON CLICK - Slide ${slideIndex + 1}: "${slideTitle}" → Link: "${buttonLink}"`);
+    navigate(buttonLink);
+  };
+
   return (
     <div className="relative h-[480px] md:h-[500px] w-full overflow-hidden">
       {slides.map((slide, index) => (
         <div
-          key={slide.id}
+          key={`${slide.id}-${index}`}
           className={`absolute inset-0 transition-opacity duration-500 ${
             index === current ? 'opacity-100' : 'opacity-0'
           }`}
@@ -237,8 +245,10 @@ const HeroSlider = () => {
             {/* Image Container - Mobile (top) */}
             <div className="flex-1 flex items-center justify-center p-6">
               <div 
-                className={`w-full h-40 max-w-sm rounded-xl overflow-hidden ${getImageShadowClass(slide.image_shadow_enabled, slide.image_shadow_color)}`}
-                style={getImageShadowStyle(slide.image_shadow_enabled, slide.image_shadow_color)}
+                className={`w-full h-40 max-w-sm rounded-xl overflow-hidden ${slide.image_shadow_enabled ? 'shadow-2xl' : ''}`}
+                style={slide.image_shadow_enabled ? {
+                  boxShadow: `0 25px 50px -12px ${slide.image_shadow_color}80`
+                } : {}}
               >
                 <img 
                   src={slide.image_url} 
@@ -251,9 +261,9 @@ const HeroSlider = () => {
               </div>
             </div>
 
-            {/* Text Content Container - Mobile (bottom) with space for indicators */}
-            <div className={`flex-1 flex ${getTextPositionClass(slide.text_position)} px-6 pb-6`}>
-              <div className={`w-full ${getTextAlignmentClass(slide.text_alignment)}`}>
+            {/* Text Content Container - Mobile (bottom) */}
+            <div className={`flex-1 flex justify-center px-6 pb-6`}>
+              <div className={`w-full text-center`}>
                 <h1 
                   className="text-xl font-bold mb-4 animate-fade-in"
                   style={{ color: slide.title_color }}
@@ -273,10 +283,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => {
-                      console.log(`📱 MOBILE CLICK - Slide: "${slide.title_key}" Link: "${slide.button_link}"`);
-                      navigate(slide.button_link);
-                    }}
+                    onClick={() => handleButtonClick(index, slide.button_link, slide.title_key)}
                   >
                     {slide.button_text_key}
                   </button>
@@ -289,7 +296,7 @@ const HeroSlider = () => {
           <div className="hidden md:flex items-center h-full px-8">
             <div className="container mx-auto flex items-center gap-12">
               {/* Text Content - Desktop */}
-              <div className={`flex-1 ${getTextAlignmentClass(slide.text_alignment)}`}>
+              <div className={`flex-1 ${slide.text_alignment === 'left' ? 'text-left' : slide.text_alignment === 'right' ? 'text-right' : 'text-center'}`}>
                 <h1 
                   className="text-4xl lg:text-5xl font-bold mb-6 animate-fade-in"
                   style={{ color: slide.title_color }}
@@ -309,10 +316,7 @@ const HeroSlider = () => {
                       color: slide.button_color,
                       backgroundColor: slide.button_background_color
                     }}
-                    onClick={() => {
-                      console.log(`💻 DESKTOP CLICK - Slide: "${slide.title_key}" Link: "${slide.button_link}"`);
-                      navigate(slide.button_link);
-                    }}
+                    onClick={() => handleButtonClick(index, slide.button_link, slide.title_key)}
                   >
                     {slide.button_text_key}
                   </button>
@@ -322,8 +326,10 @@ const HeroSlider = () => {
               {/* Image Container - Desktop */}
               <div className="flex-1 flex items-center justify-center">
                 <div 
-                  className={`w-full h-80 max-w-lg rounded-xl overflow-hidden ${getImageShadowClass(slide.image_shadow_enabled, slide.image_shadow_color)}`}
-                  style={getImageShadowStyle(slide.image_shadow_enabled, slide.image_shadow_color)}
+                  className={`w-full h-80 max-w-lg rounded-xl overflow-hidden ${slide.image_shadow_enabled ? 'shadow-2xl' : ''}`}
+                  style={slide.image_shadow_enabled ? {
+                    boxShadow: `0 25px 50px -12px ${slide.image_shadow_color}80`
+                  } : {}}
                 >
                   <img 
                     src={slide.image_url} 
@@ -355,7 +361,7 @@ const HeroSlider = () => {
         <ChevronRight size={24} className="text-white" />
       </button>
 
-      {/* Indicators - Positioned lower on mobile with increased container height */}
+      {/* Indicators */}
       <div className="absolute bottom-2 md:bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
         {slides.map((_, index) => (
           <button
